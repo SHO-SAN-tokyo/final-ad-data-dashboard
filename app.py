@@ -87,11 +87,11 @@ try:
             # AdNameを整数に変換（エラーはNaNに）
             image_df["AdNum"] = pd.to_numeric(image_df["AdName"], errors="coerce")
 
-            # CV列（"1"～"60"）から、AdNumに対応する列を参照してCV件数を取得
-            cv_columns = [str(i) for i in range(1, 61)]
-            for col in cv_columns:
+            # CV列（"1"～"60"）がないときは作って0で埋める
+            for i in range(1, 61):
+                col = str(i)
                 if col not in filtered_df.columns:
-                    filtered_df[col] = 0  # 存在しない列を0で埋める
+                    filtered_df[col] = 0
 
             def get_cv(row):
                 adnum = row["AdNum"]
@@ -108,11 +108,11 @@ try:
                 image_df = image_df.sort_values(by="AdNum", ascending=True)
                 cols = st.columns(5)
                 for i, (_, row) in enumerate(image_df.iterrows()):
-                    caption = f"CV：{int(row['CV件数'])}件"
+                    cv_text = f"CV：{int(row['CV件数'])}件" if not pd.isna(row['CV件数']) else "CV：不明"
                     with cols[i % 5]:
                         st.image(
                             row["CloudStorageUrl"],
-                            caption=caption,
+                            caption=cv_text,
                             use_container_width=True
                         )
         else:
