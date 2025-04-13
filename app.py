@@ -87,20 +87,21 @@ try:
             st.write("🎯 CloudStorageUrl から画像を取得中...")
             cols = st.columns(5)
 
-            valid_rows = filtered_df[
-                filtered_df["CloudStorageUrl"].notna()
-                & (filtered_df["CloudStorageUrl"] != "")
-                & (filtered_df["CloudStorageUrl"] != "0")
-                & filtered_df["CloudStorageUrl"].str.startswith("http")
-            ]
-
-            for i, (_, row) in enumerate(valid_rows.iterrows()):
-                with cols[i % 5]:
-                    st.image(
-                        row["CloudStorageUrl"],
-                        caption=row.get("canvaURL", "（canvaURLなし）"),
-                        use_container_width=True
-                    )
+            for i, (_, row) in enumerate(filtered_df.iterrows()):
+                url = row["CloudStorageUrl"]
+                # 無効なURL（None/空文字/ゼロ/非http）を除外
+                if (
+                    isinstance(url, str) and
+                    url.strip() != "" and
+                    url != "0" and
+                    url.startswith("http")
+                ):
+                    with cols[i % 5]:
+                        st.image(
+                            url,
+                            caption=row.get("canvaURL", "（canvaURLなし）"),
+                            use_container_width=True
+                        )
         else:
             st.warning("⚠️ CloudStorageUrl 列が見つかりません")
 
