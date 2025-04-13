@@ -86,16 +86,9 @@ try:
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🎯 CloudStorageUrl から画像を取得中...")
             cols = st.columns(5)
-
             for i, (_, row) in enumerate(filtered_df.iterrows()):
                 url = row["CloudStorageUrl"]
-                # 無効なURL（None/空文字/ゼロ/非http）を除外
-                if (
-                    isinstance(url, str) and
-                    url.strip() != "" and
-                    url != "0" and
-                    url.startswith("http")
-                ):
+                if isinstance(url, str) and url.strip() not in ["", "0", "None"]:
                     with cols[i % 5]:
                         st.image(
                             url,
