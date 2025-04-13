@@ -38,7 +38,6 @@ try:
             min_date, max_date = df["Date"].min(), df["Date"].max()
             selected_date = st.sidebar.date_input("日付", [min_date, max_date])
 
-        # 絞り込み
         filtered_df = df.copy()
         if selected_client != "すべて":
             filtered_df = filtered_df[filtered_df["PromotionName"] == selected_client]
@@ -98,34 +97,21 @@ try:
                 "Clicks": "sum"
             }).reset_index()
             caption_df = caption_df.merge(cv_sum_df, on=["CampaignId", "AdName"], how="left")
-
             caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
             caption_df["CPA"] = caption_df.apply(
                 lambda row: row["Cost"] / row["CV件数"] if pd.notna(row["CV件数"]) and row["CV件数"] > 0 else pd.NA,
                 axis=1
             )
 
-            # 並び替えコントロール
             sort_option = st.radio("並び替え基準", ["AdNum", "CV件数(多)", "CPA(小)"])
 
+            # 並び替えロジック（CV件数0の画像は除外）
             if sort_option == "CV件数(多)":
-                image_df = image_df.merge(
-                    caption_df[["CampaignId", "AdName", "CV件数"]],
-                    on=["CampaignId", "AdName"],
-                    how="left"
-                )
-                image_df = image_df[image_df["CV件数"] > 0]
-                image_df = image_df.sort_values(by="CV件数", ascending=False)
-
+                image_df = image_df[image_df["CV件数"] > 0].sort_values(by="CV件数", ascending=False)
             elif sort_option == "CPA(小)":
-                image_df = image_df.merge(
-                    caption_df[["CampaignId", "AdName", "CPA", "CV件数"]],
-                    on=["CampaignId", "AdName"],
-                    how="left"
-                )
-                image_df = image_df[image_df["CV件数"] > 0]
-                image_df = image_df.sort_values(by="CPA", ascending=True, na_position="last")
-
+                image_df = image_df.merge(caption_df[["CampaignId", "AdName", "CPA", "CV件数"]],
+                                          on=["CampaignId", "AdName"], how="left")
+                image_df = image_df[image_df["CV件数"] > 0].sort_values(by="CPA", ascending=True, na_position="last")
             else:
                 image_df = image_df.sort_values("AdNum")
 
@@ -156,7 +142,7 @@ try:
                     """
                     caption_html += f"<b>CTR：</b>{ctr * 100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
                     caption_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
-                    caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if cpa is not None and pd.notna(cpa) else "<b>CPA：</b>-<br>"
+                    caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
                     caption_html += f"<b>メインテキスト：</b>{text}</div>"
 
                     with cols[i % 5]:
