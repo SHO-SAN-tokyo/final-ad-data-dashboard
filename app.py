@@ -44,8 +44,16 @@ try:
         selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(df_by_category["CampaignName"].dropna().unique()))
 
         if "Date" in df.columns and not df["Date"].isnull().all():
-            min_date, max_date = df["Date"].min(), df["Date"].max()
-            selected_date = st.sidebar.date_input("日付", [min_date, max_date])
+            # クライアント・カテゴリの絞り込み後データを使う（キャンペーン名はまだ未選択なので）
+            date_base_df = df_by_category
+
+            # nullを除いたうえで範囲を指定
+            valid_dates = date_base_df["Date"].dropna()
+            if not valid_dates.empty:
+                min_date, max_date = valid_dates.min(), valid_dates.max()
+                selected_date = st.sidebar.date_input("日付", [min_date, max_date], min_value=min_date, max_value=max_date)
+            else:
+                selected_date = None
 
         # 絞り込み
         filtered_df = df.copy()
