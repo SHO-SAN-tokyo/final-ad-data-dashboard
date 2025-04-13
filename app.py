@@ -105,7 +105,6 @@ try:
                 axis=1
             )
 
-            # 並び替えコントロール
             sort_option = st.radio("並び替え基準", ["AdNum", "CV件数(多)", "CPA(小)"])
 
             if sort_option == "CV件数(多)":
@@ -117,7 +116,7 @@ try:
                     on=["CampaignId", "AdName"],
                     how="left"
                 )
-                image_df = image_df[image_df["CPA"].notna()]
+                image_df = image_df[pd.notna(image_df["CPA"])]
                 image_df = image_df.sort_values(by="CPA", ascending=True, na_position="last")
             else:
                 image_df = image_df.sort_values("AdNum")
