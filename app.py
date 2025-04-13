@@ -80,12 +80,14 @@ try:
                     filtered_df[col] = 0
 
             def get_cv(row):
-                adnum = row["AdNum"]
+                adnum = row.get("AdNum")
                 if pd.isna(adnum):
                     return 0
                 return row.get(str(int(adnum)), 0)
 
-            image_df["CV件数"] = image_df.apply(get_cv, axis=1)
+            filtered_df["AdName"] = filtered_df["AdName"].astype(str).str.strip()
+            filtered_df["AdNum"] = pd.to_numeric(filtered_df["AdName"], errors="coerce")
+            filtered_df["CV件数"] = filtered_df.apply(get_cv, axis=1)
 
             # 最新テキスト取得
             latest_rows = image_df.sort_values("Date").dropna(subset=["Date"])
@@ -93,12 +95,7 @@ try:
             latest_text_map = latest_rows.set_index("AdName")["Description1ByAdType"].to_dict()
 
             # 合計値で集計（CTR, CPAもここで算出）
-            agg_df = filtered_df.copy()
-            agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
-            agg_df["AdNum"] = pd.to_numeric(agg_df["AdName"], errors="coerce")
-            agg_df["CV件数"] = agg_df.apply(get_cv, axis=1)
-
-            caption_df = agg_df.groupby("AdName").agg({
+            caption_df = filtered_df.groupby("AdName").agg({
                 "Cost": "sum",
                 "Impressions": "sum",
                 "Clicks": "sum",
@@ -125,8 +122,7 @@ try:
                     clicks = values.get("Clicks", 0)
                     ctr = values.get("CTR")
                     cpa = values.get("CPA")
-                    cv_val = row["CV件数"]
-                    cv = int(cv_val) if pd.notna(cv_val) else 0
+                    cv_val = values.get("CV件数", 0)
                     text = latest_text_map.get(adname, "")
 
                     caption_html = f"""
@@ -138,7 +134,7 @@ try:
                     <b>CTR：</b>{ctr * 100:.2f}%<br>""" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
 
                     caption_html += f"""
-                    <b>CV数：</b>{cv if cv > 0 else 'なし'}<br>"""
+                    <b>CV数：</b>{int(cv_val) if cv_val > 0 else 'なし'}<br>"""
                     caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
                     caption_html += f"<b>メインテキスト：</b>{text}</div>"
 
