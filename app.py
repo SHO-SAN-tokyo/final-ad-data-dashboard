@@ -68,7 +68,7 @@ try:
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
-        # 🖼️ 画像ギャラリー（重複排除）
+        # 🖼️ 画像ギャラリー（重複排除＋CV件数表示）
         st.subheader("🖼️ 画像ギャラリー（CloudStorageUrlだべ）")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🎯 CloudStorageUrl から画像を取得中...")
@@ -81,8 +81,20 @@ try:
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
             image_df["CloudStorageUrl"] = image_df["CloudStorageUrl"].astype(str).str.strip()
 
-            # ✅ CampaignId + AdName + URLの重複を除去 
+            # ✅ AdNameの数値（1〜60）を判定
+            image_df["AdName_num"] = pd.to_numeric(image_df["AdName"], errors="coerce")
+            image_df = image_df.dropna(subset=["AdName_num"])
+            image_df["AdName_num"] = image_df["AdName_num"].astype(int)
+
+            # ✅ 各AdNameに対応するCV数を取得
+            for n in range(1, 61):
+                col_name = str(n)
+                if col_name in image_df.columns:
+                    image_df[col_name] = pd.to_numeric(image_df[col_name], errors="coerce")
+
+            image_df["CV"] = image_df.lookup(image_df.index, image_df["AdName_num"].astype(str))
             image_df = image_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
+            image_df = image_df.sort_values("AdName_num")
 
             if image_df.empty:
                 st.warning("⚠️ 表示できる画像がありません")
@@ -92,7 +104,7 @@ try:
                     with cols[i % 5]:
                         st.image(
                             row["CloudStorageUrl"],
-                            caption=row.get("canvaURL", "（canvaURLなし）"),
+                            caption=f"CV：{int(row['CV']) if pd.notna(row['CV']) else 0}件",
                             use_container_width=True
                         )
         else:
