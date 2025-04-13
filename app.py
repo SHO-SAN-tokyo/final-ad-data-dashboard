@@ -4,12 +4,12 @@ import pandas as pd
 
 st.title("📊 Final_Ad_Data Dashboard")
 
-# 1) 認証情報を整形して BigQuery クライアント作成
+# 認証情報読み込み
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info_dict)
 
-# クエリ実行
+# クエリ
 query = """
 SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data`
 LIMIT 1000
@@ -33,7 +33,7 @@ try:
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-        # 🎯 サイドバーでフィルター
+        # 🔍 サイドバー
         st.sidebar.header("🔍 フィルター")
         client_options = ["すべて"] + sorted(df["PromotionName"].dropna().unique())
         selected_client = st.sidebar.selectbox("クライアントで絞り込み", client_options)
@@ -49,7 +49,7 @@ try:
             max_date = df["Date"].max()
             selected_date = st.sidebar.date_input("日付で絞り込み", [min_date, max_date])
 
-        # 🎯 絞り込み処理
+        # 🎯 フィルタリング
         filtered_df = df.copy()
         if selected_client != "すべて":
             filtered_df = filtered_df[filtered_df["PromotionName"] == selected_client]
@@ -63,31 +63,28 @@ try:
                 (filtered_df["Date"] >= start_date) & (filtered_df["Date"] <= end_date)
             ]
 
-        # 📋 表の表示
+        # 📋 表形式データ
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
         # 🖼️ 画像ギャラリー
         st.subheader("🖼️ 画像ギャラリー（CloudStorageUrl）")
-
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🎯 CloudStorageUrl から画像を取得中...")
             cols = st.columns(5)
+
             for i, (_, row) in enumerate(filtered_df.iterrows()):
                 url = row["CloudStorageUrl"]
 
-                # ❗「None」「空文字」「0」「nan」などを弾く
-                if (
-                    isinstance(url, str)
-                    and url.strip().lower() not in ["", "none", "nan", "0"]
-                    and url.strip().startswith("http")
-                ):
+                # ✅ 画像URLとして有効かチェック
+                if isinstance(url, str) and url.strip().lower() not in ["", "none", "nan", "0"] and url.startswith("http"):
                     with cols[i % 5]:
                         st.image(
                             url,
                             caption=row.get("canvaURL", "（canvaURLなし）"),
                             use_container_width=True
                         )
+
         else:
             st.warning("⚠️ CloudStorageUrl 列が見つかりません")
 
