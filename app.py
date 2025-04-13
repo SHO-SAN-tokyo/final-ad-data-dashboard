@@ -25,7 +25,6 @@ try:
     else:
         st.success("✅ データ取得成功！")
 
-        # 整形
         if "カテゴリ" in df.columns:
             df["カテゴリ"] = df["カテゴリ"].astype(str).str.strip().replace("", "未設定").fillna("未設定")
 
@@ -57,7 +56,6 @@ try:
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
-        # 画像ギャラリー
         st.subheader("🖼️ 画像ギャラリー（CloudStorageUrl）")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🎯 CloudStorageUrl から画像を取得中...")
@@ -83,8 +81,10 @@ try:
 
             def get_cv(row):
                 adnum = row["AdNum"]
-                if pd.isna(adnum): return 0
+                if pd.isna(adnum):
+                    return 0
                 return row.get(str(int(adnum)), 0)
+
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
             # 最新テキスト取得
@@ -92,36 +92,52 @@ try:
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
             latest_text_map = latest_rows.set_index("AdName")["Description1ByAdType"].to_dict()
 
+            # 合計値で集計（CTR, CPAもここで算出）
+            agg_df = filtered_df.copy()
+            agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
+            agg_df["AdNum"] = pd.to_numeric(agg_df["AdName"], errors="coerce")
+            agg_df["CV件数"] = agg_df.apply(get_cv, axis=1)
+
+            caption_df = agg_df.groupby("AdName").agg({
+                "Cost": "sum",
+                "Impressions": "sum",
+                "Clicks": "sum",
+                "CV件数": "sum"
+            }).reset_index()
+
+            caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
+            caption_df["CPA"] = caption_df["Cost"] / caption_df["CV件数"].replace(0, pd.NA)
+            caption_map = caption_df.set_index("AdName").to_dict("index")
+
             if image_df.empty:
                 st.warning("⚠️ 表示できる画像がありません")
             else:
                 image_df = image_df.sort_values("AdNum")
-                caption_df = image_df.groupby("AdName").agg({
-                    "Cost": "sum",
-                    "Impressions": "sum",
-                    "Clicks": "sum",
-                    "CV件数": "sum"
-                }).reset_index()
-
-                caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
-                caption_df["CPA"] = caption_df["Cost"] / caption_df["CV件数"].replace(0, pd.NA)
-                caption_map = caption_df.set_index("AdName").to_dict("index")
-
                 cols = st.columns(5)
                 for i, (_, row) in enumerate(image_df.iterrows()):
                     adname = row["AdName"]
                     values = caption_map.get(adname, {})
+                    cost = values.get("Cost", 0)
+                    imp = values.get("Impressions", 0)
+                    clicks = values.get("Clicks", 0)
+                    ctr = values.get("CTR")
+                    cpa = values.get("CPA")
+                    cv = int(row["CV件数"])
+                    text = latest_text_map.get(adname, "")
+
                     caption_html = f"""
-                    <div style='text-align: left; font-size: 14px; line-height: 1.5'>
+                    <div style='text-align: left; font-size: 14px; line-height: 1.6'>
                     <b>広告名：</b>{adname}<br>
-                    <b>消化金額：</b>{values.get('Cost', 0):,.0f}円<br>
-                    <b>IMP：</b>{values.get('Impressions', 0):,.0f}<br>
-                    <b>クリック：</b>{values.get('Clicks', 0):,.0f}<br>
-                    <b>CTR：</b>{values.get('CTR') * 100:.2f}%<br>""" if pd.notna(values.get('CTR')) else "<b>CTR：</b>-\n"
+                    <b>消化金額：</b>{cost:,.0f}円<br>
+                    <b>IMP：</b>{imp:,.0f}<br>
+                    <b>クリック：</b>{clicks:,.0f}<br>
+                    <b>CTR：</b>{ctr * 100:.2f}%<br>""" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
+
                     caption_html += f"""
-                    <b>CV数：</b>{values.get('CV件数', 0):,.0f}件<br>
-                    <b>CPA：</b>{values.get('CPA'):,.0f}円<br>""" if pd.notna(values.get('CPA')) else "<b>CPA：</b>-<br>"
-                    caption_html += f"<b>メインテキスト：</b>{latest_text_map.get(adname, '')}</div>"
+                    <b>CV数：</b>{cv if cv > 0 else 'なし'}<br>
+                    <b>CPA：</b>{cpa:,.0f}円<br>""" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
+
+                    caption_html += f"<b>メインテキスト：</b>{text}</div>"
 
                     with cols[i % 5]:
                         st.image(row["CloudStorageUrl"], use_container_width=True)
