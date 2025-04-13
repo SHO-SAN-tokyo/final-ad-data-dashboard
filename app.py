@@ -2,24 +2,18 @@ import streamlit as st
 from google.cloud import bigquery
 import pandas as pd
 
-st.write("private_key (repr):", repr(info_dict["private_key"]))
-
-
-# 🔐 secrets 読み取りテスト（先頭100文字）
-st.write("🔐 secrets 読み取りテスト（先頭100文字）")
-st.code(st.secrets["connections"]["bigquery"]["private_key"][:100])
-
 st.title("📊 Final_Ad_Data Dashboard")
 
-# ▼ この行は削除 or コメントアウト
-# client = bigquery.Client.from_service_account_info(
-#     st.secrets["connections"]["bigquery"]
-# )
-
-# ▼ 代わりに、以下のように書く
+# 1) まずは info_dict を作成
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 
+# 2) デバッグ出力（private_key の一部を確認）
+st.write("private_key (repr):", repr(info_dict["private_key"]))
+st.write("🔐 secrets 読み取りテスト（先頭100文字）")
+st.code(info_dict["private_key"][:100])  # ここでは info_dict 経由で参照
+
+# 3) BigQuery クライアント作成
 client = bigquery.Client.from_service_account_info(info_dict)
 
 # クエリ
