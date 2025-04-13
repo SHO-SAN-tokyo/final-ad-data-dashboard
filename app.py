@@ -83,13 +83,16 @@ try:
         # ==============================
         st.subheader("🖼️ 画像ギャラリー（CloudStorageUrl）")
 
-        if "CloudStorageUrl" in filtered_df.columns:
+        if all(col in filtered_df.columns for col in ["CloudStorageUrl", "CampaignName", "Adname"]):
             st.write("🎯 CloudStorageUrl から画像を取得中...")
 
-            # ✅ 有効な画像URLのみ抽出
-            image_df = filtered_df[
-                filtered_df["CloudStorageUrl"].astype(str).str.startswith("http")
-            ]
+            # ✅ 重複排除しつつ有効なURLのみ抽出
+            image_df = (
+                filtered_df
+                .drop_duplicates(subset=["CampaignName", "Adname"])
+                .copy()
+            )
+            image_df = image_df[image_df["CloudStorageUrl"].astype(str).str.startswith("http")]
 
             if image_df.empty:
                 st.warning("⚠️ 表示できる画像がありません")
@@ -103,7 +106,7 @@ try:
                             use_container_width=True
                         )
         else:
-            st.warning("⚠️ CloudStorageUrl 列が見つかりません")
+            st.warning("⚠️ CloudStorageUrl または CampaignName / Adname 列が見つかりません")
 
 except Exception as e:
     st.error(f"❌ データ取得エラー: {e}")
