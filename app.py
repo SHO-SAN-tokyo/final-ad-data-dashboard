@@ -2,17 +2,22 @@ import streamlit as st
 from google.cloud import bigquery
 import pandas as pd
 
-# ✅ secrets の確認（先頭で確認）
+# 🔐 secrets 読み取りテスト（先頭100文字）
 st.write("🔐 secrets 読み取りテスト（先頭100文字）")
 st.code(st.secrets["connections"]["bigquery"]["private_key"][:100])
 
-# タイトル
 st.title("📊 Final_Ad_Data Dashboard")
 
-# ✅ Streamlit Secretsから認証情報を使う BigQueryクライアント
-client = bigquery.Client.from_service_account_info(
-    st.secrets["connections"]["bigquery"]
-)
+# ▼ この行は削除 or コメントアウト
+# client = bigquery.Client.from_service_account_info(
+#     st.secrets["connections"]["bigquery"]
+# )
+
+# ▼ 代わりに、以下のように書く
+info_dict = dict(st.secrets["connections"]["bigquery"])
+info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
+
+client = bigquery.Client.from_service_account_info(info_dict)
 
 # クエリ
 query = """
