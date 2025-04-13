@@ -25,7 +25,6 @@ try:
     else:
         st.success("✅ データ取得成功！")
 
-        # 整形
         if "カテゴリ" in df.columns:
             df["カテゴリ"] = df["カテゴリ"].astype(str).str.strip().replace("", "未設定").fillna("未設定")
 
@@ -57,7 +56,6 @@ try:
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
-        # 画像ギャラリー
         st.subheader("🖼️ 画像ギャラリー（CloudStorageUrl）")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🎯 CloudStorageUrl から画像を取得中...")
@@ -67,7 +65,6 @@ try:
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
             image_df["CloudStorageUrl"] = image_df["CloudStorageUrl"].astype(str).str.strip()
             image_df["AdNum"] = pd.to_numeric(image_df["AdName"], errors="coerce")
-
             image_df = image_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
 
             # 数値変換
@@ -75,7 +72,7 @@ try:
                 if col in filtered_df.columns:
                     filtered_df[col] = pd.to_numeric(filtered_df[col], errors="coerce")
 
-            # CV列補完（1〜60列を用意）
+            # CV列補完
             for i in range(1, 61):
                 col = str(i)
                 if col not in filtered_df.columns:
@@ -85,8 +82,7 @@ try:
                 adnum = row["AdNum"]
                 if pd.isna(adnum):
                     return 0
-                col = str(int(adnum))
-                return row.get(col, 0)
+                return row.get(str(int(adnum)), 0)
 
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
@@ -95,7 +91,7 @@ try:
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
             latest_text_map = latest_rows.set_index("AdName")["Description1ByAdType"].to_dict()
 
-            # 合計値で集計
+            # 合計値で集計（CTR, CPAもここで算出）
             agg_df = filtered_df.copy()
             agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
             agg_df["AdNum"] = pd.to_numeric(agg_df["AdName"], errors="coerce")
@@ -137,11 +133,10 @@ try:
                     <b>広告名：</b>{adname}<br>
                     <b>消化金額：</b>{cost:,.0f}円<br>
                     <b>IMP：</b>{imp:,.0f}<br>
-                    <b>クリック：</b>{clicks:,.0f}<br>
-                    <b>CTR：</b>{ctr * 100:.2f}%<br>""" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
+                    <b>クリック：</b>{clicks:,.0f}<br>"""
 
-                    caption_html += f"""
-                    <b>CV数：</b>{cv if cv > 0 else 'なし'}<br>"""
+                    caption_html += f"<b>CTR：</b>{ctr * 100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
+                    caption_html += f"<b>CV数：</b>{cv if cv > 0 else 'なし'}<br>"
                     caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
                     caption_html += f"<b>メインテキスト：</b>{text}</div>"
 
