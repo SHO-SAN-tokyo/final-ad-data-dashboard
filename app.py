@@ -107,18 +107,16 @@ try:
 
             # 並び替えコントロール
             sort_option = st.radio("並び替え基準", ["AdNum", "CV件数(多)", "CPA(小)"])
-
-            # 並び替え用に image_df に列追加（CPAがないときのエラー防止）
             if sort_option == "CV件数(多)":
-                image_df = image_df.sort_values(by="CV件数", ascending=False)
+                image_df = image_df[image_df["CV件数"] > 0].sort_values(by="CV件数", ascending=False)
             elif sort_option == "CPA(小)":
-                if "CPA" not in image_df.columns:
-                    image_df = image_df.merge(
-                        caption_df[["CampaignId", "AdName", "CPA"]],
-                        on=["CampaignId", "AdName"],
-                        how="left"
-                    )
-                image_df = image_df.sort_values(by="CPA", ascending=True, na_position="last")
+                image_df = image_df.merge(
+                    caption_df[["CampaignId", "AdName", "CPA"]],
+                    on=["CampaignId", "AdName"],
+                    how="left"
+                )
+                image_df = image_df[pd.notna(image_df["CPA"])]
+                image_df = image_df.sort_values(by="CPA", ascending=True)
             else:
                 image_df = image_df.sort_values("AdNum")
 
@@ -136,7 +134,7 @@ try:
                     imp = values.get("Impressions", 0)
                     clicks = values.get("Clicks", 0)
                     ctr = values.get("CTR")
-                    cpa = values.get("CPA", None)
+                    cpa = values.get("CPA")
                     cv = values.get("CV件数", 0)
                     text = latest_text_map.get(adname, "")
 
@@ -149,7 +147,7 @@ try:
                     """
                     caption_html += f"<b>CTR：</b>{ctr * 100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
                     caption_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
-                    caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if cpa is not None and pd.notna(cpa) else "<b>CPA：</b>-<br>"
+                    caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
                     caption_html += f"<b>メインテキスト：</b>{text}</div>"
 
                     with cols[i % 5]:
