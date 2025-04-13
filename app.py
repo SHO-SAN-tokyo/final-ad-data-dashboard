@@ -30,7 +30,6 @@ try:
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-        # サイドバー
         st.sidebar.header("🔍 フィルター")
         selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + sorted(df["PromotionName"].dropna().unique()))
         selected_category = st.sidebar.selectbox("カテゴリ", ["すべて"] + sorted(df["カテゴリ"].unique()))
