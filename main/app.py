@@ -4,7 +4,7 @@ import pandas as pd
 
 st.title("📊 Final_Ad_Data Dashboard")
 
-# 1) info_dict を作成して改行整形
+# 1) info_dict を作成して改行整形 
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 
