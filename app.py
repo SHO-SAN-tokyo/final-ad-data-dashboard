@@ -106,7 +106,10 @@ try:
             }).reset_index()
 
             caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
-            caption_df["CPA"] = caption_df["Cost"] / caption_df["CV件数"].replace(0, pd.NA)
+            caption_df["CPA"] = caption_df.apply(
+                lambda row: row["Cost"] / row["CV件数"] if row["CV件数"] > 0 else pd.NA,
+                axis=1
+            )
             caption_map = caption_df.set_index("AdName").to_dict("index")
 
             if image_df.empty:
@@ -135,9 +138,8 @@ try:
                     <b>CTR：</b>{ctr * 100:.2f}%<br>""" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
 
                     caption_html += f"""
-                    <b>CV数：</b>{cv if cv > 0 else 'なし'}<br>
-                    <b>CPA：</b>{cpa:,.0f}円<br>""" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
-
+                    <b>CV数：</b>{cv if cv > 0 else 'なし'}<br>"""
+                    caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
                     caption_html += f"<b>メインテキスト：</b>{text}</div>"
 
                     with cols[i % 5]:
