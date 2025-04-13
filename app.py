@@ -108,7 +108,7 @@ try:
                 image_df = image_df.sort_values(by="AdNum", ascending=True)
                 cols = st.columns(5)
                 for i, (_, row) in enumerate(image_df.iterrows()):
-                    cv_text = f"CV：{int(row['CV件数'])}件" if not pd.isna(row['CV件数']) else "CV：不明"
+                    cv_text = f"CV：{int(row['CV件数'])}件" if not pd.isna(row['CV件数']) else "CV：なし"
                     with cols[i % 5]:
                         st.image(
                             row["CloudStorageUrl"],
