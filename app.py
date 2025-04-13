@@ -4,14 +4,14 @@ import pandas as pd
 
 st.title("📊 Final_Ad_Data Dashboard")
 
-# 1) info_dict を作成して改行整形
+# 認証情報の整形
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 
-# 2) BigQuery クライアント作成
+# BigQuery クライアント作成
 client = bigquery.Client.from_service_account_info(info_dict)
 
-# 3) クエリ実行
+# クエリ
 query = """
 SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data`
 LIMIT 1000
@@ -26,7 +26,7 @@ try:
     else:
         st.success("✅ データ取得成功！")
 
-        # カテゴリの整形
+        # カテゴリ整形
         if "カテゴリ" in df.columns:
             df["カテゴリ"] = df["カテゴリ"].astype(str).str.strip().replace("", "未設定").fillna("未設定")
 
@@ -68,8 +68,8 @@ try:
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
-        # 🖼️ 画像ギャラリー（重複排除＋CV件数表示）
-        st.subheader("🖼️ 画像ギャラリー（CloudStorageUrlだべ）")
+        # 🖼️ 画像ギャラリー
+        st.subheader("🖼️ 画像ギャラリー（CloudStorageUrl）")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🎯 CloudStorageUrl から画像を取得中...")
 
@@ -81,30 +81,38 @@ try:
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
             image_df["CloudStorageUrl"] = image_df["CloudStorageUrl"].astype(str).str.strip()
 
-            # ✅ AdNameの数値（1〜60）を判定
-            image_df["AdName_num"] = pd.to_numeric(image_df["AdName"], errors="coerce")
-            image_df = image_df.dropna(subset=["AdName_num"])
-            image_df["AdName_num"] = image_df["AdName_num"].astype(int)
-
-            # ✅ 各AdNameに対応するCV数を取得
-            for n in range(1, 61):
-                col_name = str(n)
-                if col_name in image_df.columns:
-                    image_df[col_name] = pd.to_numeric(image_df[col_name], errors="coerce")
-
-            image_df["CV"] = image_df.lookup(image_df.index, image_df["AdName_num"].astype(str))
+            # 重複除去
             image_df = image_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
-            image_df = image_df.sort_values("AdName_num")
+
+            # AdNameを整数に変換（エラーはNaNに）
+            image_df["AdNum"] = pd.to_numeric(image_df["AdName"], errors="coerce")
+
+            # CV列（"1"～"60"）から、AdNumに対応する列を参照してCV件数を取得
+            cv_columns = [str(i) for i in range(1, 61)]
+            for col in cv_columns:
+                if col not in filtered_df.columns:
+                    filtered_df[col] = 0  # 存在しない列を0で埋める
+
+            def get_cv(row):
+                adnum = row["AdNum"]
+                if pd.isna(adnum):
+                    return 0
+                col_name = str(int(adnum))
+                return row.get(col_name, 0)
+
+            image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
             if image_df.empty:
                 st.warning("⚠️ 表示できる画像がありません")
             else:
+                image_df = image_df.sort_values(by="AdNum", ascending=True)
                 cols = st.columns(5)
                 for i, (_, row) in enumerate(image_df.iterrows()):
+                    caption = f"CV：{int(row['CV件数'])}件"
                     with cols[i % 5]:
                         st.image(
                             row["CloudStorageUrl"],
-                            caption=f"CV：{int(row['CV']) if pd.notna(row['CV']) else 0}件",
+                            caption=caption,
                             use_container_width=True
                         )
         else:
