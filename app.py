@@ -112,14 +112,13 @@ try:
                 image_df = image_df[image_df["CV件数"] > 0]
                 image_df = image_df.sort_values(by="CV件数", ascending=False)
             elif sort_option == "CPA(小)":
-                # CPAとCV件数をmerge（まずは確実にCPA列を作る）
                 image_df = image_df.merge(
                     caption_df[["CampaignId", "AdName", "CPA"]],
                     on=["CampaignId", "AdName"],
                     how="left"
                 )
                 image_df = image_df[image_df["CPA"].notna()]
-                image_df = image_df.sort_values(by="CPA", ascending=True)
+                image_df = image_df.sort_values(by="CPA", ascending=True, na_position="last")
             else:
                 image_df = image_df.sort_values("AdNum")
 
@@ -146,7 +145,8 @@ try:
                     <b>広告名：</b>{adname}<br>
                     <b>消化金額：</b>{cost:,.0f}円<br>
                     <b>IMP：</b>{imp:,.0f}<br>
-                    <b>クリック：</b>{clicks:,.0f}<br>"""
+                    <b>クリック：</b>{clicks:,.0f}<br>
+                    """
                     caption_html += f"<b>CTR：</b>{ctr * 100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
                     caption_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
                     caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
