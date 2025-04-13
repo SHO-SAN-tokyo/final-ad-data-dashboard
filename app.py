@@ -44,10 +44,7 @@ try:
         selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(df_by_category["CampaignName"].dropna().unique()))
 
         if "Date" in df.columns and not df["Date"].isnull().all():
-            # クライアント・カテゴリの絞り込み後データを使う（キャンペーン名はまだ未選択なので）
             date_base_df = df_by_category
-
-            # nullを除いたうえで範囲を指定
             valid_dates = date_base_df["Date"].dropna()
             if not valid_dates.empty:
                 min_date, max_date = valid_dates.min(), valid_dates.max()
@@ -63,7 +60,14 @@ try:
             filtered_df = filtered_df[filtered_df["カテゴリ"] == selected_category]
         if selected_campaign != "すべて":
             filtered_df = filtered_df[filtered_df["CampaignName"] == selected_campaign]
-        if isinstance(selected_date, list) and len(selected_date) == 2:
+
+        if (
+            "selected_date" in locals()
+            and isinstance(selected_date, list)
+            and len(selected_date) == 2
+            and selected_date[0] is not None
+            and selected_date[1] is not None
+        ):
             start_date, end_date = pd.to_datetime(selected_date[0]), pd.to_datetime(selected_date[1])
             filtered_df = filtered_df[filtered_df["Date"].notna()]
             filtered_df = filtered_df[(filtered_df["Date"] >= start_date) & (filtered_df["Date"] <= end_date)]
