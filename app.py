@@ -8,11 +8,6 @@ st.title("📊 Final_Ad_Data Dashboard")
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 
-# 2) デバッグ出力（private_key の一部を確認）
-# st.write("private_key (repr):", repr(info_dict["private_key"]))
-# st.write("🔐 secrets 読み取りテスト（先頭100文字）")
-# st.code(info_dict["private_key"][:100])  # ここでは info_dict 経由で参照
-
 # 3) BigQuery クライアント作成
 client = bigquery.Client.from_service_account_info(info_dict)
 
@@ -55,12 +50,10 @@ try:
         campaign_options = ["すべて"] + sorted(df["CampaignName"].dropna().unique())
         selected_campaign = st.sidebar.selectbox("キャンペーン名で絞り込み", campaign_options)
 
-        selected_date = None
         if "Date" in df.columns and not df["Date"].isnull().all():
             min_date = df["Date"].min()
             max_date = df["Date"].max()
-            if pd.notna(min_date) and pd.notna(max_date):
-                selected_date = st.sidebar.date_input("日付で絞り込み", [min_date, max_date])
+            selected_date = st.sidebar.date_input("日付で絞り込み", [min_date, max_date])
 
         # ==============================
         # 🎯 絞り込み処理
@@ -73,7 +66,7 @@ try:
             filtered_df = filtered_df[filtered_df["カテゴリ"] == selected_category]
         if selected_campaign != "すべて":
             filtered_df = filtered_df[filtered_df["CampaignName"] == selected_campaign]
-        if selected_date and isinstance(selected_date, list) and len(selected_date) == 2:
+        if "Date" in df.columns and isinstance(selected_date, list) and len(selected_date) == 2:
             start_date, end_date = pd.to_datetime(selected_date)
             filtered_df = filtered_df[
                 (filtered_df["Date"] >= start_date) & (filtered_df["Date"] <= end_date)
@@ -94,12 +87,14 @@ try:
             st.write("🎯 CloudStorageUrl から画像を取得中...")
             cols = st.columns(5)
             for i, (_, row) in enumerate(filtered_df.iterrows()):
-                with cols[i % 5]:
-                    st.image(
-                        row["CloudStorageUrl"],
-                        caption=row.get("canvaURL", "（canvaURLなし）"),
-                        use_container_width=True
-                    )
+                url = row["CloudStorageUrl"]
+                if isinstance(url, str) and url.strip() != "":
+                    with cols[i % 5]:
+                        st.image(
+                            url,
+                            caption=row.get("canvaURL", "（canvaURLなし）"),
+                            use_container_width=True
+                        )
         else:
             st.warning("⚠️ CloudStorageUrl 列が見つかりません")
 
