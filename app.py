@@ -25,6 +25,7 @@ try:
     else:
         st.success("✅ データ取得成功！")
 
+        # 整形
         if "カテゴリ" in df.columns:
             df["カテゴリ"] = df["カテゴリ"].astype(str).str.strip().replace("", "未設定").fillna("未設定")
 
@@ -56,6 +57,7 @@ try:
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
+        # 画像ギャラリー
         st.subheader("🖼️ 画像ギャラリー（CloudStorageUrl）")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🎯 CloudStorageUrl から画像を取得中...")
@@ -73,29 +75,33 @@ try:
                 if col in filtered_df.columns:
                     filtered_df[col] = pd.to_numeric(filtered_df[col], errors="coerce")
 
-            # CV列補完
+            # CV列補完（1〜60列を用意）
             for i in range(1, 61):
                 col = str(i)
                 if col not in filtered_df.columns:
                     filtered_df[col] = 0
 
             def get_cv(row):
-                adnum = row.get("AdNum")
+                adnum = row["AdNum"]
                 if pd.isna(adnum):
                     return 0
-                return row.get(str(int(adnum)), 0)
+                col = str(int(adnum))
+                return row.get(col, 0)
 
-            filtered_df["AdName"] = filtered_df["AdName"].astype(str).str.strip()
-            filtered_df["AdNum"] = pd.to_numeric(filtered_df["AdName"], errors="coerce")
-            filtered_df["CV件数"] = filtered_df.apply(get_cv, axis=1)
+            image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
             # 最新テキスト取得
             latest_rows = image_df.sort_values("Date").dropna(subset=["Date"])
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
             latest_text_map = latest_rows.set_index("AdName")["Description1ByAdType"].to_dict()
 
-            # 合計値で集計（CTR, CPAもここで算出）
-            caption_df = filtered_df.groupby("AdName").agg({
+            # 合計値で集計
+            agg_df = filtered_df.copy()
+            agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
+            agg_df["AdNum"] = pd.to_numeric(agg_df["AdName"], errors="coerce")
+            agg_df["CV件数"] = agg_df.apply(get_cv, axis=1)
+
+            caption_df = agg_df.groupby("AdName").agg({
                 "Cost": "sum",
                 "Impressions": "sum",
                 "Clicks": "sum",
@@ -122,7 +128,8 @@ try:
                     clicks = values.get("Clicks", 0)
                     ctr = values.get("CTR")
                     cpa = values.get("CPA")
-                    cv_val = values.get("CV件数", 0)
+                    cv_val = row["CV件数"]
+                    cv = int(cv_val) if pd.notna(cv_val) else 0
                     text = latest_text_map.get(adname, "")
 
                     caption_html = f"""
@@ -134,7 +141,7 @@ try:
                     <b>CTR：</b>{ctr * 100:.2f}%<br>""" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
 
                     caption_html += f"""
-                    <b>CV数：</b>{int(cv_val) if cv_val > 0 else 'なし'}<br>"""
+                    <b>CV数：</b>{cv if cv > 0 else 'なし'}<br>"""
                     caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
                     caption_html += f"<b>メインテキスト：</b>{text}</div>"
 
