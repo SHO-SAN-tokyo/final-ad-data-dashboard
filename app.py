@@ -55,10 +55,12 @@ try:
         campaign_options = ["すべて"] + sorted(df["CampaignName"].dropna().unique())
         selected_campaign = st.sidebar.selectbox("キャンペーン名で絞り込み", campaign_options)
 
+        selected_date = None
         if "Date" in df.columns and not df["Date"].isnull().all():
             min_date = df["Date"].min()
             max_date = df["Date"].max()
-            selected_date = st.sidebar.date_input("日付で絞り込み", [min_date, max_date])
+            if pd.notna(min_date) and pd.notna(max_date):
+                selected_date = st.sidebar.date_input("日付で絞り込み", [min_date, max_date])
 
         # ==============================
         # 🎯 絞り込み処理
@@ -71,7 +73,7 @@ try:
             filtered_df = filtered_df[filtered_df["カテゴリ"] == selected_category]
         if selected_campaign != "すべて":
             filtered_df = filtered_df[filtered_df["CampaignName"] == selected_campaign]
-        if "Date" in df.columns and isinstance(selected_date, list) and len(selected_date) == 2:
+        if selected_date and isinstance(selected_date, list) and len(selected_date) == 2:
             start_date, end_date = pd.to_datetime(selected_date)
             filtered_df = filtered_df[
                 (filtered_df["Date"] >= start_date) & (filtered_df["Date"] <= end_date)
