@@ -2,7 +2,7 @@ import streamlit as st
 from google.cloud import bigquery
 import pandas as pd
 
-st.set_page_config(layout="wide")  # Wideモード
+st.set_page_config(layout="wide")
 st.title("📊 Final_Ad_Data Dashboard")
 
 # 認証
@@ -25,12 +25,14 @@ try:
     else:
         st.success("✅ データ取得成功！")
 
+        # 整形
         if "カテゴリ" in df.columns:
             df["カテゴリ"] = df["カテゴリ"].astype(str).str.strip().replace("", "未設定").fillna("未設定")
 
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
+        # サイドバー
         st.sidebar.header("🔍 フィルター")
         selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + sorted(df["PromotionName"].dropna().unique()))
         selected_category = st.sidebar.selectbox("カテゴリ", ["すべて"] + sorted(df["カテゴリ"].unique()))
@@ -40,6 +42,7 @@ try:
             min_date, max_date = df["Date"].min(), df["Date"].max()
             selected_date = st.sidebar.date_input("日付", [min_date, max_date])
 
+        # 絞り込み
         filtered_df = df.copy()
         if selected_client != "すべて":
             filtered_df = filtered_df[filtered_df["PromotionName"] == selected_client]
@@ -54,6 +57,7 @@ try:
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
+        # 画像ギャラリー
         st.subheader("🖼️ 画像ギャラリー（CloudStorageUrl）")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🎯 CloudStorageUrl から画像を取得中...")
@@ -66,11 +70,12 @@ try:
 
             image_df = image_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
 
-            # 集計用に数値変換
+            # 数値変換
             for col in ["Cost", "Impressions", "Clicks"]:
                 if col in filtered_df.columns:
                     filtered_df[col] = pd.to_numeric(filtered_df[col], errors="coerce")
 
+            # CV列補完
             for i in range(1, 61):
                 col = str(i)
                 if col not in filtered_df.columns:
@@ -82,7 +87,7 @@ try:
                 return row.get(str(int(adnum)), 0)
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
-            # 最新のDescription取得
+            # 最新テキスト取得
             latest_rows = image_df.sort_values("Date").dropna(subset=["Date"])
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
             latest_text_map = latest_rows.set_index("AdName")["Description1ByAdType"].to_dict()
@@ -106,23 +111,21 @@ try:
                 for i, (_, row) in enumerate(image_df.iterrows()):
                     adname = row["AdName"]
                     values = caption_map.get(adname, {})
-                    caption = f"広告名：{adname}\n"
-                    caption += f"消化金額：{values.get('Cost', 0):,.0f}円\n"
-                    caption += f"IMP：{values.get('Impressions', 0):,.0f}\n"
-                    caption += f"クリック：{values.get('Clicks', 0):,.0f}\n"
-                    ctr = values.get("CTR")
-                    caption += f"CTR：{ctr * 100:.2f}%\n" if pd.notna(ctr) else "CTR：-\n"
-                    caption += f"CV数：{values.get('CV件数', 0):,.0f}件\n"
-                    cpa = values.get("CPA")
-                    caption += f"CPA：{cpa:,.0f}円\n" if pd.notna(cpa) else "CPA：-\n"
-                    caption += f"メインテキスト：{latest_text_map.get(adname, '')}"
+                    caption_html = f"""
+                    <div style='text-align: left; font-size: 14px; line-height: 1.5'>
+                    <b>広告名：</b>{adname}<br>
+                    <b>消化金額：</b>{values.get('Cost', 0):,.0f}円<br>
+                    <b>IMP：</b>{values.get('Impressions', 0):,.0f}<br>
+                    <b>クリック：</b>{values.get('Clicks', 0):,.0f}<br>
+                    <b>CTR：</b>{values.get('CTR') * 100:.2f}%<br>""" if pd.notna(values.get('CTR')) else "<b>CTR：</b>-\n"
+                    caption_html += f"""
+                    <b>CV数：</b>{values.get('CV件数', 0):,.0f}件<br>
+                    <b>CPA：</b>{values.get('CPA'):,.0f}円<br>""" if pd.notna(values.get('CPA')) else "<b>CPA：</b>-<br>"
+                    caption_html += f"<b>メインテキスト：</b>{latest_text_map.get(adname, '')}</div>"
 
                     with cols[i % 5]:
-                        st.image(
-                            row["CloudStorageUrl"],
-                            caption=caption,
-                            use_container_width=True
-                        )
+                        st.image(row["CloudStorageUrl"], use_container_width=True)
+                        st.markdown(caption_html, unsafe_allow_html=True)
         else:
             st.warning("⚠️ CloudStorageUrl 列が見つかりません")
 
