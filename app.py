@@ -4,9 +4,11 @@ import pandas as pd
 
 st.title("📊 Final_Ad_Data Dashboard")
 
-# 認証情報読み込み
+# 1) まずは info_dict を作成
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
+
+# 3) BigQuery クライアント作成
 client = bigquery.Client.from_service_account_info(info_dict)
 
 # クエリ
@@ -24,21 +26,25 @@ try:
     else:
         st.success("✅ データ取得成功！")
 
-        # カテゴリ処理
+        # ✅ カテゴリの空白・欠損を「未設定」に統一
         if "カテゴリ" in df.columns:
             df["カテゴリ"] = df["カテゴリ"].astype(str).str.strip()
-            df["カテゴリ"] = df["カテゴリ"].replace("", "未設定").fillna("未設定")
+            df["カテゴリ"] = df["カテゴリ"].replace("", "未設定")
+            df["カテゴリ"] = df["カテゴリ"].fillna("未設定")
 
-        # 日付処理
+        # ✅ 日付をdatetime型に変換（必要なら）
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-        # 🔍 サイドバー
+        # ==============================
+        # 🔍 サイドバーでフィルター
+        # ==============================
         st.sidebar.header("🔍 フィルター")
+
         client_options = ["すべて"] + sorted(df["PromotionName"].dropna().unique())
         selected_client = st.sidebar.selectbox("クライアントで絞り込み", client_options)
 
-        category_options = ["すべて"] + sorted(df["カテゴリ"].dropna().unique())
+        category_options = ["すべて"] + sorted(df["カテゴリ"].unique())
         selected_category = st.sidebar.selectbox("カテゴリで絞り込み", category_options)
 
         campaign_options = ["すべて"] + sorted(df["CampaignName"].dropna().unique())
@@ -49,8 +55,11 @@ try:
             max_date = df["Date"].max()
             selected_date = st.sidebar.date_input("日付で絞り込み", [min_date, max_date])
 
-        # 🎯 フィルタリング
+        # ==============================
+        # 🎯 絞り込み処理
+        # ==============================
         filtered_df = df.copy()
+
         if selected_client != "すべて":
             filtered_df = filtered_df[filtered_df["PromotionName"] == selected_client]
         if selected_category != "すべて":
@@ -63,28 +72,36 @@ try:
                 (filtered_df["Date"] >= start_date) & (filtered_df["Date"] <= end_date)
             ]
 
-        # 📋 表形式データ
+        # ==============================
+        # 📋 表の表示
+        # ==============================
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
+        # ==============================
         # 🖼️ 画像ギャラリー
+        # ==============================
         st.subheader("🖼️ 画像ギャラリー（CloudStorageUrl）")
+
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🎯 CloudStorageUrl から画像を取得中...")
-            cols = st.columns(5)
 
-            for i, (_, row) in enumerate(filtered_df.iterrows()):
-                url = row["CloudStorageUrl"]
+            # ✅ 有効な画像URLのみ抽出
+            image_df = filtered_df[
+                filtered_df["CloudStorageUrl"].astype(str).str.startswith("http")
+            ]
 
-                # ✅ 画像URLとして有効かチェック
-                if isinstance(url, str) and url.strip().lower() not in ["", "none", "nan", "0"] and url.startswith("http"):
+            if image_df.empty:
+                st.warning("⚠️ 表示できる画像がありません")
+            else:
+                cols = st.columns(5)
+                for i, (_, row) in enumerate(image_df.iterrows()):
                     with cols[i % 5]:
                         st.image(
-                            url,
+                            row["CloudStorageUrl"],
                             caption=row.get("canvaURL", "（canvaURLなし）"),
                             use_container_width=True
                         )
-
         else:
             st.warning("⚠️ CloudStorageUrl 列が見つかりません")
 
