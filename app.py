@@ -25,7 +25,6 @@ try:
     else:
         st.success("✅ データ取得成功！")
 
-        # 整形
         if "カテゴリ" in df.columns:
             df["カテゴリ"] = df["カテゴリ"].astype(str).str.strip().replace("", "未設定").fillna("未設定")
         if "Date" in df.columns:
@@ -57,9 +56,11 @@ try:
 
         st.subheader("🖼️ 画像ギャラリー（CloudStorageUrl）")
         if "CloudStorageUrl" in filtered_df.columns:
-            st.write("🎯 CloudStorageUrl から画像を取得中...")
+            st.write("🌟 CloudStorageUrl から画像を取得中...")
 
-            # 前処理
+            # 並び替えUI
+            sort_option = st.radio("並び替え項目", ["デフォルト", "CV数が多い順", "CPAが安い順"], horizontal=True)
+
             image_df = filtered_df[filtered_df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
             image_df["AdName"] = image_df["AdName"].astype(str).str.strip()
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
@@ -83,29 +84,25 @@ try:
 
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
-            # メインテキスト（最新の行を採用）
+            # メインテキスト
             latest_rows = image_df.sort_values("Date").dropna(subset=["Date"])
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
             latest_text_map = latest_rows.set_index("AdName")["Description1ByAdType"].to_dict()
 
-            # caption_df（Cost/Clicks/IMP集計）
+            # caption_df
             agg_df = filtered_df.copy()
             agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
             agg_df["AdNum"] = pd.to_numeric(agg_df["AdName"], errors="coerce")
             agg_df = agg_df[agg_df["AdNum"].notna()]
             agg_df["AdNum"] = agg_df["AdNum"].astype(int)
 
-            # 正しいCV数（image_dfから取得）
             cv_sum_df = image_df.groupby("AdName")["CV件数"].sum().reset_index()
-
-            # 合計値を元に計算
             caption_df = agg_df.groupby("AdName").agg({
                 "Cost": "sum",
                 "Impressions": "sum",
                 "Clicks": "sum"
             }).reset_index()
             caption_df = caption_df.merge(cv_sum_df, on="AdName", how="left")
-
             caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
             caption_df["CPA"] = caption_df.apply(
                 lambda row: row["Cost"] / row["CV件数"] if pd.notna(row["CV件数"]) and row["CV件数"] > 0 else pd.NA,
@@ -113,10 +110,19 @@ try:
             )
             caption_map = caption_df.set_index("AdName").to_dict("index")
 
+            # 並び替え
+            if sort_option == "CV数が多い順":
+                image_df = image_df.sort_values(by="CV件数", ascending=False)
+            elif sort_option == "CPAが安い順":
+                image_df["CPA"] = image_df["AdName"].map(lambda x: caption_map.get(x, {}).get("CPA"))
+                image_df["CPA_NA"] = image_df["CPA"].isna()
+                image_df = image_df.sort_values(by=["CPA_NA", "CPA"], ascending=[True, True])
+            else:
+                image_df = image_df.sort_values("AdNum")
+
             if image_df.empty:
                 st.warning("⚠️ 表示できる画像がありません")
             else:
-                image_df = image_df.sort_values("AdNum")
                 cols = st.columns(5)
                 for i, (_, row) in enumerate(image_df.iterrows()):
                     adname = row["AdName"]
@@ -134,11 +140,10 @@ try:
                     <b>広告名：</b>{adname}<br>
                     <b>消化金額：</b>{cost:,.0f}円<br>
                     <b>IMP：</b>{imp:,.0f}<br>
-                    <b>クリック：</b>{clicks:,.0f}<br>
-                    <b>CTR：</b>{ctr * 100:.2f}%<br>""" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
-
+                    <b>クリック：</b>{clicks:,.0f}<br>"""
+                    caption_html += f"<b>CTR：</b>{ctr * 100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-「<br>"
                     caption_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
-                    caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
+                    caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-「<br>"
                     caption_html += f"<b>メインテキスト：</b>{text}</div>"
 
                     with cols[i % 5]:
