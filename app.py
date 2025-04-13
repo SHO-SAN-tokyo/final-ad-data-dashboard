@@ -125,8 +125,7 @@ try:
                     clicks = values.get("Clicks", 0)
                     ctr = values.get("CTR")
                     cpa = values.get("CPA")
-                    cv_val = row["CV件数"]
-                    cv = int(cv_val) if pd.notna(cv_val) else 0
+                    cv_val = values.get("CV件数", 0)
                     text = latest_text_map.get(adname, "")
 
                     caption_html = f"""
@@ -138,7 +137,7 @@ try:
                     <b>CTR：</b>{ctr * 100:.2f}%<br>""" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
 
                     caption_html += f"""
-                    <b>CV数：</b>{cv if cv > 0 else 'なし'}<br>"""
+                    <b>CV数：</b>{int(cv_val) if cv_val > 0 else 'なし'}<br>"""
                     caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
                     caption_html += f"<b>メインテキスト：</b>{text}</div>"
 
