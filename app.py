@@ -65,6 +65,7 @@ try:
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
             image_df["CloudStorageUrl"] = image_df["CloudStorageUrl"].astype(str).str.strip()
             image_df["AdNum"] = pd.to_numeric(image_df["AdName"], errors="coerce")
+
             image_df = image_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
 
             # 数値変換
@@ -91,7 +92,7 @@ try:
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
             latest_text_map = latest_rows.set_index("AdName")["Description1ByAdType"].to_dict()
 
-            # 合計値で集計（CTR, CPAもここで算出）
+            # 合計値で集計（CTR, CPA もここで算出）
             agg_df = filtered_df.copy()
             agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
             agg_df["AdNum"] = pd.to_numeric(agg_df["AdName"], errors="coerce")
@@ -105,10 +106,7 @@ try:
             }).reset_index()
 
             caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
-            caption_df["CPA"] = caption_df.apply(
-                lambda row: row["Cost"] / row["CV件数"] if row["CV件数"] > 0 else pd.NA,
-                axis=1
-            )
+            caption_df["CPA"] = caption_df["Cost"] / caption_df["CV件数"].replace(0, pd.NA)
             caption_map = caption_df.set_index("AdName").to_dict("index")
 
             if image_df.empty:
@@ -124,7 +122,7 @@ try:
                     clicks = values.get("Clicks", 0)
                     ctr = values.get("CTR")
                     cpa = values.get("CPA")
-                    cv_val = row["CV件数"]
+                    cv_val = values.get("CV件数", 0)
                     cv = int(cv_val) if pd.notna(cv_val) else 0
                     text = latest_text_map.get(adname, "")
 
@@ -133,10 +131,11 @@ try:
                     <b>広告名：</b>{adname}<br>
                     <b>消化金額：</b>{cost:,.0f}円<br>
                     <b>IMP：</b>{imp:,.0f}<br>
-                    <b>クリック：</b>{clicks:,.0f}<br>"""
+                    <b>クリック：</b>{clicks:,.0f}<br>
+                    <b>CTR：</b>{ctr * 100:.2f}%<br>""" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
 
-                    caption_html += f"<b>CTR：</b>{ctr * 100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
-                    caption_html += f"<b>CV数：</b>{cv if cv > 0 else 'なし'}<br>"
+                    caption_html += f"""
+                    <b>CV数：</b>{cv if cv > 0 else 'なし'}<br>"""
                     caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
                     caption_html += f"<b>メインテキスト：</b>{text}</div>"
 
