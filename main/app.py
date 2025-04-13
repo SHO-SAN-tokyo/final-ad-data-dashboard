@@ -69,7 +69,7 @@ try:
         st.dataframe(filtered_df)
 
         # 🖼️ 画像ギャラリー（重複排除）
-        st.subheader("🖼️ 画像ギャラリー（CloudStorageUrl）")
+        st.subheader("🖼️ 画像ギャラリー（CloudStorageUrlだってばよ）")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🎯 CloudStorageUrl から画像を取得中...")
 
