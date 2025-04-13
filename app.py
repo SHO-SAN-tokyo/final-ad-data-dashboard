@@ -30,7 +30,6 @@ try:
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-        # サイドバー
         st.sidebar.header("🔍 フィルター")
         selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + sorted(df["PromotionName"].dropna().unique()))
         selected_category = st.sidebar.selectbox("カテゴリ", ["すべて"] + sorted(df["カテゴリ"].unique()))
@@ -54,12 +53,9 @@ try:
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
-        st.subheader("🖼️ 画像ギャラリー（CloudStorageUrl）")
+        st.subheader("🖼️ 画像ギャラリー【CloudStorageUrl】")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🌟 CloudStorageUrl から画像を取得中...")
-
-            # 並び替えUI
-            sort_option = st.radio("並び替え項目", ["デフォルト", "CV数が多い順", "CPAが安い順"], horizontal=True)
 
             image_df = filtered_df[filtered_df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
             image_df["AdName"] = image_df["AdName"].astype(str).str.strip()
@@ -84,41 +80,42 @@ try:
 
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
-            # メインテキスト
             latest_rows = image_df.sort_values("Date").dropna(subset=["Date"])
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
             latest_text_map = latest_rows.set_index("AdName")["Description1ByAdType"].to_dict()
 
-            # caption_df
             agg_df = filtered_df.copy()
             agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
             agg_df["AdNum"] = pd.to_numeric(agg_df["AdName"], errors="coerce")
             agg_df = agg_df[agg_df["AdNum"].notna()]
             agg_df["AdNum"] = agg_df["AdNum"].astype(int)
 
-            cv_sum_df = image_df.groupby("AdName")["CV件数"].sum().reset_index()
-            caption_df = agg_df.groupby("AdName").agg({
+            cv_sum_df = image_df.groupby(["CampaignId", "AdName"])["CV件数"].sum().reset_index()
+
+            caption_df = agg_df.groupby(["CampaignId", "AdName"]).agg({
                 "Cost": "sum",
                 "Impressions": "sum",
                 "Clicks": "sum"
             }).reset_index()
-            caption_df = caption_df.merge(cv_sum_df, on="AdName", how="left")
+            caption_df = caption_df.merge(cv_sum_df, on=["CampaignId", "AdName"], how="left")
+
             caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
             caption_df["CPA"] = caption_df.apply(
                 lambda row: row["Cost"] / row["CV件数"] if pd.notna(row["CV件数"]) and row["CV件数"] > 0 else pd.NA,
                 axis=1
             )
-            caption_map = caption_df.set_index("AdName").to_dict("index")
 
-            # 並び替え
-            if sort_option == "CV数が多い順":
+            # 並び替えコントロール
+            sort_option = st.radio("並び替え基準", ["AdNum", "CV件数(多)", "CPA(小)"])
+            if sort_option == "CV件数(多)":
                 image_df = image_df.sort_values(by="CV件数", ascending=False)
-            elif sort_option == "CPAが安い順":
-                image_df["CPA"] = image_df["AdName"].map(lambda x: caption_map.get(x, {}).get("CPA"))
-                image_df["CPA_NA"] = image_df["CPA"].isna()
-                image_df = image_df.sort_values(by=["CPA_NA", "CPA"], ascending=[True, True])
+            elif sort_option == "CPA(小)":
+                image_df = image_df.merge(caption_df[["CampaignId", "AdName", "CPA"]], on=["CampaignId", "AdName"], how="left")
+                image_df = image_df.sort_values(by="CPA", ascending=True)
             else:
                 image_df = image_df.sort_values("AdNum")
+
+            caption_map = caption_df.set_index(["CampaignId", "AdName"]).to_dict("index")
 
             if image_df.empty:
                 st.warning("⚠️ 表示できる画像がありません")
@@ -126,7 +123,8 @@ try:
                 cols = st.columns(5)
                 for i, (_, row) in enumerate(image_df.iterrows()):
                     adname = row["AdName"]
-                    values = caption_map.get(adname, {})
+                    campid = row["CampaignId"]
+                    values = caption_map.get((campid, adname), {})
                     cost = values.get("Cost", 0)
                     imp = values.get("Impressions", 0)
                     clicks = values.get("Clicks", 0)
@@ -140,7 +138,8 @@ try:
                     <b>広告名：</b>{adname}<br>
                     <b>消化金額：</b>{cost:,.0f}円<br>
                     <b>IMP：</b>{imp:,.0f}<br>
-                    <b>クリック：</b>{clicks:,.0f}<br>"""
+                    <b>クリック：</b>{clicks:,.0f}<br>
+                    """
                     caption_html += f"<b>CTR：</b>{ctr * 100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
                     caption_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
                     caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
@@ -149,8 +148,6 @@ try:
                     with cols[i % 5]:
                         st.image(row["CloudStorageUrl"], use_container_width=True)
                         st.markdown(caption_html, unsafe_allow_html=True)
-        else:
-            st.warning("⚠️ CloudStorageUrl 列が見つかりません")
 
 except Exception as e:
     st.error(f"❌ データ取得エラー: {e}")
