@@ -81,7 +81,7 @@ try:
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
             image_df["CloudStorageUrl"] = image_df["CloudStorageUrl"].astype(str).str.strip()
 
-            # ✅ CampaignId + AdName + URLの重複を除去
+            # ✅ CampaignId + AdName + URLの重複を除去 
             image_df = image_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
 
             if image_df.empty:
