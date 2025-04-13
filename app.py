@@ -64,7 +64,8 @@ try:
         if selected_campaign != "すべて":
             filtered_df = filtered_df[filtered_df["CampaignName"] == selected_campaign]
         if isinstance(selected_date, list) and len(selected_date) == 2:
-            start_date, end_date = pd.to_datetime(selected_date)
+            start_date, end_date = pd.to_datetime(selected_date[0]), pd.to_datetime(selected_date[1])
+            filtered_df = filtered_df[filtered_df["Date"].notna()]
             filtered_df = filtered_df[(filtered_df["Date"] >= start_date) & (filtered_df["Date"] <= end_date)]
 
         st.subheader("📋 表形式データ")
