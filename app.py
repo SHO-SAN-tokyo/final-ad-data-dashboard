@@ -58,6 +58,7 @@ try:
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🎯 CloudStorageUrl から画像を取得中...")
 
+            # image_df（画像表示用）
             image_df = filtered_df[filtered_df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
             image_df["AdName"] = image_df["AdName"].astype(str).str.strip()
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
@@ -65,9 +66,14 @@ try:
             image_df["AdNum"] = pd.to_numeric(image_df["AdName"], errors="coerce")
             image_df = image_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
 
+            # 数値変換（Cost, Clicks, Impressions）
             for col in ["Cost", "Impressions", "Clicks"]:
                 if col in filtered_df.columns:
                     filtered_df[col] = pd.to_numeric(filtered_df[col], errors="coerce")
+
+            # AdNum列・CV件数列の生成
+            filtered_df["AdName"] = filtered_df["AdName"].astype(str).str.strip()
+            filtered_df["AdNum"] = pd.to_numeric(filtered_df["AdName"], errors="coerce")
 
             for i in range(1, 61):
                 col = str(i)
@@ -79,31 +85,22 @@ try:
                 if pd.isna(adnum): return 0
                 return row.get(str(int(adnum)), 0)
 
+            filtered_df["CV件数"] = filtered_df.apply(get_cv, axis=1)
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
-            # 最新のメインテキスト
+            # 最新のメインテキスト取得
             latest_rows = image_df.sort_values("Date").dropna(subset=["Date"])
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
             latest_text_map = latest_rows.set_index("AdName")["Description1ByAdType"].to_dict()
 
-            # 集計用（正しいCV件数を image_df から使う）
-            agg_df = filtered_df.copy()
-            agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
-            agg_df["AdNum"] = pd.to_numeric(agg_df["AdName"], errors="coerce")
-            agg_df = agg_df[agg_df["AdNum"].notna()]
-            agg_df["AdNum"] = agg_df["AdNum"].astype(int)
-
-            # 正しいCV件数を image_df から groupby で取得
-            cv_sum_df = image_df.groupby("AdName")["CV件数"].sum().reset_index()
-
-            caption_df = agg_df.groupby("AdName").agg({
+            # グループ集計：CV件数も含め、Cost / CV件数 でCPA計算
+            caption_df = filtered_df.groupby("AdName").agg({
                 "Cost": "sum",
                 "Impressions": "sum",
-                "Clicks": "sum"
+                "Clicks": "sum",
+                "CV件数": "sum"
             }).reset_index()
 
-            # CV数をマージしてCPA計算
-            caption_df = caption_df.merge(cv_sum_df, on="AdName", how="left")
             caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
             caption_df["CPA"] = caption_df.apply(
                 lambda row: row["Cost"] / row["CV件数"] if row["CV件数"] > 0 else pd.NA,
