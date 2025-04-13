@@ -30,6 +30,7 @@ try:
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
+        # サイドバー
         st.sidebar.header("🔍 フィルター")
         selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + sorted(df["PromotionName"].dropna().unique()))
         selected_category = st.sidebar.selectbox("カテゴリ", ["すべて"] + sorted(df["カテゴリ"].unique()))
@@ -108,17 +109,24 @@ try:
             # 並び替えコントロール
             sort_option = st.radio("並び替え基準", ["AdNum", "CV件数(多)", "CPA(小)"])
 
-            # 並び替え用に image_df に列追加（CPAがないときのエラー防止）
             if sort_option == "CV件数(多)":
+                image_df = image_df.merge(
+                    caption_df[["CampaignId", "AdName", "CV件数"]],
+                    on=["CampaignId", "AdName"],
+                    how="left"
+                )
+                image_df = image_df[image_df["CV件数"] > 0]
                 image_df = image_df.sort_values(by="CV件数", ascending=False)
+
             elif sort_option == "CPA(小)":
-                if "CPA" not in image_df.columns:
-                    image_df = image_df.merge(
-                        caption_df[["CampaignId", "AdName", "CPA"]],
-                        on=["CampaignId", "AdName"],
-                        how="left"
-                    )
+                image_df = image_df.merge(
+                    caption_df[["CampaignId", "AdName", "CPA", "CV件数"]],
+                    on=["CampaignId", "AdName"],
+                    how="left"
+                )
+                image_df = image_df[image_df["CV件数"] > 0]
                 image_df = image_df.sort_values(by="CPA", ascending=True, na_position="last")
+
             else:
                 image_df = image_df.sort_values("AdNum")
 
