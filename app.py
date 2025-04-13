@@ -108,17 +108,16 @@ try:
             # 並び替えコントロール
             sort_option = st.radio("並び替え基準", ["AdNum", "CV件数(多)", "CPA(小)"])
 
-            # 並び替え用に列追加・フィルタ処理
+            # 並び替え用に image_df に列追加（CPAがないときのエラー防止）
             if sort_option == "CV件数(多)":
-                image_df = image_df[image_df["CV件数"] > 0]
                 image_df = image_df.sort_values(by="CV件数", ascending=False)
             elif sort_option == "CPA(小)":
-                image_df = image_df.merge(
-                    caption_df[["CampaignId", "AdName", "CPA"]],
-                    on=["CampaignId", "AdName"],
-                    how="left"
-                )
-                image_df = image_df[image_df["CV件数"] > 0]
+                if "CPA" not in image_df.columns:
+                    image_df = image_df.merge(
+                        caption_df[["CampaignId", "AdName", "CPA"]],
+                        on=["CampaignId", "AdName"],
+                        how="left"
+                    )
                 image_df = image_df.sort_values(by="CPA", ascending=True, na_position="last")
             else:
                 image_df = image_df.sort_values("AdNum")
