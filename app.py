@@ -122,7 +122,8 @@ try:
                     clicks = values.get("Clicks", 0)
                     ctr = values.get("CTR")
                     cpa = values.get("CPA")
-                    cv = int(row["CV件数"])
+                    cv_val = row["CV件数"]
+                    cv = int(cv_val) if pd.notna(cv_val) else 0
                     text = latest_text_map.get(adname, "")
 
                     caption_html = f"""
