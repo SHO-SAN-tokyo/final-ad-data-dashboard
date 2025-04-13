@@ -113,7 +113,7 @@ try:
                 image_df = image_df[image_df["CV件数"] > 0]
                 image_df = image_df.sort_values(by="CV件数", ascending=False)
             elif sort_option == "CPA(小)":
-                image_df = image_df[(image_df["CV件数"] > 0) & (pd.notna(image_df["CPA"]))]
+                image_df = image_df[image_df["CV件数"] > 0]  # CV数: なし を除外
                 image_df = image_df.sort_values(by="CPA", ascending=True, na_position="last")
             else:
                 image_df = image_df.sort_values("AdNum")
@@ -143,7 +143,7 @@ try:
                     <b>IMP：</b>{imp:,.0f}<br>
                     <b>クリック：</b>{clicks:,.0f}<br>
                     """
-                    caption_html += f"<b>CTR：</b>{ctr * 100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
+                    caption_html += f"<b>CTR：</b>{ctr * 100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-<br>\"
                     caption_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
                     caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
                     caption_html += f"<b>メインテキスト：</b>{text}</div>"
