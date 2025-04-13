@@ -33,9 +33,16 @@ try:
 
         # サイドバー フィルター
         st.sidebar.header("🔍 フィルター")
+
+        # 上から順にフィルター用データを絞る
         selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + sorted(df["PromotionName"].dropna().unique()))
-        selected_category = st.sidebar.selectbox("カテゴリ", ["すべて"] + sorted(df["カテゴリ"].unique()))
-        selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(df["CampaignName"].dropna().unique()))
+        df_by_client = df if selected_client == "すべて" else df[df["PromotionName"] == selected_client]
+
+        selected_category = st.sidebar.selectbox("カテゴリ", ["すべて"] + sorted(df_by_client["カテゴリ"].dropna().unique()))
+        df_by_category = df_by_client if selected_category == "すべて" else df_by_client[df_by_client["カテゴリ"] == selected_category]
+
+        selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(df_by_category["CampaignName"].dropna().unique()))
+
         if "Date" in df.columns and not df["Date"].isnull().all():
             min_date, max_date = df["Date"].min(), df["Date"].max()
             selected_date = st.sidebar.date_input("日付", [min_date, max_date])
