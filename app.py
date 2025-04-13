@@ -2,6 +2,9 @@ import streamlit as st
 from google.cloud import bigquery
 import pandas as pd
 
+st.write("private_key (repr):", repr(info_dict["private_key"]))
+
+
 # 🔐 secrets 読み取りテスト（先頭100文字）
 st.write("🔐 secrets 読み取りテスト（先頭100文字）")
 st.code(st.secrets["connections"]["bigquery"]["private_key"][:100])
