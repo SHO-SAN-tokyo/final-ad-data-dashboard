@@ -27,7 +27,6 @@ try:
 
         if "カテゴリ" in df.columns:
             df["カテゴリ"] = df["カテゴリ"].astype(str).str.strip().replace("", "未設定").fillna("未設定")
-
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
@@ -36,7 +35,6 @@ try:
         selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + sorted(df["PromotionName"].dropna().unique()))
         selected_category = st.sidebar.selectbox("カテゴリ", ["すべて"] + sorted(df["カテゴリ"].unique()))
         selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(df["CampaignName"].dropna().unique()))
-
         if "Date" in df.columns and not df["Date"].isnull().all():
             min_date, max_date = df["Date"].min(), df["Date"].max()
             selected_date = st.sidebar.date_input("日付", [min_date, max_date])
@@ -65,15 +63,12 @@ try:
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
             image_df["CloudStorageUrl"] = image_df["CloudStorageUrl"].astype(str).str.strip()
             image_df["AdNum"] = pd.to_numeric(image_df["AdName"], errors="coerce")
-
             image_df = image_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
 
-            # 数値変換
             for col in ["Cost", "Impressions", "Clicks"]:
                 if col in filtered_df.columns:
                     filtered_df[col] = pd.to_numeric(filtered_df[col], errors="coerce")
 
-            # CV列補完
             for i in range(1, 61):
                 col = str(i)
                 if col not in filtered_df.columns:
@@ -81,32 +76,39 @@ try:
 
             def get_cv(row):
                 adnum = row["AdNum"]
-                if pd.isna(adnum):
-                    return 0
+                if pd.isna(adnum): return 0
                 return row.get(str(int(adnum)), 0)
 
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
-            # 最新テキスト取得
+            # 最新のメインテキスト
             latest_rows = image_df.sort_values("Date").dropna(subset=["Date"])
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
             latest_text_map = latest_rows.set_index("AdName")["Description1ByAdType"].to_dict()
 
-            # 合計値で集計（CTR, CPA もここで算出）
+            # 集計用（正しいCV件数を image_df から使う）
             agg_df = filtered_df.copy()
             agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
             agg_df["AdNum"] = pd.to_numeric(agg_df["AdName"], errors="coerce")
-            agg_df["CV件数"] = agg_df.apply(get_cv, axis=1)
+            agg_df = agg_df[agg_df["AdNum"].notna()]
+            agg_df["AdNum"] = agg_df["AdNum"].astype(int)
+
+            # 正しいCV件数を image_df から groupby で取得
+            cv_sum_df = image_df.groupby("AdName")["CV件数"].sum().reset_index()
 
             caption_df = agg_df.groupby("AdName").agg({
                 "Cost": "sum",
                 "Impressions": "sum",
-                "Clicks": "sum",
-                "CV件数": "sum"
+                "Clicks": "sum"
             }).reset_index()
 
+            # CV数をマージしてCPA計算
+            caption_df = caption_df.merge(cv_sum_df, on="AdName", how="left")
             caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
-            caption_df["CPA"] = caption_df["Cost"] / caption_df["CV件数"].replace(0, pd.NA)
+            caption_df["CPA"] = caption_df.apply(
+                lambda row: row["Cost"] / row["CV件数"] if row["CV件数"] > 0 else pd.NA,
+                axis=1
+            )
             caption_map = caption_df.set_index("AdName").to_dict("index")
 
             if image_df.empty:
@@ -122,7 +124,7 @@ try:
                     clicks = values.get("Clicks", 0)
                     ctr = values.get("CTR")
                     cpa = values.get("CPA")
-                    cv_val = values.get("CV件数", 0)
+                    cv_val = row["CV件数"]
                     cv = int(cv_val) if pd.notna(cv_val) else 0
                     text = latest_text_map.get(adname, "")
 
@@ -131,11 +133,9 @@ try:
                     <b>広告名：</b>{adname}<br>
                     <b>消化金額：</b>{cost:,.0f}円<br>
                     <b>IMP：</b>{imp:,.0f}<br>
-                    <b>クリック：</b>{clicks:,.0f}<br>
-                    <b>CTR：</b>{ctr * 100:.2f}%<br>""" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
-
-                    caption_html += f"""
-                    <b>CV数：</b>{cv if cv > 0 else 'なし'}<br>"""
+                    <b>クリック：</b>{clicks:,.0f}<br>"""
+                    caption_html += f"<b>CTR：</b>{ctr * 100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
+                    caption_html += f"<b>CV数：</b>{cv if cv > 0 else 'なし'}<br>"
                     caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
                     caption_html += f"<b>メインテキスト：</b>{text}</div>"
 
