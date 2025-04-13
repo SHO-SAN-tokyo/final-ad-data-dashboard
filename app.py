@@ -2,6 +2,10 @@ import streamlit as st
 from google.cloud import bigquery
 import pandas as pd
 
+# ✅ secrets の確認（先頭で確認）
+st.write("🔐 secrets 読み取りテスト（先頭100文字）")
+st.code(st.secrets["connections"]["bigquery"]["private_key"][:100])
+
 # タイトル
 st.title("📊 Final_Ad_Data Dashboard")
 
