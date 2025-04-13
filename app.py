@@ -86,13 +86,18 @@ try:
         if all(col in filtered_df.columns for col in ["CloudStorageUrl", "CampaignName", "Adname"]):
             st.write("🎯 CloudStorageUrl から画像を取得中...")
 
-            # ✅ 重複排除しつつ有効なURLのみ抽出
-            image_df = (
-                filtered_df
-                .drop_duplicates(subset=["CampaignName", "Adname"])
-                .copy()
-            )
-            image_df = image_df[image_df["CloudStorageUrl"].astype(str).str.startswith("http")]
+            # ✅ NaNを除外し、文字列として扱う
+            image_df = filtered_df.dropna(subset=["Adname", "CloudStorageUrl"]).copy()
+            image_df["Adname"] = image_df["Adname"].astype(str).str.strip()
+            image_df["CampaignName"] = image_df["CampaignName"].astype(str).str.strip()
+            image_df["CloudStorageUrl"] = image_df["CloudStorageUrl"].astype(str).str.strip()
+
+            # ✅ CloudStorageUrlがhttpで始まるものだけ抽出
+            image_df = image_df[image_df["CloudStorageUrl"].str.startswith("http")]
+
+            # ✅ 重複を削除（同じキャンペーン×Adnameのペアは1枚だけ）
+            image_df = image_df.sort_values(["CampaignName", "Adname"])
+            image_df = image_df.drop_duplicates(subset=["CampaignName", "Adname"])
 
             if image_df.empty:
                 st.warning("⚠️ 表示できる画像がありません")
