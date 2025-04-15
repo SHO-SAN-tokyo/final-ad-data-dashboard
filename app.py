@@ -52,27 +52,43 @@ try:
             date_filtered_df = df.copy()
 
         st.sidebar.header("🔍 フィルター")
-        
         # -------------------------------------
-        # ② クライアントフィルター（検索付き）
+        # ② クライアントフィルター（検索＋候補選択付き）
         # -------------------------------------
         # 全体のクライアント一覧を取得
         all_clients = sorted(date_filtered_df["PromotionName"].dropna().unique())
-        # テキスト入力による検索文字列
-        client_search = st.sidebar.text_input("クライアント検索", "")
-        if client_search:
-            filtered_clients = [client for client in all_clients if client_search.lower() in client.lower()]
-        else:
-            filtered_clients = all_clients
-        # 検索結果に基づいた候補リスト（「すべて」を追加）
-        selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + filtered_clients)
         
+        # まず、テキスト入力で部分一致する文字列を入力してもらう
+        client_search = st.sidebar.text_input("クライアント検索", "", key="client_search")
+        
+        # 入力に合わせて候補リストを作成（部分一致）
+        if client_search:
+            matched_clients = [c for c in all_clients if client_search.lower() in c.lower()]
+        else:
+            matched_clients = all_clients
+        
+        st.sidebar.markdown("**候補一覧（クリックで選択）**")
+        # 候補をボタンとして表示
+        for client in matched_clients:
+            # ボタンをクリックするとセッションステートに保存
+            if st.sidebar.button(client, key=f"btn_{client}"):
+                st.session_state["selected_client"] = client
+        
+        # プルダウンの初期値はセッションステートに保存された値を利用
+        default_client = st.session_state.get("selected_client", "すべて")
+        if default_client != "すべて" and default_client in all_clients:
+            default_index = all_clients.index(default_client) + 1  # 「すべて」が先頭なので+1
+        else:
+            default_index = 0
+
+        selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + all_clients, index=default_index)
+
         # クライアントの選択に応じた一時的なデータフレームを作成
         if selected_client != "すべて":
             client_filtered_df = date_filtered_df[date_filtered_df["PromotionName"] == selected_client]
         else:
             client_filtered_df = date_filtered_df.copy()
-        
+
         # -------------------------------------
         # ③ カテゴリフィルター（クライアントフィルター後の候補リスト）
         # -------------------------------------
