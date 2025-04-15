@@ -58,8 +58,8 @@ try:
         # -------------------------------------
         # 全体のクライアント一覧を取得
         all_clients = sorted(date_filtered_df["PromotionName"].dropna().unique())
-        # テキスト入力による検索文字列
-        client_search = st.sidebar.text_input("クライアント検索", "")
+        # テキスト入力による検索文字列（placeholderを変更）
+        client_search = st.sidebar.text_input("クライアント検索", "", placeholder="Enterを押すと下の候補が絞られます", key="client_search")
         if client_search:
             filtered_clients = [client for client in all_clients if client_search.lower() in client.lower()]
         else:
