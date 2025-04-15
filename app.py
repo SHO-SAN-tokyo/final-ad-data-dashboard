@@ -52,10 +52,20 @@ try:
             date_filtered_df = df.copy()
 
         st.sidebar.header("🔍 フィルター")
+        
         # -------------------------------------
-        # ② クライアントフィルター
+        # ② クライアントフィルター（検索付き）
         # -------------------------------------
-        selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + sorted(date_filtered_df["PromotionName"].dropna().unique()))
+        # 全体のクライアント一覧を取得
+        all_clients = sorted(date_filtered_df["PromotionName"].dropna().unique())
+        # テキスト入力による検索文字列
+        client_search = st.sidebar.text_input("クライアント検索", "")
+        if client_search:
+            filtered_clients = [client for client in all_clients if client_search.lower() in client.lower()]
+        else:
+            filtered_clients = all_clients
+        # 検索結果に基づいた候補リスト（「すべて」を追加）
+        selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + filtered_clients)
         
         # クライアントの選択に応じた一時的なデータフレームを作成
         if selected_client != "すべて":
@@ -76,7 +86,6 @@ try:
         # ④ キャンペーン名フィルター（クライアント＆カテゴリフィルタ後の候補リスト）
         # -------------------------------------
         selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(client_cat_filtered_df["CampaignName"].dropna().unique()))
-        
         # 最終的な filtered_df
         filtered_df = client_cat_filtered_df.copy()
         if selected_campaign != "すべて":
