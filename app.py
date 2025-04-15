@@ -25,13 +25,11 @@ try:
     else:
         st.success("✅ データ取得成功！")
 
-        # カテゴリ・Date の下処理
         if "カテゴリ" in df.columns:
             df["カテゴリ"] = df["カテゴリ"].astype(str).str.strip().replace("", "未設定").fillna("未設定")
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-        # サイドバー フィルター
         st.sidebar.header("🔍 フィルター")
 
         selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + sorted(df["PromotionName"].dropna().unique()))
@@ -43,8 +41,7 @@ try:
         selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(df_by_category["CampaignName"].dropna().unique()))
 
         if "Date" in df.columns and not df["Date"].isnull().all():
-            date_base_df = df_by_category
-            valid_dates = date_base_df["Date"].dropna()
+            valid_dates = df_by_category["Date"].dropna()
             if not valid_dates.empty:
                 min_date, max_date = valid_dates.min(), valid_dates.max()
                 selected_date = st.sidebar.date_input("日付", [min_date, max_date], min_value=min_date, max_value=max_date)
@@ -78,6 +75,7 @@ try:
             st.write("🌟 CloudStorageUrl から画像を取得中...")
 
             image_df = filtered_df[filtered_df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
+
             image_df["AdName"] = image_df["AdName"].astype(str).str.strip()
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
             image_df["CloudStorageUrl"] = image_df["CloudStorageUrl"].astype(str).str.strip()
@@ -97,13 +95,8 @@ try:
                 adnum = row["AdNum"]
                 if pd.isna(adnum):
                     return 0
-                adnum_int = int(adnum)
-                colname = str(adnum_int)
-                value = row.get(colname, 0)
-                try:
-                    return int(value) if float(value).is_integer() else 0
-                except:
-                    return 0
+                col_name = str(int(adnum))
+                return row[col_name] if col_name in row and pd.api.types.is_number(row[col_name]) else 0
 
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
@@ -182,7 +175,7 @@ try:
                     """
                     caption_html += f"<b>CTR：</b>{ctr*100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
                     caption_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
-                    caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if (pd.notna(cpa)) else "<b>CPA：</b>-<br>"
+                    caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
                     caption_html += f"<b>メインテキスト：</b>{text}</div>"
 
                     with cols[i % 5]:
