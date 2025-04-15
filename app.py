@@ -68,7 +68,7 @@ try:
         client_search = st.sidebar.text_input(
             "クライアント検索",
             "",
-            placeholder="Enterを押すと下の候補が絞られます",
+            placeholder="必ず正しく入力してEnterを押す",
             key="client_search",
             on_change=update_client
         )
