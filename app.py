@@ -114,7 +114,7 @@ try:
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
-        # ここで、全件補完のためのカラム（"1"～"60"）を filtered_df に追加
+        # filtered_df に全件補完用のカラム（"1"～"60"）を追加
         for i in range(1, 61):
             col = str(i)
             if col not in filtered_df.columns:
@@ -127,7 +127,7 @@ try:
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🌟 CloudStorageUrl から画像を取得中...")
             
-            # image_df は filtered_df から作成するので、補完後のカラムも引き継ぐ
+            # image_df は filtered_df から作成するので、補完済みのカラムも引き継ぐ
             image_df = filtered_df[filtered_df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
 
             image_df["AdName"] = image_df["AdName"].astype(str).str.strip()
@@ -140,12 +140,13 @@ try:
                 if col in filtered_df.columns:
                     filtered_df[col] = pd.to_numeric(filtered_df[col], errors="coerce")
 
+            # get_cv関数を修正：pd.api.types.is_number の代わりに isinstance を利用
             def get_cv(row):
                 adnum = row["AdNum"]
                 if pd.isna(adnum):
                     return 0
                 col_name = str(int(adnum))
-                return row[col_name] if col_name in row and pd.api.types.is_number(row[col_name]) else 0
+                return row[col_name] if (col_name in row and isinstance(row[col_name], (int, float))) else 0
 
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
