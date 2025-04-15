@@ -53,48 +53,16 @@ try:
 
         st.sidebar.header("🔍 フィルター")
         # -------------------------------------
-        # ② クライアントフィルター（検索＋候補選択付き）
+        # ② クライアントフィルター
         # -------------------------------------
-        # 全体のクライアント一覧を取得
-        all_clients = sorted(date_filtered_df["PromotionName"].dropna().unique())
+        selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + sorted(date_filtered_df["PromotionName"].dropna().unique()))
         
-        # まず、テキスト入力で部分一致する文字列を入力してもらう
-        client_search = st.sidebar.text_input("クライアント検索", "", key="client_search")
-        
-        # 入力に合わせて候補リストを作成（部分一致）
-        if client_search:
-            matched_clients = [c for c in all_clients if client_search.lower() in c.lower()]
-
-            st.sidebar.markdown("**候補一覧（クリックで選択）**")
-            for client in matched_clients:
-                if st.sidebar.button(client, key=f"btn_{client}"):
-                   st.session_state["selected_client"] = client
-        else:
-            matched_clients = []
-            # ここでは候補リストは表示しない
-        
-        st.sidebar.markdown("**候補一覧（クリックで選択）**")
-        # 候補をボタンとして表示
-        for client in matched_clients:
-            # ボタンをクリックするとセッションステートに保存
-            if st.sidebar.button(client, key=f"btn_{client}"):
-                st.session_state["selected_client"] = client
-        
-        # プルダウンの初期値はセッションステートに保存された値を利用
-        default_client = st.session_state.get("selected_client", "すべて")
-        if default_client != "すべて" and default_client in all_clients:
-            default_index = all_clients.index(default_client) + 1  # 「すべて」が先頭なので+1
-        else:
-            default_index = 0
-
-        selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + all_clients, index=default_index)
-
         # クライアントの選択に応じた一時的なデータフレームを作成
         if selected_client != "すべて":
             client_filtered_df = date_filtered_df[date_filtered_df["PromotionName"] == selected_client]
         else:
             client_filtered_df = date_filtered_df.copy()
-
+        
         # -------------------------------------
         # ③ カテゴリフィルター（クライアントフィルター後の候補リスト）
         # -------------------------------------
@@ -108,6 +76,7 @@ try:
         # ④ キャンペーン名フィルター（クライアント＆カテゴリフィルタ後の候補リスト）
         # -------------------------------------
         selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(client_cat_filtered_df["CampaignName"].dropna().unique()))
+        
         # 最終的な filtered_df
         filtered_df = client_cat_filtered_df.copy()
         if selected_campaign != "すべて":
