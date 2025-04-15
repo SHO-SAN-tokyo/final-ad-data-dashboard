@@ -34,7 +34,6 @@ try:
         # サイドバー フィルター
         st.sidebar.header("🔍 フィルター")
 
-        # 上から順にフィルター用データを絞る
         selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + sorted(df["PromotionName"].dropna().unique()))
         df_by_client = df if selected_client == "すべて" else df[df["PromotionName"] == selected_client]
 
@@ -52,7 +51,6 @@ try:
             else:
                 selected_date = None
 
-        # 絞り込み
         filtered_df = df.copy()
         if selected_client != "すべて":
             filtered_df = filtered_df[filtered_df["PromotionName"] == selected_client]
@@ -79,42 +77,40 @@ try:
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🌟 CloudStorageUrl から画像を取得中...")
 
-            # 画像がある行だけ抽出
             image_df = filtered_df[filtered_df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
-
-            # 型・前後スペースを整える（マージのため）
             image_df["AdName"] = image_df["AdName"].astype(str).str.strip()
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
             image_df["CloudStorageUrl"] = image_df["CloudStorageUrl"].astype(str).str.strip()
             image_df["AdNum"] = pd.to_numeric(image_df["AdName"], errors="coerce")
             image_df = image_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
 
-            # 数値列
             for col in ["Cost", "Impressions", "Clicks"]:
                 if col in filtered_df.columns:
                     filtered_df[col] = pd.to_numeric(filtered_df[col], errors="coerce")
 
-            # CV列（1〜60）を無い場合は0で作る
             for i in range(1, 61):
                 col = str(i)
                 if col not in filtered_df.columns:
                     filtered_df[col] = 0
 
-            # CV件数を AdNum から取得
             def get_cv(row):
                 adnum = row["AdNum"]
                 if pd.isna(adnum):
                     return 0
-                return row.get(str(int(adnum)), 0)
+                adnum_int = int(adnum)
+                colname = str(adnum_int)
+                value = row.get(colname, 0)
+                try:
+                    return int(value) if float(value).is_integer() else 0
+                except:
+                    return 0
 
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
-            # 最新のDescription1ByAdTypeを取る
             latest_rows = image_df.sort_values("Date").dropna(subset=["Date"])
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
             latest_text_map = latest_rows.set_index("AdName")["Description1ByAdType"].to_dict()
 
-            # 集計用DataFrame
             agg_df = filtered_df.copy()
             agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
             agg_df["CampaignId"] = agg_df["CampaignId"].astype(str).str.strip()
@@ -122,10 +118,8 @@ try:
             agg_df = agg_df[agg_df["AdNum"].notna()]
             agg_df["AdNum"] = agg_df["AdNum"].astype(int)
 
-            # CV集計
             cv_sum_df = image_df.groupby(["CampaignId", "AdName"])["CV件数"].sum().reset_index()
 
-            # コスト等を広告単位で合計 → CV件数 をマージ → CTR, CPA を計算
             caption_df = agg_df.groupby(["CampaignId", "AdName"]).agg({
                 "Cost": "sum",
                 "Impressions": "sum",
@@ -139,10 +133,6 @@ try:
                 axis=1
             )
 
-            # ---------------------------
-            # 常に再マージして CPA を更新
-            # ---------------------------
-            # 既にCPA列があっても上書き
             image_df.drop(
                 columns=["Cost", "Impressions", "Clicks", "CV件数", "CTR", "CPA"],
                 errors="ignore",
@@ -154,21 +144,17 @@ try:
                 how="left"
             )
 
-            # 並び替えコントロール
             sort_option = st.radio("並び替え基準", ["AdNum", "CV件数(多)", "CPA(小)"])
 
             if sort_option == "CV件数(多)":
-                # CV件数=0 → 視覚的に「CV数: なし」は除外
                 image_df = image_df[image_df["CV件数"] > 0]
                 image_df = image_df.sort_values(by="CV件数", ascending=False)
             elif sort_option == "CPA(小)":
-                # CPA=NaN → 視覚的に「CPA: -」は除外
                 image_df = image_df[image_df["CPA"].notna()]
                 image_df = image_df.sort_values(by="CPA", ascending=True)
             else:
                 image_df = image_df.sort_values("AdNum")
 
-            # caption_df を lookup 用にdict化
             caption_map = caption_df.set_index(["CampaignId", "AdName"]).to_dict("index")
 
             if image_df.empty:
