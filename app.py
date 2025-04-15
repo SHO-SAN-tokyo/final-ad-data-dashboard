@@ -114,13 +114,20 @@ try:
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
+        # ここで、全件補完のためのカラム（"1"～"60"）を filtered_df に追加
+        for i in range(1, 61):
+            col = str(i)
+            if col not in filtered_df.columns:
+                filtered_df[col] = 0
+
         # -------------------------------------
         # ⑤ 画像表示・集計処理（filtered_df を基に実施）
         # -------------------------------------
         st.subheader("🖼️ 画像ギャラリー【CloudStorageUrl】")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🌟 CloudStorageUrl から画像を取得中...")
-
+            
+            # image_df は filtered_df から作成するので、補完後のカラムも引き継ぐ
             image_df = filtered_df[filtered_df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
 
             image_df["AdName"] = image_df["AdName"].astype(str).str.strip()
@@ -132,11 +139,6 @@ try:
             for col in ["Cost", "Impressions", "Clicks"]:
                 if col in filtered_df.columns:
                     filtered_df[col] = pd.to_numeric(filtered_df[col], errors="coerce")
-
-            for i in range(1, 61):
-                col = str(i)
-                if col not in filtered_df.columns:
-                    filtered_df[col] = 0
 
             def get_cv(row):
                 adnum = row["AdNum"]
