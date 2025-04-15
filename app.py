@@ -10,7 +10,7 @@ info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info_dict)
 
-# クエリ実行（必要に応じて LIMIT を外すかWHERE句で期間指定するのも検討）
+# クエリ実行（必要に応じて LIMIT を外すか WHERE 句で期間指定するのも検討）
 query = """
 SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data
 LIMIT 1000
@@ -19,65 +19,104 @@ st.write("🔄 データを取得中...")
 
 try:
     df = client.query(query).to_dataframe()
-
+    
     if df.empty:
         st.warning("⚠️ データがありません")
     else:
         st.success("✅ データ取得成功！")
 
-        # 前処理：カテゴリと日付の型変換（ここでは全件に対して適用）
+        # 前処理：カテゴリと日付の型変換（全件に対して適用）
         if "カテゴリ" in df.columns:
             df["カテゴリ"] = df["カテゴリ"].astype(str).str.strip().replace("", "未設定").fillna("未設定")
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
         
-        # -------------------------------
-        # ① 全体のデータから日付フィルタを作成
-        # -------------------------------
+        # -------------------------------------
+        # ① 日付フィルタの適用（全体のデータから最小・最大を取得）
+        # -------------------------------------
         if "Date" in df.columns and not df["Date"].isnull().all():
             min_date = df["Date"].min().date()
             max_date = df["Date"].max().date()
-            
-            # 日付フィルタ: 複数日付の選択が返されるように（range picker）
             selected_date = st.sidebar.date_input(
                 "日付フィルター",
                 value=(min_date, max_date),
                 min_value=min_date,
                 max_value=max_date
             )
-            # ユーザーが範囲選択しているか確認
             if isinstance(selected_date, (list, tuple)) and len(selected_date) == 2:
                 start_date, end_date = pd.to_datetime(selected_date[0]), pd.to_datetime(selected_date[1])
                 date_filtered_df = df[(df["Date"].dt.date >= start_date.date()) & (df["Date"].dt.date <= end_date.date())]
             else:
-                # 単一日が返ってくる場合はその日のみ抽出
                 date_filtered_df = df[df["Date"].dt.date == pd.to_datetime(selected_date).date()]
         else:
             date_filtered_df = df.copy()
 
-        # -------------------------------
-        # ② その他のフィルターを適用
-        # -------------------------------
         st.sidebar.header("🔍 フィルター")
-        selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + sorted(date_filtered_df["PromotionName"].dropna().unique()))
-        selected_category = st.sidebar.selectbox("カテゴリ", ["すべて"] + sorted(date_filtered_df["カテゴリ"].dropna().unique()))
-        selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(date_filtered_df["CampaignName"].dropna().unique()))
+        
+        # -------------------------------------
+        # ② クライアントフィルター（検索付き＋Enterで選択反映）
+        # -------------------------------------
+        # 全体のクライアント一覧を取得
+        all_clients = sorted(date_filtered_df["PromotionName"].dropna().unique())
 
-        # 各フィルター条件を適用
-        filtered_df = date_filtered_df.copy()
+        # コールバック関数: 入力された値が全体リストに存在する場合、セッションステートを更新
+        def update_client():
+            cs = st.session_state.client_search
+            if cs in all_clients:
+                st.session_state.selected_client = cs
+
+        client_search = st.sidebar.text_input(
+            "クライアント検索",
+            "",
+            placeholder="必ず正しく入力してEnterを押す",
+            key="client_search",
+            on_change=update_client
+        )
+        if client_search:
+            filtered_clients = [client for client in all_clients if client_search.lower() in client.lower()]
+        else:
+            filtered_clients = all_clients
+
+        # Selectbox 用のオプションは、["すべて"] + 現在の候補リストとする
+        client_options = ["すべて"] + filtered_clients
+        # セッションステート内の "selected_client" を取得
+        selected_client_in_state = st.session_state.get("selected_client", "すべて")
+        if selected_client_in_state in client_options:
+            default_index = client_options.index(selected_client_in_state)
+        else:
+            default_index = 0
+
+        selected_client = st.sidebar.selectbox("クライアント", client_options, index=default_index)
+
+        # クライアントの選択に応じた一時的なデータフレームを作成
         if selected_client != "すべて":
-            filtered_df = filtered_df[filtered_df["PromotionName"] == selected_client]
+            client_filtered_df = date_filtered_df[date_filtered_df["PromotionName"] == selected_client]
+        else:
+            client_filtered_df = date_filtered_df.copy()
+        
+        # -------------------------------------
+        # ③ カテゴリフィルター（クライアントフィルター後の候補リスト）
+        # -------------------------------------
+        selected_category = st.sidebar.selectbox("カテゴリ", ["すべて"] + sorted(client_filtered_df["カテゴリ"].dropna().unique()))
         if selected_category != "すべて":
-            filtered_df = filtered_df[filtered_df["カテゴリ"] == selected_category]
+            client_cat_filtered_df = client_filtered_df[client_filtered_df["カテゴリ"] == selected_category]
+        else:
+            client_cat_filtered_df = client_filtered_df.copy()
+
+        # -------------------------------------
+        # ④ キャンペーン名フィルター（クライアント＆カテゴリフィルタ後の候補リスト）
+        # -------------------------------------
+        selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(client_cat_filtered_df["CampaignName"].dropna().unique()))
+        filtered_df = client_cat_filtered_df.copy()
         if selected_campaign != "すべて":
             filtered_df = filtered_df[filtered_df["CampaignName"] == selected_campaign]
 
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
-        # -------------------------------
-        # ③ 以降の画像表示・集計処理もfiltered_dfを基に実施する
-        # -------------------------------
+        # -------------------------------------
+        # ⑤ 画像表示・集計処理（filtered_df を基に実施）
+        # -------------------------------------
         st.subheader("🖼️ 画像ギャラリー【CloudStorageUrl】")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🌟 CloudStorageUrl から画像を取得中...")
@@ -112,7 +151,6 @@ try:
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
             latest_text_map = latest_rows.set_index("AdName")["Description1ByAdType"].to_dict()
 
-            # 集計処理もフィルター後のデータで集計する
             agg_df = filtered_df.copy()
             agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
             agg_df["CampaignId"] = agg_df["CampaignId"].astype(str).str.strip()
