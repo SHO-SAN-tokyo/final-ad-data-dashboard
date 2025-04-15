@@ -114,6 +114,13 @@ try:
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
+        # --- デバッグ用表示（不要な場合はコメントアウト） ---
+        # st.write("### filtered_df のカラム一覧")
+        # st.write(filtered_df.columns.tolist())
+        # st.write("### filtered_df の先頭5行")
+        # st.dataframe(filtered_df.head())
+        # ---------------------------------------------------------
+
         # filtered_df に全件補完用のカラム（"1"～"60"）を追加
         for i in range(1, 61):
             col = str(i)
@@ -130,6 +137,13 @@ try:
             # image_df は filtered_df から作成するので、補完済みのカラムも引き継ぐ
             image_df = filtered_df[filtered_df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
 
+            # --- デバッグ用表示（不要な場合はコメントアウト） ---
+            st.write("### image_df のカラム一覧")
+            st.write(image_df.columns.tolist())
+            st.write("### image_df の先頭5行")
+            st.dataframe(image_df.head())
+            # ---------------------------------------------------------
+
             image_df["AdName"] = image_df["AdName"].astype(str).str.strip()
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
             image_df["CloudStorageUrl"] = image_df["CloudStorageUrl"].astype(str).str.strip()
@@ -140,15 +154,21 @@ try:
                 if col in filtered_df.columns:
                     filtered_df[col] = pd.to_numeric(filtered_df[col], errors="coerce")
 
-            # get_cv関数を修正：pd.api.types.is_number の代わりに isinstance を利用
+            # get_cv関数: 「AdNum」で示された列名（文字列）をもとに、その値を取得する
             def get_cv(row):
                 adnum = row["AdNum"]
                 if pd.isna(adnum):
                     return 0
-                col_name = str(int(adnum))
+                col_name = str(int(adnum))   # 例："10"
                 return row[col_name] if (col_name in row and isinstance(row[col_name], (int, float))) else 0
 
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
+
+            # --- デバッグ用: 特定の行の get_cv の結果を確認  ---
+            if not image_df.empty:
+                st.write("### 先頭行の get_cv の返り値")
+                st.write(get_cv(image_df.iloc[0]))
+            # -----------------------------------------------------
 
             latest_rows = image_df.sort_values("Date").dropna(subset=["Date"])
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
