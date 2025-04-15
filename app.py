@@ -33,20 +33,10 @@ try:
         st.sidebar.header("🔍 フィルター")
 
         selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + sorted(df["PromotionName"].dropna().unique()))
-        df_by_client = df if selected_client == "すべて" else df[df["PromotionName"] == selected_client]
+        selected_category = st.sidebar.selectbox("カテゴリ", ["すべて"] + sorted(df["カテゴリ"].dropna().unique()))
+        selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(df["CampaignName"].dropna().unique()))
 
-        selected_category = st.sidebar.selectbox("カテゴリ", ["すべて"] + sorted(df_by_client["カテゴリ"].dropna().unique()))
-        df_by_category = df_by_client if selected_category == "すべて" else df_by_client[df_by_client["カテゴリ"] == selected_category]
-
-        selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(df_by_category["CampaignName"].dropna().unique()))
-
-        selected_date = None
-        if "Date" in df.columns and not df["Date"].isnull().all():
-            valid_dates = df_by_category["Date"].dropna()
-            if not valid_dates.empty:
-                min_date, max_date = valid_dates.min(), valid_dates.max()
-                selected_date = st.sidebar.date_input("日付", [min_date, max_date], min_value=min_date, max_value=max_date)
-
+        # 絞り込み
         filtered_df = df.copy()
         if selected_client != "すべて":
             filtered_df = filtered_df[filtered_df["PromotionName"] == selected_client]
@@ -55,18 +45,17 @@ try:
         if selected_campaign != "すべて":
             filtered_df = filtered_df[filtered_df["CampaignName"] == selected_campaign]
 
-        if (
-            isinstance(selected_date, list)
-            and len(selected_date) == 2
-            and selected_date[0] is not None
-            and selected_date[1] is not None
-        ):
-            start_date, end_date = pd.to_datetime(selected_date[0]), pd.to_datetime(selected_date[1])
-            filtered_df = filtered_df[filtered_df["Date"].notna()]
-            filtered_df = filtered_df[
-                (filtered_df["Date"].dt.date >= start_date.date()) &
-                (filtered_df["Date"].dt.date <= end_date.date())
-            ]
+        # 日付フィルター適用（filtered_dfベース）
+        if "Date" in filtered_df.columns and not filtered_df["Date"].isnull().all():
+            min_date, max_date = filtered_df["Date"].min().date(), filtered_df["Date"].max().date()
+            selected_date = st.sidebar.date_input("日付", [min_date, max_date], min_value=min_date, max_value=max_date)
+
+            if isinstance(selected_date, list) and len(selected_date) == 2:
+                start_date, end_date = pd.to_datetime(selected_date[0]), pd.to_datetime(selected_date[1])
+                filtered_df = filtered_df[
+                    (filtered_df["Date"].dt.date >= start_date.date()) &
+                    (filtered_df["Date"].dt.date <= end_date.date())
+                ]
 
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
@@ -101,8 +90,7 @@ try:
 
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
-            image_df = image_df[image_df["Date"].notna()]  # ← 日付の欠損を除外
-            latest_rows = image_df.sort_values("Date")
+            latest_rows = image_df.sort_values("Date").dropna(subset=["Date"])
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
             latest_text_map = latest_rows.set_index("AdName")["Description1ByAdType"].to_dict()
 
