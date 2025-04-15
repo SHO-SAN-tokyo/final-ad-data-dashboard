@@ -56,10 +56,8 @@ try:
         # -------------------------------------
         # ② クライアントフィルター（検索付き＋Enterで選択反映）
         # -------------------------------------
-        # 全体のクライアント一覧を取得
         all_clients = sorted(date_filtered_df["PromotionName"].dropna().unique())
 
-        # コールバック関数: 入力された値が全体リストに存在する場合、セッションステートを更新
         def update_client():
             cs = st.session_state.client_search
             if cs in all_clients:
@@ -77,9 +75,7 @@ try:
         else:
             filtered_clients = all_clients
 
-        # Selectbox 用のオプションは、["すべて"] + 現在の候補リストとする
         client_options = ["すべて"] + filtered_clients
-        # セッションステート内の "selected_client" を取得
         selected_client_in_state = st.session_state.get("selected_client", "すべて")
         if selected_client_in_state in client_options:
             default_index = client_options.index(selected_client_in_state)
@@ -88,7 +84,6 @@ try:
 
         selected_client = st.sidebar.selectbox("クライアント", client_options, index=default_index)
 
-        # クライアントの選択に応じた一時的なデータフレームを作成
         if selected_client != "すべて":
             client_filtered_df = date_filtered_df[date_filtered_df["PromotionName"] == selected_client]
         else:
@@ -114,18 +109,11 @@ try:
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
-        # --- デバッグ用表示（不要な場合はコメントアウト） ---
-        # st.write("### filtered_df のカラム一覧")
-        # st.write(filtered_df.columns.tolist())
-        # st.write("### filtered_df の先頭5行")
-        # st.dataframe(filtered_df.head())
-        # ---------------------------------------------------------
-
-        # filtered_df に全件補完用のカラム（"1"～"60"）を追加
+        # ここで、全件補完用のカラム（"1"～"60"）を filtered_df に追加し、数値型に変換
         for i in range(1, 61):
             col = str(i)
-            if col not in filtered_df.columns:
-                filtered_df[col] = 0
+            # pd.to_numeric() で変換し、エラーは 0 とする
+            filtered_df[col] = pd.to_numeric(filtered_df.get(col, 0), errors="coerce").fillna(0)
 
         # -------------------------------------
         # ⑤ 画像表示・集計処理（filtered_df を基に実施）
@@ -134,19 +122,19 @@ try:
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🌟 CloudStorageUrl から画像を取得中...")
             
-            # image_df は filtered_df から作成するので、補完済みのカラムも引き継ぐ
+            # image_df は filtered_df から作成するため、補完済みのカラムも引き継ぐ
             image_df = filtered_df[filtered_df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
-
-            # --- デバッグ用表示（不要な場合はコメントアウト） ---
-            st.write("### image_df のカラム一覧")
-            st.write(image_df.columns.tolist())
-            st.write("### image_df の先頭5行")
-            st.dataframe(image_df.head())
-            # ---------------------------------------------------------
+            
+            # ※ 以下、デバッグ用表示（必要に応じてコメントアウト解除）
+            # st.write("### image_df のカラム一覧")
+            # st.write(image_df.columns.tolist())
+            # st.write("### image_df の先頭5行")
+            # st.dataframe(image_df.head())
 
             image_df["AdName"] = image_df["AdName"].astype(str).str.strip()
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
             image_df["CloudStorageUrl"] = image_df["CloudStorageUrl"].astype(str).str.strip()
+            # AdNum は、AdName から数値に変換（例：AdName が "1" なら 1 となる）
             image_df["AdNum"] = pd.to_numeric(image_df["AdName"], errors="coerce")
             image_df = image_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
 
@@ -154,21 +142,20 @@ try:
                 if col in filtered_df.columns:
                     filtered_df[col] = pd.to_numeric(filtered_df[col], errors="coerce")
 
-            # get_cv関数: 「AdNum」で示された列名（文字列）をもとに、その値を取得する
+            # get_cv 関数：各行の "AdNum" をもとに、その数値に対応する列（例："10"）の値を返す
             def get_cv(row):
                 adnum = row["AdNum"]
                 if pd.isna(adnum):
                     return 0
-                col_name = str(int(adnum))   # 例："10"
+                col_name = str(int(adnum))
                 return row[col_name] if (col_name in row and isinstance(row[col_name], (int, float))) else 0
 
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
 
-            # --- デバッグ用: 特定の行の get_cv の結果を確認  ---
-            if not image_df.empty:
-                st.write("### 先頭行の get_cv の返り値")
-                st.write(get_cv(image_df.iloc[0]))
-            # -----------------------------------------------------
+            # ※ デバッグ用：先頭行の get_cv の返り値確認（必要ならコメント解除）
+            # if not image_df.empty:
+            #     st.write("### 先頭行の get_cv の返り値")
+            #     st.write(get_cv(image_df.iloc[0]))
 
             latest_rows = image_df.sort_values("Date").dropna(subset=["Date"])
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
