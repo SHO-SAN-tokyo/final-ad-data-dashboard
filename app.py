@@ -65,7 +65,11 @@ try:
         ):
             start_date, end_date = pd.to_datetime(selected_date[0]), pd.to_datetime(selected_date[1])
             filtered_df = filtered_df[filtered_df["Date"].notna()]
-            filtered_df = filtered_df[(filtered_df["Date"] >= start_date) & (filtered_df["Date"] <= end_date)]
+            filtered_df = filtered_df[
+                (filtered_df["Date"].dt.date >= start_date.date()) &
+                (filtered_df["Date"].dt.date <= end_date.date())
+            ]
+
 
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
