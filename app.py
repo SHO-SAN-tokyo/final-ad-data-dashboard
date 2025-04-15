@@ -19,7 +19,7 @@ st.write("🔄 データを取得中...")
 
 try:
     df = client.query(query).to_dataframe()
-    
+
     if df.empty:
         st.warning("⚠️ データがありません")
     else:
@@ -52,42 +52,11 @@ try:
             date_filtered_df = df.copy()
 
         st.sidebar.header("🔍 フィルター")
+        # -------------------------------------
+        # ② クライアントフィルター
+        # -------------------------------------
+        selected_client = st.sidebar.selectbox("クライアント", ["すべて"] + sorted(date_filtered_df["PromotionName"].dropna().unique()))
         
-        # -------------------------------------
-        # ② クライアントフィルター（検索付き＋Enterで選択反映）
-        # -------------------------------------
-        # 全体のクライアント一覧を取得
-        all_clients = sorted(date_filtered_df["PromotionName"].dropna().unique())
-
-        # コールバック関数: 入力された値が全体リストに存在する場合、セッションステートを更新
-        def update_client():
-            cs = st.session_state.client_search
-            if cs in all_clients:
-                st.session_state.selected_client = cs
-
-        client_search = st.sidebar.text_input(
-            "クライアント検索",
-            "",
-            placeholder="必ず正しく入力してEnterを押す",
-            key="client_search",
-            on_change=update_client
-        )
-        if client_search:
-            filtered_clients = [client for client in all_clients if client_search.lower() in client.lower()]
-        else:
-            filtered_clients = all_clients
-
-        # Selectbox 用のオプションは、["すべて"] + 現在の候補リストとする
-        client_options = ["すべて"] + filtered_clients
-        # セッションステート内の "selected_client" を取得
-        selected_client_in_state = st.session_state.get("selected_client", "すべて")
-        if selected_client_in_state in client_options:
-            default_index = client_options.index(selected_client_in_state)
-        else:
-            default_index = 0
-
-        selected_client = st.sidebar.selectbox("クライアント", client_options, index=default_index)
-
         # クライアントの選択に応じた一時的なデータフレームを作成
         if selected_client != "すべて":
             client_filtered_df = date_filtered_df[date_filtered_df["PromotionName"] == selected_client]
@@ -107,6 +76,8 @@ try:
         # ④ キャンペーン名フィルター（クライアント＆カテゴリフィルタ後の候補リスト）
         # -------------------------------------
         selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(client_cat_filtered_df["CampaignName"].dropna().unique()))
+        
+        # 最終的な filtered_df
         filtered_df = client_cat_filtered_df.copy()
         if selected_campaign != "すべて":
             filtered_df = filtered_df[filtered_df["CampaignName"] == selected_campaign]
