@@ -64,8 +64,14 @@ try:
         # 入力に合わせて候補リストを作成（部分一致）
         if client_search:
             matched_clients = [c for c in all_clients if client_search.lower() in c.lower()]
+
+            st.sidebar.markdown("**候補一覧（クリックで選択）**")
+            for client in matched_clients:
+                if st.sidebar.button(client, key=f"btn_{client}"):
+                   st.session_state["selected_client"] = client
         else:
-            matched_clients = all_clients
+            matched_clients = []
+            # ここでは候補リストは表示しない
         
         st.sidebar.markdown("**候補一覧（クリックで選択）**")
         # 候補をボタンとして表示
