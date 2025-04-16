@@ -20,6 +20,9 @@ st.write("🔄 データを取得中...")
 try:
     df = client.query(query).to_dataframe()
     
+    # --- デバッグ: クエリ直後のデータ件数 ---
+    st.write("全件数 (df): ", df.shape)
+
     if df.empty:
         st.warning("⚠️ データがありません")
     else:
@@ -51,6 +54,9 @@ try:
         else:
             date_filtered_df = df.copy()
 
+        # --- デバッグ: 日付フィルタ適用後の件数 ---
+        st.write("日付フィルタ後 (date_filtered_df): ", date_filtered_df.shape)
+
         st.sidebar.header("🔍 フィルター")
         
         # -------------------------------------
@@ -75,6 +81,10 @@ try:
         else:
             filtered_clients = all_clients
 
+        # --- デバッグ: クライアント候補リスト ---
+        st.write("全クライアント:", all_clients)
+        st.write("フィルタ適用後のクライアント:", filtered_clients)
+
         client_options = ["すべて"] + filtered_clients
         selected_client_in_state = st.session_state.get("selected_client", "すべて")
         if selected_client_in_state in client_options:
@@ -89,6 +99,9 @@ try:
         else:
             client_filtered_df = date_filtered_df.copy()
         
+        # --- デバッグ: クライアントフィルター後 ---
+        st.write("クライアントフィルター後 (client_filtered_df): ", client_filtered_df.shape)
+        
         # -------------------------------------
         # ③ カテゴリフィルター（クライアントフィルター後の候補リスト）
         # -------------------------------------
@@ -97,6 +110,9 @@ try:
             client_cat_filtered_df = client_filtered_df[client_filtered_df["カテゴリ"] == selected_category]
         else:
             client_cat_filtered_df = client_filtered_df.copy()
+        
+        # --- デバッグ: カテゴリフィルター後 ---
+        st.write("カテゴリフィルター後 (client_cat_filtered_df): ", client_cat_filtered_df.shape)
 
         # -------------------------------------
         # ④ キャンペーン名フィルター（クライアント＆カテゴリフィルタ後の候補リスト）
@@ -105,6 +121,9 @@ try:
         filtered_df = client_cat_filtered_df.copy()
         if selected_campaign != "すべて":
             filtered_df = filtered_df[filtered_df["CampaignName"] == selected_campaign]
+        
+        # --- デバッグ: キャンペーンフィルター後 ---
+        st.write("キャンペーンフィルター後 (filtered_df): ", filtered_df.shape)
 
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
@@ -112,7 +131,6 @@ try:
         # ここで、全件補完用のカラム（"1"～"60"）を filtered_df に追加し、数値型に変換
         for i in range(1, 61):
             col = str(i)
-            # pd.to_numeric() で変換し、エラーは 0 とする
             filtered_df[col] = pd.to_numeric(filtered_df.get(col, 0), errors="coerce").fillna(0)
 
         # -------------------------------------
@@ -125,12 +143,12 @@ try:
             # image_df は filtered_df から作成するため、補完済みのカラムも引き継ぐ
             image_df = filtered_df[filtered_df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
             
-            # ※ 以下、デバッグ用表示（必要に応じてコメントアウト解除）
-            # st.write("### image_df のカラム一覧")
-            # st.write(image_df.columns.tolist())
-            # st.write("### image_df の先頭5行")
-            # st.dataframe(image_df.head())
-
+            # --- デバッグ: image_df のカラム一覧と先頭5行（必要に応じてコメント解除） ---
+            st.write("### image_df のカラム一覧")
+            st.write(image_df.columns.tolist())
+            st.write("### image_df の先頭5行")
+            st.dataframe(image_df.head())
+            
             image_df["AdName"] = image_df["AdName"].astype(str).str.strip()
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
             image_df["CloudStorageUrl"] = image_df["CloudStorageUrl"].astype(str).str.strip()
@@ -151,11 +169,11 @@ try:
                 return row[col_name] if (col_name in row and isinstance(row[col_name], (int, float))) else 0
 
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
-
-            # ※ デバッグ用：先頭行の get_cv の返り値確認（必要ならコメント解除）
-            # if not image_df.empty:
-            #     st.write("### 先頭行の get_cv の返り値")
-            #     st.write(get_cv(image_df.iloc[0]))
+            
+            # --- デバッグ: get_cv の先頭行の返り値確認（必要ならコメント解除） ---
+            if not image_df.empty:
+                st.write("### 先頭行の get_cv の返り値")
+                st.write(get_cv(image_df.iloc[0]))
 
             latest_rows = image_df.sort_values("Date").dropna(subset=["Date"])
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
