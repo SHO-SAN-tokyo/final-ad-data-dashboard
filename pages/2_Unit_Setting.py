@@ -65,7 +65,7 @@ try:
                     job.result()
                     st.success(f"✅ {selected_person} を Unit『{input_unit}』に追加しました！")
                     st.cache_data.clear()
-                    current_df = load_unit_mapping()  # 再取得して表示更新
+                    current_df = load_unit_mapping()  # 最新データで更新
                 except Exception as e:
                     st.error(f"❌ 保存に失敗しました: {e}")
             else:
@@ -74,7 +74,31 @@ try:
 except Exception as e:
     st.error(f"❌ 担当者一覧の取得に失敗しました: {e}")
 
-# 担当者とUnitの一覧を表示
+# ------------------------------------
+# ✏️ 担当者・Unit一覧の並び替え + 編集機能つき表示
+# ------------------------------------
 st.markdown("---")
-st.markdown("### 📋 現在のUnit割当一覧")
-st.dataframe(current_df, use_container_width=True)
+st.markdown("### ✏️ 担当者とUnitの対応表（編集・並び替え可能）")
+
+editable_df = st.data_editor(
+    current_df,
+    use_container_width=True,
+    num_rows="dynamic",
+    key="unit_mapping_editable"
+)
+
+if st.button("💾 編集内容を保存"):
+    try:
+        job_config = bigquery.LoadJobConfig(
+            write_disposition="WRITE_TRUNCATE",
+            schema=[
+                bigquery.SchemaField("担当者", "STRING"),
+                bigquery.SchemaField("Unit", "STRING"),
+            ]
+        )
+        job = client.load_table_from_dataframe(editable_df, full_table, job_config=job_config)
+        job.result()
+        st.success("✅ 編集内容を保存しました！")
+        st.cache_data.clear()
+    except Exception as e:
+        st.error(f"❌ 保存に失敗しました: {e}")
