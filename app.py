@@ -13,7 +13,7 @@ client = bigquery.Client.from_service_account_info(info_dict)
 # クエリ実行（必要に応じて LIMIT を外すか WHERE 句で期間指定するのも検討）
 query = """
 SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data
-LIMIT 1000
+# LIMIT 1000
 """
 st.write("🔄 データを取得中...")
 
