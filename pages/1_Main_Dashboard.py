@@ -2,7 +2,7 @@ import streamlit as st
 from google.cloud import bigquery
 import pandas as pd
 
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="メインダッシュボード", layout="wide")
 st.title("📊 Final_Ad_Data Dashboard")
 
 # 認証
