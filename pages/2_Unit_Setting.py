@@ -35,7 +35,7 @@ edited_df = st.data_editor(
 )
 
 # 保存処理
-if st.button("💾 保存してBigQueryに反映"):
+if st.button("💾 保存"):
     try:
         job_config = bigquery.LoadJobConfig(
             write_disposition="WRITE_TRUNCATE",  # 全削除して上書き
@@ -46,7 +46,7 @@ if st.button("💾 保存してBigQueryに反映"):
         )
         job = client.load_table_from_dataframe(edited_df, full_table, job_config=job_config)
         job.result()
-        st.success("✅ 保存しました！（BigQueryに反映されました）")
+        st.success("✅ 保存しました！")
         st.cache_data.clear()  # キャッシュをクリアして再取得できるように
     except Exception as e:
         st.error(f"❌ 保存に失敗しました: {e}")
