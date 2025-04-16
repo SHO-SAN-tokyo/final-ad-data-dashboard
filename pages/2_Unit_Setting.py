@@ -1,4 +1,3 @@
-# 2_Unit_Setting.py
 import streamlit as st
 from google.cloud import bigquery
 import pandas as pd
@@ -17,7 +16,7 @@ dataset = "SHOSAN_Ad_Tokyo"
 table = "UnitMapping"
 full_table = f"{project_id}.{dataset}.{table}"
 
-# 担当者一覧（Final_Ad_Dataから抽出）
+# 担当者一覧の取得
 @st.cache_data(ttl=60)
 def get_unique_tantousha():
     query = f"""
@@ -28,46 +27,13 @@ def get_unique_tantousha():
     """
     return client.query(query).to_dataframe()
 
-# Unit Mapping 読み込み
+# Unit Mapping の取得
 @st.cache_data(ttl=60)
 def load_unit_mapping():
     query = f"SELECT * FROM `{full_table}`"
     return client.query(query).to_dataframe()
 
-# 初期データ表示
-df = load_unit_mapping()
-
-# ----------------------
-# 💡 既存のテーブル編集方式
-# ----------------------
-st.markdown("### ✏️ 担当者とUnitの対応表（手動編集）")
-edited_df = st.data_editor(
-    df,
-    num_rows="dynamic",
-    use_container_width=True,
-    key="unit_mapping_editor"
-)
-
-if st.button("💾 保存"):
-    try:
-        job_config = bigquery.LoadJobConfig(
-            write_disposition="WRITE_TRUNCATE",
-            schema=[
-                bigquery.SchemaField("担当者", "STRING"),
-                bigquery.SchemaField("Unit", "STRING"),
-            ]
-        )
-        job = client.load_table_from_dataframe(edited_df, full_table, job_config=job_config)
-        job.result()
-        st.success("✅ 保存しました！")
-        st.cache_data.clear()
-    except Exception as e:
-        st.error(f"❌ 保存に失敗しました: {e}")
-
-# ----------------------
-# ✅ 担当者をプルダウン選択して追加するUI
-# ----------------------
-st.markdown("---")
+# 担当者追加UI
 st.markdown("### ➕ 担当者をUnitに追加")
 
 try:
@@ -84,7 +50,6 @@ try:
 
         if st.button("＋ この担当者をUnitに追加"):
             if selected_person and input_unit:
-                # 既存と新規を連結して保存
                 new_row = pd.DataFrame([{"担当者": selected_person, "Unit": input_unit}])
                 updated_df = pd.concat([current_df, new_row], ignore_index=True)
 
@@ -100,6 +65,7 @@ try:
                     job.result()
                     st.success(f"✅ {selected_person} を Unit『{input_unit}』に追加しました！")
                     st.cache_data.clear()
+                    current_df = load_unit_mapping()  # 再取得して表示更新
                 except Exception as e:
                     st.error(f"❌ 保存に失敗しました: {e}")
             else:
@@ -107,3 +73,8 @@ try:
 
 except Exception as e:
     st.error(f"❌ 担当者一覧の取得に失敗しました: {e}")
+
+# 担当者とUnitの一覧を表示
+st.markdown("---")
+st.markdown("### 📋 現在のUnit割当一覧")
+st.dataframe(current_df, use_container_width=True)
