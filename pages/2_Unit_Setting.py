@@ -54,18 +54,19 @@ try:
                 updated_df = pd.concat([current_df, new_row], ignore_index=True)
 
                 try:
-                    job_config = bigquery.LoadJobConfig(
-                        write_disposition="WRITE_TRUNCATE",
-                        schema=[
-                            bigquery.SchemaField("担当者", "STRING"),
-                            bigquery.SchemaField("Unit", "STRING"),
-                        ]
-                    )
-                    job = client.load_table_from_dataframe(updated_df, full_table, job_config=job_config)
-                    job.result()
-                    st.success(f"✅ {selected_person} を Unit『{input_unit}』に追加しました！")
-                    st.cache_data.clear()
-                    current_df = load_unit_mapping()  # 表を更新
+                    with st.spinner("保存中です..."):
+                        job_config = bigquery.LoadJobConfig(
+                            write_disposition="WRITE_TRUNCATE",
+                            schema=[
+                                bigquery.SchemaField("担当者", "STRING"),
+                                bigquery.SchemaField("Unit", "STRING"),
+                            ]
+                        )
+                        job = client.load_table_from_dataframe(updated_df, full_table, job_config=job_config)
+                        job.result()
+                        st.success(f"✅ {selected_person} を Unit『{input_unit}』に追加しました！")
+                        st.cache_data.clear()
+                        current_df = load_unit_mapping()
                 except Exception as e:
                     st.error(f"❌ 保存に失敗しました: {e}")
             else:
@@ -79,24 +80,36 @@ st.markdown("---")
 st.markdown("### 📝 既存のUnit割当を編集・並べ替え")
 
 editable_df = st.data_editor(
-    current_df.sort_values("担当者"),
+    current_df.sort_values(["Unit", "担当者"]),
     use_container_width=True,
     num_rows="dynamic",
     key="editable_unit_table"
 )
 
 if st.button("💾 編集内容を保存する"):
-    try:
-        job_config = bigquery.LoadJobConfig(
-            write_disposition="WRITE_TRUNCATE",
-            schema=[
-                bigquery.SchemaField("担当者", "STRING"),
-                bigquery.SchemaField("Unit", "STRING"),
-            ]
-        )
-        job = client.load_table_from_dataframe(editable_df, full_table, job_config=job_config)
-        job.result()
-        st.success("✅ 編集した内容を保存しました！")
-        st.cache_data.clear()
-    except Exception as e:
-        st.error(f"❌ 編集内容の保存に失敗しました: {e}")
+    with st.spinner("保存中です..."):
+        try:
+            job_config = bigquery.LoadJobConfig(
+                write_disposition="WRITE_TRUNCATE",
+                schema=[
+                    bigquery.SchemaField("担当者", "STRING"),
+                    bigquery.SchemaField("Unit", "STRING"),
+                ]
+            )
+            job = client.load_table_from_dataframe(editable_df, full_table, job_config=job_config)
+            job.result()
+            st.success("✅ 編集した内容を保存しました！")
+            st.cache_data.clear()
+            current_df = load_unit_mapping()
+        except Exception as e:
+            st.error(f"❌ 編集内容の保存に失敗しました: {e}")
+
+# Unitごとのグルーピング表示（読み取り専用）
+st.markdown("---")
+st.markdown("### 🧩 Unitごとの担当者一覧")
+
+grouped = current_df.groupby("Unit")
+
+for unit, group in grouped:
+    st.markdown(f"#### 🟢 Unit: {unit}")
+    st.dataframe(group[["担当者"]].reset_index(drop=True), use_container_width=True)
