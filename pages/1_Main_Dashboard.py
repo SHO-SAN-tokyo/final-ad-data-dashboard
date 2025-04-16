@@ -137,7 +137,7 @@ try:
         # -------------------------------------
         # ⑤ 画像表示・集計処理（filtered_df を基に実施）
         # -------------------------------------
-        st.subheader("🖼️ 画像ギャラリー【CloudStorageUrl】")
+        st.subheader("🖼️ 配信バナー一覧")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🌟 CloudStorageUrl から画像を取得中...")
             
