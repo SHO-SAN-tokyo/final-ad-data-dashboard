@@ -38,7 +38,9 @@ info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info_dict)
 
 query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data"
-st.write("🔄 データを取得中...")
+with st.spinner("🔄 データを取得中..."):
+    df = client.query(query).to_dataframe()
+# ← 取得が終わるとアニメーションもメッセージも自動で消える
 
 try:
     df = client.query(query).to_dataframe()
@@ -117,7 +119,10 @@ try:
         # ------------------------------------------------------------
         st.subheader("🖼️ 配信バナー")
         if "CloudStorageUrl" in filtered_df.columns:
-            st.write("🌟 CloudStorageUrl から画像を取得中...")
+            with st.spinner("🌟 CloudStorageUrl から画像を取得中..."):
+                img_df = filtered_df[filtered_df["CloudStorageUrl"]
+                                      .astype(str).str.startswith("http")].copy()
+                # 以降のロジックはそのまま
 
             img_df = filtered_df[filtered_df["CloudStorageUrl"].astype(str)
                                  .str.startswith("http")].copy()
