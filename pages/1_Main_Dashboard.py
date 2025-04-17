@@ -5,10 +5,9 @@ import pandas as pd
 import re
 
 # ------------------------------------------------------------
-# 0. ページ設定 & カード用 CSS
+# 0. ページ設定 & CSS
 # ------------------------------------------------------------
 st.set_page_config(page_title="配信バナー", layout="wide")
-
 st.markdown(
     """
     <style>
@@ -25,19 +24,18 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
 st.title("🖼️ 配信バナー")
 
 # ------------------------------------------------------------
-# 1. 認証 & データ取得
+# 1. データ取得
 # ------------------------------------------------------------
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
-client = bigquery.Client.from_service_account_info(info_dict)
+bq = bigquery.Client.from_service_account_info(info_dict)
 
 query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data"
 with st.spinner("🔄 データを取得中..."):
-    df = client.query(query).to_dataframe()
+    df = bq.query(query).to_dataframe()
 
 if df.empty:
     st.warning("⚠️ データがありません")
@@ -62,36 +60,21 @@ if not df["Date"].isnull().all():
         d = pd.to_datetime(sel_date).date()
         df = df[df["Date"].dt.date == d]
 
-# ---------- サイドバー各種フィルタ ----------
+# ---------- サイドバー絞り込み ----------
 st.sidebar.header("🔍 フィルター")
-all_clients = sorted(df["PromotionName"].dropna().unique())
+def sb_select(label, series):
+    opts = ["すべて"] + sorted(series.dropna().unique())
+    choice = st.sidebar.selectbox(label, opts)
+    return None if choice == "すべて" else choice
 
-def update_client():
-    cs = st.session_state.client_search
-    if cs in all_clients:
-        st.session_state.selected_client = cs
+client = sb_select("クライアント", df["PromotionName"])
+if client: df = df[df["PromotionName"] == client]
 
-st.sidebar.text_input("クライアント検索", "", key="client_search",
-                      placeholder="Enter で決定", on_change=update_client)
+cat = sb_select("カテゴリ", df["カテゴリ"])
+if cat: df = df[df["カテゴリ"] == cat]
 
-search_val = st.session_state.get("client_search", "")
-filtered_clients = [c for c in all_clients if search_val.lower() in c.lower()] \
-                   if search_val else all_clients
-c_opts = ["すべて"] + filtered_clients
-sel_client = st.sidebar.selectbox(
-    "クライアント", c_opts,
-    index=c_opts.index(st.session_state.get("selected_client", "すべて"))
-)
-if sel_client != "すべて":
-    df = df[df["PromotionName"] == sel_client]
-
-sel_cat = st.sidebar.selectbox("カテゴリ", ["すべて"] + sorted(df["カテゴリ"].dropna().unique()))
-if sel_cat != "すべて":
-    df = df[df["カテゴリ"] == sel_cat]
-
-sel_cmp = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(df["CampaignName"].dropna().unique()))
-if sel_cmp != "すべて":
-    df = df[df["CampaignName"] == sel_cmp]
+camp = sb_select("キャンペーン名", df["CampaignName"])
+if camp: df = df[df["CampaignName"] == camp]
 
 # ---------- 1〜60 列補完 ----------
 for i in range(1, 61):
@@ -101,136 +84,90 @@ for i in range(1, 61):
 # ------------------------------------------------------------
 # 2. 画像バナー表示
 # ------------------------------------------------------------
-st.subheader("🌟 並び替え")
 img_df = df[df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
-
-if img_df.empty:
+if img_df.empty():
     st.warning("⚠️ 表示できる画像がありません")
     st.stop()
 
 img_df["AdName"]      = img_df["AdName"].astype(str).str.strip()
 img_df["CampaignId"]  = img_df["CampaignId"].astype(str).str.strip()
-img_df["CloudStorageUrl"] = img_df["CloudStorageUrl"].astype(str).str.strip()
-img_df["AdNum"] = pd.to_numeric(img_df["AdName"], errors="coerce")
-img_df = img_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
+img_df["AdNum"]       = pd.to_numeric(img_df["AdName"], errors="coerce")
 
-def get_cv(r):
-    n = r["AdNum"]
+# ---- CV 件数（行ごと） ----
+def row_cv(row):
+    n = row["AdNum"]
     if pd.isna(n): return 0
     col = str(int(n))
-    return r[col] if col in r and isinstance(r[col], (int, float)) else 0
-img_df["CV件数"] = img_df.apply(get_cv, axis=1)
+    return row[col] if col in row and isinstance(row[col], (int, float)) else 0
+img_df["CV件数"] = img_df.apply(row_cv, axis=1)
 
-# --- 最新テキスト（CampaignId+AdName で一意） ---
-latest = (
+# ---- 最新 1 行を採用 ----
+latest_rows = (
     img_df.sort_values("Date")
           .dropna(subset=["Date"])
           .loc[lambda d: d.groupby(["CampaignId", "AdName"])["Date"].idxmax()]
+          .copy()
 )
-latest_text_map = latest.set_index(["CampaignId", "AdName"])["Description1ByAdType"].to_dict()
-
-# --- 集計して CPA 計算 ---
-agg_df = df.copy()
-agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
-agg_df["CampaignId"] = agg_df["CampaignId"].astype(str).str.strip()
-agg_df["AdNum"] = pd.to_numeric(agg_df["AdName"], errors="coerce")
-agg_df = agg_df[agg_df["AdNum"].notna()]
-agg_df["AdNum"] = agg_df["AdNum"].astype(int)
-
-cv_sum_df = img_df.groupby(["CampaignId", "AdName"])["CV件数"].sum().reset_index()
-
-caption_df = (
-    agg_df.groupby(["CampaignId", "AdName"])
-          .agg({"Cost": "sum", "Impressions": "sum", "Clicks": "sum"})
-          .reset_index()
-          .merge(cv_sum_df, on=["CampaignId", "AdName"], how="left")
+latest_rows["CTR"] = latest_rows["Clicks"] / latest_rows["Impressions"]
+latest_rows["CPA"] = latest_rows.apply(
+    lambda r: r["Cost"] / r["CV件数"] if r["CV件数"] > 0 else pd.NA, axis=1
 )
-caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
-caption_df["CPA"] = caption_df.apply(
-    lambda r: (r["Cost"] / r["CV件数"]) if pd.notna(r["CV件数"]) and r["CV件数"] > 0 else pd.NA,
-    axis=1,
-)
+metric = latest_rows.set_index(["CampaignId", "AdName"]).to_dict("index")
 
-# ---------- CPA / CV件数 列を一本化 ----------
+# ---- 並び替え用 CPA を img_df に付加 ----
 img_df = img_df.merge(
-    caption_df[["CampaignId", "AdName", "CV件数", "CPA"]],
+    latest_rows[["CampaignId", "AdName", "CV件数", "CPA"]],
     on=["CampaignId", "AdName"],
-    how="left",
-    suffixes=("", "_m")
+    how="left"
 )
-for col in ["CPA", "CV件数"]:
-    if col not in img_df.columns and f"{col}_m" in img_df.columns:
-        img_df[col] = img_df[f"{col}_m"]
-    if col in img_df.columns and f"{col}_m" in img_df.columns:
-        img_df[col] = img_df[col].fillna(img_df[f"{col}_m"])
-    if f"{col}_m" in img_df.columns:
-        img_df.drop(columns=f"{col}_m", inplace=True)
-
-img_df["CPA"]    = pd.to_numeric(img_df["CPA"], errors="coerce")
-img_df["CV件数"] = pd.to_numeric(img_df["CV件数"], errors="coerce").fillna(0)
-
-# Cost / IMP / Clicks は caption_df の値を使用（CPA/CV は img_df）
-caption_map = caption_df.set_index(["CampaignId", "AdName"]).to_dict("index")
 
 # ---------- 並び替え ----------
-sort_opt = st.radio("並び替え基準", ["広告番号順", "コンバージョン数の多い順", "CPAの低い順"])
-if sort_opt == "コンバージョン数の多い順":
+st.subheader("🌟 並び替え")
+opt = st.radio("基準", ["広告番号順", "コンバージョン数の多い順", "CPAの低い順"])
+if opt == "コンバージョン数の多い順":
     img_df = img_df[img_df["CV件数"] > 0].sort_values("CV件数", ascending=False)
-elif sort_opt == "CPAの低い順":
+elif opt == "CPAの低い順":
     img_df = img_df[img_df["CPA"].notna()].sort_values("CPA")
 else:
     img_df = img_df.sort_values("AdNum")
 
 # ---------- 表示 ----------
 cols = st.columns(5, gap="small")
+def split_links(raw):
+    return [p for p in re.split(r'[,\s]+', str(raw or "")) if p.startswith("http")]
 
-def parse_canva_links(raw: str) -> list[str]:
-    parts = re.split(r'[,\s]+', str(raw or ""))
-    return [p for p in parts if p.startswith("http")]
+for i, (_, r) in enumerate(img_df.iterrows()):
+    key = (r["CampaignId"], r["AdName"])
+    m = metric.get(key, {})
+    cost, imp, clk, ctr, cv, cpa = m.get("Cost",0), m.get("Impressions",0), m.get("Clicks",0), \
+                                   m.get("CTR"), m.get("CV件数",0), m.get("CPA")
+    text = m.get("Description1ByAdType","")
 
-for idx, (_, row) in enumerate(img_df.iterrows()):
-    ad  = row["AdName"]
-    cid = row["CampaignId"]
-    v   = caption_map.get((cid, ad), {})
-    cost, imp, clicks = v.get("Cost", 0), v.get("Impressions", 0), v.get("Clicks", 0)
-    ctr = v.get("CTR")
+    links = split_links(r.get("canvaURL",""))
+    canva_html = (
+        ", ".join(f'<a href="{l}" target="_blank">canvaURL{i+1 if len(links)>1 else ""}↗️</a>'
+                  for i,l in enumerate(links))
+        if links else '<span class="gray-text">canvaURL：なし✖</span>'
+    )
 
-    # --- CPA / CV は img_df の値を使用 ---
-    cpa = row["CPA"]
-    cv  = row["CV件数"]
-
-    text = latest_text_map.get((cid, ad), "")
-
-    links = parse_canva_links(row.get("canvaURL", ""))
-    if links:
-        canva_html = ", ".join(
-            f'<a href="{l}" target="_blank" rel="noopener">canvaURL{i+1 if len(links)>1 else ""}↗️</a>'
-            for i, l in enumerate(links)
-        )
-    else:
-        canva_html = '<span class="gray-text">canvaURL：なし✖</span>'
-
-    cap_lines = [
-        f"<b>広告名：</b>{ad}",
+    caption = "<br>".join([
+        f"<b>広告名：</b>{r['AdName']}",
         f"<b>消化金額：</b>{cost:,.0f}円",
         f"<b>IMP：</b>{imp:,.0f}",
-        f"<b>クリック：</b>{clicks:,.0f}",
+        f"<b>クリック：</b>{clk:,.0f}",
         f"<b>CTR：</b>{ctr*100:.2f}%" if pd.notna(ctr) else "<b>CTR：</b>-",
-        f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}",
+        f"<b>CV数：</b>{int(cv) if cv else 'なし'}",
         f"<b>CPA：</b>{cpa:,.0f}円" if pd.notna(cpa) else "<b>CPA：</b>-",
         canva_html,
         f"<b>メインテキスト：</b>{text}",
-    ]
-    cap_html = "<div class='banner-caption'>" + "<br>".join(cap_lines) + "</div>"
-
-    card_html = f"""
+    ])
+    card = f"""
       <div class='banner-card'>
-        <a href="{row['CloudStorageUrl']}" target="_blank" rel="noopener">
-          <img src="{row['CloudStorageUrl']}">
+        <a href="{r['CloudStorageUrl']}" target="_blank" rel="noopener">
+          <img src="{r['CloudStorageUrl']}">
         </a>
-        {cap_html}
+        <div class='banner-caption'>{caption}</div>
       </div>
     """
-
-    with cols[idx % 5]:
-        st.markdown(card_html, unsafe_allow_html=True)
+    with cols[i % 5]:
+        st.markdown(card, unsafe_allow_html=True)
