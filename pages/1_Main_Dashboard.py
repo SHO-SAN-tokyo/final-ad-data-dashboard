@@ -222,6 +222,11 @@ with st.spinner("🔄 データを取得中..."):
         parts = re.split(r'[,\s]+', str(raw or ""))
         return [p for p in parts if p.startswith("http")]
 
+    st.subheader("デバッグ表示ループ前の img_df")
+    st.dataframe(img_df)
+
+    cols = st.columns(5, gap="small") # ここに移動
+
     for idx, (_, row) in enumerate(img_df.iterrows()):
         ad  = row["AdName"]
         cid = row["CampaignId"]
