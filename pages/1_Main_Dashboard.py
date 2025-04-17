@@ -135,11 +135,27 @@ try:
                     cpa = values.get("CPA", None)
                     cv = values.get("CV件数", 0)
                     text = latest_text_map.get(adname, "")
-                    canva_link = row.get("canvaURL", "")
+                    canva_raw = row.get("canvaURL", "")
+                    canva_links = []
+
+                    if isinstance(canva_raw, str):
+                        urls = [u.strip() for u in canva_raw.split() if u.startswith("http")]
+                        if urls:
+                            for idx, url in enumerate(urls):
+                                label = f"Canva↗️" if len(urls) == 1 else f"Canva{idx+1}↗️"
+                                canva_links.append(
+                                    f"<a href='{url}' target='_blank' style='color: #1a73e8; font-size: 12px;'>{label}</a>"
+                                )
+                        else:
+                            canva_links.append("<span style='color: #999; font-size: 12px;'>canvaURL：なし✖</span>")
+                    else:
+                        canva_links.append("<span style='color: #999; font-size: 12px;'>canvaURL：なし✖</span>")
+
+                    canva_html = "<br>".join(canva_links)
 
                     with cols[i % 5]:
                         st.markdown(f"""
-                        <div style='border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 20px; height: 500px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; background-color: #f9f9f9;'>
+                        <div style='border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 20px; height: 520px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; background-color: #f9f9f9;'>
                             <a href="{row['CloudStorageUrl']}" target="_blank" style="width: 100%; height: 220px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
                                 <img src="{row['CloudStorageUrl']}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
                             </a>
@@ -152,7 +168,7 @@ try:
                                 <b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>
                                 <b>CPA：</b>{f"{cpa:,.0f}円" if pd.notna(cpa) else '-'}<br>
                                 <b>メインテキスト：</b>{text}<br>
-                                {"<a href='" + canva_link + "' target='_blank' style='color: #1a73e8; font-size: 12px;'>Canva↗️</a>" if canva_link else ""}
+                                {canva_html}
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
