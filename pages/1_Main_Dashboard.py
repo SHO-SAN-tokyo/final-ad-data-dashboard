@@ -211,13 +211,13 @@ with st.spinner("🔄 データを取得中..."):
     else:
         img_df["CPA_計算"] = pd.NA  # 該当する列がない場合の処理
 
-    # 新しい列名で更新
-    img_df["CPA"] = pd.to_numeric(img_df["CPA_計算"], errors="coerce")
-    img_df["CV件数"] = pd.to_numeric(img_df["CV件数_計算"], errors="coerce").fillna(0)
+    # 新しい列名で更新 (元の列を上書きしない)
+    img_df["CPA_表示用"] = pd.to_numeric(img_df["CPA_計算"], errors="coerce")
+    img_df["CV件数_表示用"] = pd.to_numeric(img_df["CV件数_計算"], errors="coerce").fillna(0)
 
     # 不要になった計算用列を削除 (任意)
-    img_df = img_df.drop(columns=["CPA_計算", "CV件数_計算"], errors='ignore')
-    img_df = img_df.drop(columns=["CV件数_base_x", "CV件数_base_y", "CPA_x", "CPA_y", "CV件数_base"], errors='ignore')
+    img_df = img_df.drop(columns=["CPA_計算", "CV件数_計算", "CV件数_base_x", "CV件数_base_y", "CPA_x", "CPA_y", "CV件数_base"], errors='ignore')
+    img_df = img_df.rename(columns={'CPA_表示用': 'CPA', 'CV件数_表示用': 'CV件数'})
 
 
     caption_map = caption_df.set_index(["CampaignId", "AdName"]).to_dict("index")
