@@ -104,8 +104,12 @@ for i in range(1, 61):
 st.subheader("🌟 並び替え")
 img_df = df[df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
 
+st.subheader("デバッグ: img_df 初期化直後")
+st.write(f"img_df の行数: {len(img_df)}")
+st.dataframe(img_df)
+
 if img_df.empty:
-    st.warning("⚠️ 表示できる画像がありません")
+    st.warning("⚠️ 表示できる画像がありません (CloudStorageUrl フィルタ後)")
     st.stop()
 
 img_df["AdName"]     = img_df["AdName"].astype(str).str.strip()
@@ -113,6 +117,10 @@ img_df["CampaignId"]   = img_df["CampaignId"].astype(str).str.strip()
 img_df["CloudStorageUrl"] = img_df["CloudStorageUrl"].astype(str).str.strip()
 img_df["AdNum"] = pd.to_numeric(img_df["AdName"], errors="coerce")
 img_df = img_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
+
+st.subheader("デバッグ: 重複削除後 img_df")
+st.write(f"img_df の行数 (重複削除後): {len(img_df)}")
+st.dataframe(img_df)
 
 def get_cv(r):
     n = r["AdNum"]
@@ -176,9 +184,9 @@ img_df = img_df.merge(
     how="left"
 )
 
-# デバッグ: マージ後の img_df のカラムを確認
-st.subheader("デバッグ: マージ後の img_df のカラム")
-st.write(img_df.columns)
+st.subheader("デバッグ: マージ後 img_df")
+st.write(f"img_df の行数 (マージ後): {len(img_df)}")
+st.dataframe(img_df)
 
 # デバッグ: CPA 列が存在するか確認し、存在しない場合は警告
 if "CPA" not in img_df.columns:
@@ -202,6 +210,10 @@ elif sort_opt == "CPAの低い順":
     img_df = img_df[img_df["CPA"].notna()].sort_values("CPA")
 else:
     img_df = img_df.sort_values("AdNum")
+
+st.subheader("デバッグ: 並び替え後 img_df")
+st.write(f"img_df の行数 (並び替え後): {len(img_df)}")
+st.dataframe(img_df)
 
 cols = st.columns(5, gap="small")
 
