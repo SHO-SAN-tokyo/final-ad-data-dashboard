@@ -117,9 +117,9 @@ try:
         # ------------------------------------------------------------
         # 2. 画像バナー表示
         # ------------------------------------------------------------
-        st.subheader("🖼️ 配信バナー")
+        st.subheader("🌟並び替え")
         if "CloudStorageUrl" in filtered_df.columns:
-            with st.spinner("🌟 CloudStorageUrl から画像を取得中..."):
+            with st.spinner("🔄 画像を取得中..."):
                 img_df = filtered_df[filtered_df["CloudStorageUrl"]
                                       .astype(str).str.startswith("http")].copy()
                 # 以降のロジックはそのまま
