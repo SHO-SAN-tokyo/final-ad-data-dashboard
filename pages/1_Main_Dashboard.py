@@ -119,7 +119,7 @@ def get_cv(r):
     if pd.isna(n): return 0
     col = str(int(n))
     return r[col] if col in r and isinstance(r[col], (int, float)) else 0
-img_df["CV件数"] = img_df.apply(get_cv, axis=1)
+img_df["CV件数_base"] = img_df.apply(get_cv, axis=1) # 元のCV件数を保持
 
 latest = (img_df.sort_values("Date")
             .dropna(subset=["Date"])
@@ -133,7 +133,7 @@ agg_df["AdNum"] = pd.to_numeric(agg_df["AdName"], errors="coerce")
 agg_df = agg_df[agg_df["AdNum"].notna()]
 agg_df["AdNum"] = agg_df["AdNum"].astype(int)
 
-cv_sum_df = img_df.groupby(["CampaignId", "AdName"])["CV件数"].sum().reset_index()
+cv_sum_df = img_df.groupby(["CampaignId", "AdName"])["CV件数_base"].sum().reset_index() # 元のCV件数を使用
 
 caption_df = (
     agg_df.groupby(["CampaignId", "AdName"])
@@ -143,7 +143,7 @@ caption_df = (
 )
 caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
 caption_df["CPA"] = caption_df.apply(
-    lambda r: (r["Cost"] / r["CV件数"]) if pd.notna(r["CV件数"]) and r["CV件数"] > 0 else pd.NA,
+    lambda r: (r["Cost"] / r["CV件数_base"]) if pd.notna(r["CV件数_base"]) and r["CV件数_base"] > 0 else pd.NA,
     axis=1,
 )
 
@@ -151,9 +151,21 @@ caption_df["CPA"] = caption_df.apply(
 st.subheader("デバッグ: caption_df の内容")
 st.dataframe(caption_df)
 
+# デバッグ: img_df の結合キーのデータ型と値を確認
+st.subheader("デバッグ: img_df の結合キー (head)")
+st.dataframe(img_df[["CampaignId", "AdName"]].head())
+st.subheader("デバッグ: img_df の結合キーのデータ型")
+st.write(img_df[["CampaignId", "AdName"]].apply(lambda x: x.map(type).unique()))
+
+# デバッグ: caption_df の結合キーのデータ型と値を確認
+st.subheader("デバッグ: caption_df の結合キー (head)")
+st.dataframe(caption_df[["CampaignId", "AdName"]].head())
+st.subheader("デバッグ: caption_df の結合キーのデータ型")
+st.write(caption_df[["CampaignId", "AdName"]].apply(lambda x: x.map(type).unique()))
+
 # CPA / CV件数 を付与して KeyError 回避
 img_df = img_df.merge(
-    caption_df[["CampaignId", "AdName", "CV件数", "CPA"]],
+    caption_df[["CampaignId", "AdName", "CV件数_base", "CPA"]],
     on=["CampaignId", "AdName"],
     how="left"
 )
@@ -162,18 +174,18 @@ img_df = img_df.merge(
 st.subheader("デバッグ: マージ後の img_df のカラム")
 st.write(img_df.columns)
 
-# デバッグ: CPA 列が存在するか確認し、存在しない場合は作成
+# デバッグ: CPA 列が存在するか確認し、存在しない場合は警告
 if "CPA" not in img_df.columns:
     st.warning("⚠️ CPA 列が img_df に存在しません。")
     img_df["CPA"] = pd.NA
 
-# デバッグ: CV件数 列が存在するか確認し、存在しない場合は作成
-if "CV件数" not in img_df.columns:
-    st.warning("⚠️ CV件数 列が img_df に存在しません。")
-    img_df["CV件数"] = pd.NA
+# デバッグ: CV件数_base 列が存在するか確認し、存在しない場合は警告
+if "CV件数_base" not in img_df.columns:
+    st.warning("⚠️ CV件数_base 列が img_df に存在しません。")
+    img_df["CV件数_base"] = 0 # 0で埋める
 
 img_df["CPA"]   = pd.to_numeric(img_df["CPA"], errors="coerce")
-img_df["CV件数"] = pd.to_numeric(img_df["CV件数"], errors="coerce").fillna(0)
+img_df["CV件数"] = pd.to_numeric(img_df["CV件数_base"], errors="coerce").fillna(0) # 並び替えと表示用に元のCV件数を使用
 
 caption_map = caption_df.set_index(["CampaignId", "AdName"]).to_dict("index")
 
