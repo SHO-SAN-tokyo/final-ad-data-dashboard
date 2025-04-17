@@ -121,7 +121,7 @@ def get_cv(r):
     return r[col] if col in r and isinstance(r[col], (int, float)) else 0
 img_df["CV件数"] = img_df.apply(get_cv, axis=1)
 
-# ★★★ 変更：CampaignId もキーに含めて最新テキストを取得 ★★★
+# --- 最新テキスト（CampaignId+AdName で一意） ---
 latest = (
     img_df.sort_values("Date")
           .dropna(subset=["Date"])
@@ -129,6 +129,7 @@ latest = (
 )
 latest_text_map = latest.set_index(["CampaignId", "AdName"])["Description1ByAdType"].to_dict()
 
+# --- 集計して CPA 計算 ---
 agg_df = df.copy()
 agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
 agg_df["CampaignId"] = agg_df["CampaignId"].astype(str).str.strip()
@@ -168,6 +169,7 @@ for col in ["CPA", "CV件数"]:
 img_df["CPA"]    = pd.to_numeric(img_df["CPA"], errors="coerce")
 img_df["CV件数"] = pd.to_numeric(img_df["CV件数"], errors="coerce").fillna(0)
 
+# Cost / IMP / Clicks は caption_df の値を使用（CPA/CV は img_df）
 caption_map = caption_df.set_index(["CampaignId", "AdName"]).to_dict("index")
 
 # ---------- 並び替え ----------
@@ -191,8 +193,13 @@ for idx, (_, row) in enumerate(img_df.iterrows()):
     cid = row["CampaignId"]
     v   = caption_map.get((cid, ad), {})
     cost, imp, clicks = v.get("Cost", 0), v.get("Impressions", 0), v.get("Clicks", 0)
-    ctr, cpa, cv = v.get("CTR"), v.get("CPA"), v.get("CV件数", 0)
-    text = latest_text_map.get((cid, ad), "")      # ★ CampaignId もキーに
+    ctr = v.get("CTR")
+
+    # --- CPA / CV は img_df の値を使用 ---
+    cpa = row["CPA"]
+    cv  = row["CV件数"]
+
+    text = latest_text_map.get((cid, ad), "")
 
     links = parse_canva_links(row.get("canvaURL", ""))
     if links:
@@ -208,8 +215,7 @@ for idx, (_, row) in enumerate(img_df.iterrows()):
         f"<b>消化金額：</b>{cost:,.0f}円",
         f"<b>IMP：</b>{imp:,.0f}",
         f"<b>クリック：</b>{clicks:,.0f}",
-        f"<b>CTR：</b>{ctr*100:.2f}%"
-        if pd.notna(ctr) else "<b>CTR：</b>-",
+        f"<b>CTR：</b>{ctr*100:.2f}%" if pd.notna(ctr) else "<b>CTR：</b>-",
         f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}",
         f"<b>CPA：</b>{cpa:,.0f}円" if pd.notna(cpa) else "<b>CPA：</b>-",
         canva_html,
