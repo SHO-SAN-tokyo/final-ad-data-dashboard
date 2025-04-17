@@ -135,13 +135,14 @@ try:
                     cpa = values.get("CPA", None)
                     cv = values.get("CV件数", 0)
                     text = latest_text_map.get(adname, "")
+                    canva_link = row.get("canvaURL", "")
 
                     with cols[i % 5]:
                         st.markdown(f"""
-                        <div style='border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 20px; height: 480px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; background-color: #f9f9f9;'>
-                            <div style="width: 100%; height: 220px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                        <div style='border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 20px; height: 500px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; background-color: #f9f9f9;'>
+                            <a href="{row['CloudStorageUrl']}" target="_blank" style="width: 100%; height: 220px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
                                 <img src="{row['CloudStorageUrl']}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
-                            </div>
+                            </a>
                             <div style='text-align: left; font-size: 14px; line-height: 1.6; padding-top: 10px; width: 100%;'>
                                 <b>広告名：</b>{adname}<br>
                                 <b>消化金額：</b>{cost:,.0f}円<br>
@@ -150,7 +151,8 @@ try:
                                 {'<b>CTR：</b>{:.2f}%<br>'.format(ctr*100) if pd.notna(ctr) else '<b>CTR：</b>-<br>'}
                                 <b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>
                                 <b>CPA：</b>{f"{cpa:,.0f}円" if pd.notna(cpa) else '-'}<br>
-                                <b>メインテキスト：</b>{text}
+                                <b>メインテキスト：</b>{text}<br>
+                                {"<a href='" + canva_link + "' target='_blank' style='color: #1a73e8; font-size: 12px;'>Canva↗️</a>" if canva_link else ""}
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
