@@ -126,11 +126,11 @@ def calculate_and_display_banners(df):
             total_conversions += numeric_col.sum()
         return total_conversions
 
-    campaign_conversions = grouped_data.apply(debug_apply).rename("TotalConversions").fillna(0)
+    campaign_conversions = grouped_data.apply(debug_apply).rename("TotalConversions").fillna(0).astype('float64')
 
     # キャンペーンIDごとのコストと予算を取得
-    campaign_cost = df.groupby("CampaignId")["Cost"].sum().rename("TotalCost").fillna(0)
-    campaign_budget = df.groupby("CampaignId")["予算"].sum().rename("TotalBudget").fillna(0)
+    campaign_cost = df.groupby("CampaignId")["Cost"].sum().rename("TotalCost").fillna(0).astype('float64')
+    campaign_budget = df.groupby("CampaignId")["予算"].sum().rename("TotalBudget").fillna(0).astype('float64')
 
     img_df = pd.merge(img_df, campaign_conversions, on="CampaignId", how="left").fillna(0)
     img_df = pd.merge(img_df, campaign_cost, on="CampaignId", how="left").fillna(0)
