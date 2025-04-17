@@ -2,6 +2,7 @@
 import streamlit as st
 from google.cloud import bigquery
 import pandas as pd
+import re                             # ← 追加（canvaURL 抽出用）
 
 # ------------------------------------------------------------
 # 0. ページ設定 & “画像カード” 用の軽い CSS だけ追加
@@ -12,18 +13,16 @@ st.set_page_config(page_title="メインダッシュボード", layout="wide")
 st.markdown(
     """
     <style>
-      /* ── 画像 + キャプションを 1 枚のカードにまとめる ── */
       .banner-card{
         padding:12px 12px 20px 12px;border:1px solid #e6e6e6;border-radius:12px;
         background:#fafafa;height:100%;margin-bottom:14px;
       }
       .banner-card img{
         width:100%;height:180px;object-fit:cover;border-radius:8px;
-        cursor:pointer;              /* マウスオーバーで「クリック可」を示す */
+        cursor:pointer;
       }
-      .banner-caption{
-        margin-top:8px;font-size:14px;line-height:1.6;text-align:left;
-      }
+      .banner-caption{margin-top:8px;font-size:14px;line-height:1.6;text-align:left;}
+      .gray-text{color:#888;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -32,7 +31,7 @@ st.markdown(
 st.title("📊 Final_Ad_Data Dashboard")
 
 # ------------------------------------------------------------
-# 1. 認証 & データ取得（ここは元のまま）
+# 1. 認証 & データ取得（ロジック変更なし）
 # ------------------------------------------------------------
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
@@ -50,7 +49,7 @@ try:
     else:
         st.success("✅ データ取得成功！")
 
-        # ---------- 前処理（元のまま） ----------
+        # ---------- 前処理 ----------
         if "カテゴリ" in df.columns:
             df["カテゴリ"] = df["カテゴリ"].astype(str).str.strip().replace("", "未設定").fillna("未設定")
         if "Date" in df.columns:
@@ -114,7 +113,7 @@ try:
             filtered_df[col] = pd.to_numeric(filtered_df.get(col, 0), errors="coerce").fillna(0)
 
         # ------------------------------------------------------------
-        # 2. 画像バナー表示（ロジックは同じ・見た目のみ後段で変更）
+        # 2. 画像バナー表示
         # ------------------------------------------------------------
         st.subheader("🖼️ 配信バナー")
         if "CloudStorageUrl" in filtered_df.columns:
@@ -176,6 +175,15 @@ try:
                 st.warning("⚠️ 表示できる画像がありません")
             else:
                 cols = st.columns(5, gap="small")
+
+                def parse_canva_links(raw: str) -> list[str]:
+                    """http(s) から始まる URL を抽出して返す"""
+                    if not raw:
+                        return []
+                    # カンマ・改行・スペースで分割し http(s) で始まる物だけ
+                    parts = re.split(r'[,\s]+', str(raw))
+                    return [p for p in parts if p.startswith("http")]
+
                 for idx, (_, row) in enumerate(img_df.iterrows()):
                     ad  = row["AdName"]
                     cid = row["CampaignId"]
@@ -183,6 +191,20 @@ try:
                     cost, imp, clicks = v.get("Cost", 0), v.get("Impressions", 0), v.get("Clicks", 0)
                     ctr, cpa, cv = v.get("CTR"), v.get("CPA"), v.get("CV件数", 0)
                     text = latest_text_map.get(ad, "")
+
+                    # ---- canvaURL 解析 ----
+                    canva_raw = row.get("canvaURL", "")
+                    links = parse_canva_links(canva_raw)
+                    if links:
+                        if len(links) == 1:
+                            canva_html = f'<a href="{links[0]}" target="_blank" rel="noopener">canvaURL↗️</a>'
+                        else:
+                            canva_html = ", ".join(
+                                f'<a href="{l}" target="_blank" rel="noopener">canvaURL{i+1}↗️</a>'
+                                for i, l in enumerate(links)
+                            )
+                    else:
+                        canva_html = '<span class="gray-text">canvaURL：なし✖</span>'
 
                     cap_html = f"""
                       <div class='banner-caption'>
@@ -195,9 +217,10 @@ try:
                       """
                     cap_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
                     cap_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
+                    cap_html += f"<b>canvaURL：</b>{canva_html}<br>"
                     cap_html += f"<b>メインテキスト：</b>{text}</div>"
 
-                    # ---- ここだけ変更：画像を <a target="_blank"> で包む ----
+                    # ---- 画像をクリックで拡大（別タブ） ----
                     card_html = f"""
                       <div class='banner-card'>
                         <a href="{row['CloudStorageUrl']}" target="_blank" rel="noopener">
