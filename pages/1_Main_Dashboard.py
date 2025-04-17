@@ -128,10 +128,14 @@ def get_cv(r):
     return r[col] if col in r and isinstance(r[col], (int, float)) else 0
 img_df["CV件数_base"] = img_df.apply(get_cv, axis=1) # 元のCV件数を保持
 
-latest = (img_df.sort_values("Date")
-            .dropna(subset=["Date"])
-            .loc[lambda d: d.groupby("AdName")["Date"].idxmax()])
-latest_text_map = latest.set_index("AdName")["Description1ByAdType"].to_dict()
+latest_text_map = {}
+if "Date" in img_df.columns:
+    latest = (img_df.sort_values("Date")
+                .dropna(subset=["Date"])
+                .loc[lambda d: d.groupby("AdName")["Date"].idxmax()])
+    latest_text_map = latest.set_index("AdName")["Description1ByAdType"].to_dict()
+else:
+    st.warning("⚠️ 'Date' 列が img_df に存在しないため、メインテキストの取得をスキップします。")
 
 agg_df = df.copy()
 agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
