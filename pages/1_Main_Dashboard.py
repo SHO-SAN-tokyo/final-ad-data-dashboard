@@ -14,9 +14,9 @@ st.markdown(
     <style>
       /* ── 画像 + キャプションを 1 枚のカードにまとめる ── */
       .banner-card{
-        padding:12px;border:1px solid #e6e6e6;border-radius:12px;
+        padding: 12px 12px 20px 12px;border:1px solid #e6e6e6;border-radius:12px;
         background:#fafafa;height:100%;
-        margin-bottom:20px;
+        margin-bottom:14px;
       }
       .banner-card img{
         width:100%;height:180px;object-fit:cover;border-radius:8px;
