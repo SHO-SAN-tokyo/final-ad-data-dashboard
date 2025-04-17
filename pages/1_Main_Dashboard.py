@@ -125,8 +125,17 @@ def get_cv(r):
     n = r["AdNum"]
     if pd.isna(n): return 0
     col = str(int(n))
-    return r[col] if col in r and isinstance(r[col], (int, float)) else 0
+    if col in r:
+        value = pd.to_numeric(r[col], errors='coerce')
+        return value if pd.notna(value) and isinstance(value, (int, float)) else 0
+    else:
+        return 0
+
 img_df["CV件数_base"] = img_df.apply(get_cv, axis=1) # 元のCV件数を保持
+
+# デバッグ出力: AdName、AdNum、CV件数_base を確認
+st.subheader("デバッグ: img_df の AdName と AdNum と CV件数_base")
+st.dataframe(img_df[["AdName", "AdNum", "CV件数_base"]].head(10))
 
 latest_text_map = {}
 if "Date" in img_df.columns:
