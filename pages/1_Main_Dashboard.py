@@ -1,4 +1,3 @@
-# 1_Main_Dashboard.py
 import streamlit as st
 from google.cloud import bigquery
 import pandas as pd
@@ -12,15 +11,15 @@ st.set_page_config(page_title="配信バナー", layout="wide")
 st.markdown(
     """
     <style>
-      .banner-card{
-        padding:12px 12px 20px 12px;border:1px solid #e6e6e6;border-radius:12px;
-        background:#fafafa;height:100%;margin-bottom:14px;
-      }
-      .banner-card img{
-        width:100%;height:180px;object-fit:cover;border-radius:8px;cursor:pointer;
-      }
-      .banner-caption{margin-top:8px;font-size:14px;line-height:1.6;text-align:left;}
-      .gray-text{color:#888;}
+        .banner-card{
+            padding:12px 12px 20px 12px;border:1px solid #e6e6e6;border-radius:12px;
+            background:#fafafa;height:100%;margin-bottom:14px;
+        }
+        .banner-card img{
+            width:100%;height:180px;object-fit:cover;border-radius:8px;cursor:pointer;
+        }
+        .banner-caption{margin-top:8px;font-size:14px;line-height:1.6;text-align:left;}
+        .gray-text{color:#888;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -46,7 +45,7 @@ if df.empty:
 # ---------- 前処理 ----------
 df["カテゴリ"] = (
     df.get("カテゴリ", "")
-      .astype(str).str.strip().replace("", "未設定").fillna("未設定")
+    .astype(str).str.strip().replace("", "未設定").fillna("未設定")
 )
 df["Date"] = pd.to_datetime(df.get("Date"), errors="coerce")
 
@@ -54,7 +53,7 @@ df["Date"] = pd.to_datetime(df.get("Date"), errors="coerce")
 if not df["Date"].isnull().all():
     min_d, max_d = df["Date"].min().date(), df["Date"].max().date()
     sel_date = st.sidebar.date_input("日付フィルター", (min_d, max_d),
-                                     min_value=min_d, max_value=max_d)
+                                    min_value=min_d, max_value=max_d)
     if isinstance(sel_date, (list, tuple)) and len(sel_date) == 2:
         s, e = map(pd.to_datetime, sel_date)
         df = df[(df["Date"].dt.date >= s.date()) & (df["Date"].dt.date <= e.date())]
@@ -72,11 +71,11 @@ def update_client():
         st.session_state.selected_client = cs
 
 st.sidebar.text_input("クライアント検索", "", key="client_search",
-                      placeholder="Enter で決定", on_change=update_client)
+                     placeholder="Enter で決定", on_change=update_client)
 
 search_val = st.session_state.get("client_search", "")
 filtered_clients = [c for c in all_clients if search_val.lower() in c.lower()] \
-                   if search_val else all_clients
+                    if search_val else all_clients
 c_opts = ["すべて"] + filtered_clients
 sel_client = st.sidebar.selectbox(
     "クライアント", c_opts,
@@ -104,26 +103,34 @@ for i in range(1, 61):
 st.subheader("🌟 並び替え")
 img_df = df[df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
 
+st.subheader("デバッグ: img_df 初期化直後")
+st.write(f"img_df の行数: {len(img_df)}")
+st.dataframe(img_df)
+
 if img_df.empty:
-    st.warning("⚠️ 表示できる画像がありません")
+    st.warning("⚠️ 表示できる画像がありません (CloudStorageUrl フィルタ後)")
     st.stop()
 
-img_df["AdName"]      = img_df["AdName"].astype(str).str.strip()
+img_df["AdName"]     = img_df["AdName"].astype(str).str.strip()
 img_df["CampaignId"]  = img_df["CampaignId"].astype(str).str.strip()
 img_df["CloudStorageUrl"] = img_df["CloudStorageUrl"].astype(str).str.strip()
 img_df["AdNum"] = pd.to_numeric(img_df["AdName"], errors="coerce")
 img_df = img_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
+
+st.subheader("デバッグ: 重複削除後 img_df")
+st.write(f"img_df の行数 (重複削除後): {len(img_df)}")
+st.dataframe(img_df)
 
 def get_cv(r):
     n = r["AdNum"]
     if pd.isna(n): return 0
     col = str(int(n))
     return r[col] if col in r and isinstance(r[col], (int, float)) else 0
-img_df["CV件数"] = img_df.apply(get_cv, axis=1)
+img_df["CV件数_base"] = img_df.apply(get_cv, axis=1) # 元のCV件数を保持
 
 latest = (img_df.sort_values("Date")
-                 .dropna(subset=["Date"])
-                 .loc[lambda d: d.groupby("AdName")["Date"].idxmax()])
+            .dropna(subset=["Date"])
+            .loc[lambda d: d.groupby("AdName")["Date"].idxmax()])
 latest_text_map = latest.set_index("AdName")["Description1ByAdType"].to_dict()
 
 agg_df = df.copy()
@@ -133,28 +140,64 @@ agg_df["AdNum"] = pd.to_numeric(agg_df["AdName"], errors="coerce")
 agg_df = agg_df[agg_df["AdNum"].notna()]
 agg_df["AdNum"] = agg_df["AdNum"].astype(int)
 
-cv_sum_df = img_df.groupby(["CampaignId", "AdName"])["CV件数"].sum().reset_index()
+cv_sum_df = img_df.groupby(["CampaignId", "AdName"])["CV件数_base"].sum().reset_index() # 元のCV件数を使用
 
 caption_df = (
     agg_df.groupby(["CampaignId", "AdName"])
-          .agg({"Cost": "sum", "Impressions": "sum", "Clicks": "sum"})
-          .reset_index()
-          .merge(cv_sum_df, on=["CampaignId", "AdName"], how="left")
+    .agg({"Cost": "sum", "Impressions": "sum", "Clicks": "sum"})
+    .reset_index()
+    .merge(cv_sum_df, on=["CampaignId", "AdName"], how="left")
 )
 caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
 caption_df["CPA"] = caption_df.apply(
-    lambda r: (r["Cost"] / r["CV件数"]) if pd.notna(r["CV件数"]) and r["CV件数"] > 0 else pd.NA,
+    lambda r: (r["Cost"] / r["CV件数_base"]) if pd.notna(r["CV件数_base"]) and r["CV件数_base"] > 0 else pd.NA,
     axis=1,
 )
 
-# CPA / CV件数 を付与して KeyError 回避
-img_df = img_df.merge(
-    caption_df[["CampaignId", "AdName", "CV件数", "CPA"]],
+# デバッグ: caption_df の内容を確認
+st.subheader("デバッグ: caption_df の内容")
+st.dataframe(caption_df)
+
+# デバッグ: 結合前の img_df のキーの組み合わせを確認
+st.subheader("デバッグ: 結合前 img_df キーの組み合わせ (head)")
+st.dataframe(img_df[["CampaignId", "AdName"]].head())
+
+# デバッグ: 結合前の caption_df のキーの組み合わせを確認
+st.subheader("デバッグ: 結合前 caption_df キーの組み合わせ (head)")
+st.dataframe(caption_df[["CampaignId", "AdName"]].head())
+
+# マージ前に結合キーの空白文字を除去 (念のため再度)
+img_df["CampaignId"] = img_df["CampaignId"].str.strip()
+img_df["AdName"] = img_df["AdName"].str.strip()
+caption_df["CampaignId"] = caption_df["CampaignId"].str.strip()
+caption_df["AdName"] = caption_df["AdName"].str.strip()
+
+# CPA / CV件数 を付与
+merged_img_df = img_df.merge(
+    caption_df[["CampaignId", "AdName", "CV件数_base", "CPA"]],
     on=["CampaignId", "AdName"],
     how="left"
 )
-img_df["CPA"]   = pd.to_numeric(img_df["CPA"], errors="coerce")
-img_df["CV件数"] = pd.to_numeric(img_df["CV件数"], errors="coerce").fillna(0)
+
+st.subheader("デバッグ: マージ後 merged_img_df")
+st.write(f"merged_img_df の行数 (マージ後): {len(merged_img_df)}")
+st.dataframe(merged_img_df)
+
+# マージ結果を img_df に代入
+img_df = merged_img_df
+
+# デバッグ: CPA 列が存在するか確認し、存在しない場合は警告
+if "CPA" not in img_df.columns:
+    st.warning("⚠️ CPA 列が img_df に存在しません。")
+    img_df["CPA"] = pd.NA
+
+# デバッグ: CV件数_base 列が存在するか確認し、存在しない場合は警告
+if "CV件数_base" not in img_df.columns:
+    st.warning("⚠️ CV件数_base 列が img_df に存在しません。")
+    img_df["CV件数_base"] = 0 # 0で埋める
+
+img_df["CPA"]     = pd.to_numeric(img_df["CPA"], errors="coerce")
+img_df["CV件数"] = pd.to_numeric(img_df["CV件数_base"], errors="coerce").fillna(0) # 並び替えと表示用に元のCV件数を使用
 
 caption_map = caption_df.set_index(["CampaignId", "AdName"]).to_dict("index")
 
@@ -165,6 +208,10 @@ elif sort_opt == "CPAの低い順":
     img_df = img_df[img_df["CPA"].notna()].sort_values("CPA")
 else:
     img_df = img_df.sort_values("AdNum")
+
+st.subheader("デバッグ: 並び替え後 img_df")
+st.write(f"img_df の行数 (並び替え後): {len(img_df)}")
+st.dataframe(img_df)
 
 cols = st.columns(5, gap="small")
 
@@ -206,12 +253,12 @@ for idx, (_, row) in enumerate(img_df.iterrows()):
     cap_html += f"<b>メインテキスト：</b>{text}</div>"
 
     card_html = f"""
-      <div class='banner-card'>
-        <a href="{row['CloudStorageUrl']}" target="_blank" rel="noopener">
-          <img src="{row['CloudStorageUrl']}">
-        </a>
-        {cap_html}
-      </div>
+        <div class='banner-card'>
+            <a href="{row['CloudStorageUrl']}" target="_blank" rel="noopener">
+                <img src="{row['CloudStorageUrl']}">
+            </a>
+            {cap_html}
+        </div>
     """
 
     with cols[idx % 5]:
