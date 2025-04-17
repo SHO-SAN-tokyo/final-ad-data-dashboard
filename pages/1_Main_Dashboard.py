@@ -115,8 +115,8 @@ def calculate_and_display_banners(df):
 
     # キャンペーンIDごとのコンバージョン数を集計
     campaign_conversions = df.groupby("CampaignId")[conversion_cols].apply(
-        lambda x: x.apply(lambda y: pd.to_numeric(y, errors='coerce')).fillna(0).sum(axis=1)
-    ).sum(axis=1).rename("TotalConversions").fillna(0)
+        lambda x: pd.to_numeric(x, errors='coerce').fillna(0).sum(axis=1)
+    ).rename("TotalConversions").fillna(0)
 
     # キャンペーンIDごとのコストと予算を取得
     campaign_cost = df.groupby("CampaignId")["Cost"].sum().rename("TotalCost").fillna(0)
@@ -213,5 +213,3 @@ if not df["Date"].isnull().all():
         filtered_df = filtered_df[filtered_df["Date"].dt.date == d]
 
 calculate_and_display_banners(filtered_df)
-
-# デバッグ出力は削除しました
