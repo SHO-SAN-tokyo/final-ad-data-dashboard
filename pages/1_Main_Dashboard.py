@@ -163,10 +163,10 @@ try:
             )
             caption_map = caption_df.set_index(["CampaignId", "AdName"]).to_dict("index")
 
-            sort_opt = st.radio("並び替え基準", ["AdNum", "CV件数(多)", "CPA(小)"])
-            if sort_opt == "CV件数(多)":
+            sort_opt = st.radio("並び替え基準", ["広告番号順", "コンバージョン数の多い順", "CPAの低い順"])
+            if sort_opt == "コンバージョン数の多い順":
                 img_df = img_df[img_df["CV件数"] > 0].sort_values("CV件数", ascending=False)
-            elif sort_opt == "CPA(小)":
+            elif sort_opt == "CPAの低い順":
                 img_df = img_df[img_df["CPA"].notna()].sort_values("CPA")
             else:
                 img_df = img_df.sort_values("AdNum")
