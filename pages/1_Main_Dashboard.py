@@ -196,6 +196,17 @@ with st.spinner("🔄 データを取得中..."):
     st.write(f"merged_img_df の行数 (マージ後): {len(merged_img_df)}")
     st.dataframe(merged_img_df)
 
+    # サフィックス付きの列名で img_df の CPA と CV件数を更新
+    if "CV件数_base_x" in merged_img_df.columns:
+        img_df["CV件数_base"] = merged_img_df["CV件数_base_x"]
+    elif "CV件数_base_y" in merged_img_df.columns:
+        img_df["CV件数_base"] = merged_img_df["CV件数_base_y"]
+
+    if "CPA_x" in merged_img_df.columns:
+        img_df["CPA"] = merged_img_df["CPA_x"]
+    elif "CPA_y" in merged_img_df.columns:
+        img_df["CPA"] = merged_img_df["CPA_y"]
+
     # マージ結果を img_df に代入
     img_df = merged_img_df
 
@@ -222,19 +233,18 @@ with st.spinner("🔄 データを取得中..."):
         parts = re.split(r'[,\s]+', str(raw or ""))
         return [p for p in parts if p.startswith("http")]
 
-    st.subheader("デバッグ表示ループ前の img_df")
+    st.subheader("デバッグ表示ループ前の img_df (修正後)")
     st.dataframe(img_df)
 
-    cols = st.columns(5, gap="small") # ここに移動
+    cols = st.columns(5, gap="small")
 
     for idx, (_, row) in enumerate(img_df.iterrows()):
         ad  = row["AdName"]
         cid = row["CampaignId"]
-        st.write(f"デバッグ表示ループ: cid='{cid}', ad='{ad}', type(cid)={type(cid)}, type(ad)={type(ad)}")
+        st.write(f"デバッグ表示ループ: cid='{cid}', ad='{ad}'")
         v   = caption_map.get((cid, ad), {})
         cost, imp, clicks = v.get("Cost", 0), v.get("Impressions", 0), v.get("Clicks", 0)
-        ctr, cpa, cv = v.get("CTR"), v.get("CPA"), v.get("CV件数", 0)
-        text = latest_text_map.get(ad, "")
+        ctr, cpa_loop, cv_loop = v.get("CTR"), v.get("CPA"), v.get("CV件数", 0)
 
         # canvaURL
         links = parse_canva_links(row.get("canvaURL", ""))
@@ -256,8 +266,8 @@ with st.spinner("🔄 データを取得中..."):
             cap_html += f"<b>CTR：</b>{ctr*100:.2f}%<br>"
         else:
             cap_html += "<b>CTR：</b>-<br>"
-        cap_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
-        cap_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
+        cap_html += f"<b>CV数：</b>{int(cv_loop) if cv_loop > 0 else 'なし'}<br>"
+        cap_html += f"<b>CPA：</b>{cpa_loop:,.0f}円<br>" if pd.notna(cpa_loop) else "<b>CPA：</b>-<br>"
         cap_html += f"{canva_html}<br>"
         cap_html += f"<b>メインテキスト：</b>{text}</div>"
 
