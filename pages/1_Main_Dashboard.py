@@ -108,29 +108,24 @@ if img_df.empty:
     st.warning("⚠️ 表示できる画像がありません")
     st.stop()
 
-# 基本列整形
 img_df["AdName"]      = img_df["AdName"].astype(str).str.strip()
 img_df["CampaignId"]  = img_df["CampaignId"].astype(str).str.strip()
 img_df["CloudStorageUrl"] = img_df["CloudStorageUrl"].astype(str).str.strip()
 img_df["AdNum"] = pd.to_numeric(img_df["AdName"], errors="coerce")
 img_df = img_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
 
-# CV件数列
 def get_cv(r):
     n = r["AdNum"]
-    if pd.isna(n):
-        return 0
+    if pd.isna(n): return 0
     col = str(int(n))
     return r[col] if col in r and isinstance(r[col], (int, float)) else 0
 img_df["CV件数"] = img_df.apply(get_cv, axis=1)
 
-# 最新テキスト
 latest = (img_df.sort_values("Date")
                  .dropna(subset=["Date"])
                  .loc[lambda d: d.groupby("AdName")["Date"].idxmax()])
 latest_text_map = latest.set_index("AdName")["Description1ByAdType"].to_dict()
 
-# 集計（Cost / IMP / Clicks / CPA）
 agg_df = df.copy()
 agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
 agg_df["CampaignId"] = agg_df["CampaignId"].astype(str).str.strip()
@@ -152,19 +147,17 @@ caption_df["CPA"] = caption_df.apply(
     axis=1,
 )
 
-# ★ 重要：CPA / CV件数 を img_df に付与してソートエラーを防ぐ
+# CPA / CV件数 を付与して KeyError 回避
 img_df = img_df.merge(
     caption_df[["CampaignId", "AdName", "CV件数", "CPA"]],
     on=["CampaignId", "AdName"],
     how="left"
 )
-# 数値型へ
 img_df["CPA"]   = pd.to_numeric(img_df["CPA"], errors="coerce")
 img_df["CV件数"] = pd.to_numeric(img_df["CV件数"], errors="coerce").fillna(0)
 
 caption_map = caption_df.set_index(["CampaignId", "AdName"]).to_dict("index")
 
-# ---------- 並び替え ----------
 sort_opt = st.radio("並び替え基準", ["広告番号順", "コンバージョン数の多い順", "CPAの低い順"])
 if sort_opt == "コンバージョン数の多い順":
     img_df = img_df[img_df["CV件数"] > 0].sort_values("CV件数", ascending=False)
@@ -173,7 +166,6 @@ elif sort_opt == "CPAの低い順":
 else:
     img_df = img_df.sort_values("AdNum")
 
-# ---------- 表示 ----------
 cols = st.columns(5, gap="small")
 
 def parse_canva_links(raw: str) -> list[str]:
@@ -198,15 +190,16 @@ for idx, (_, row) in enumerate(img_df.iterrows()):
     else:
         canva_html = '<span class="gray-text">canvaURL：なし✖</span>'
 
-    cap_html = f"""
-      <div class='banner-caption'>
-        <b>広告名：</b>{ad}<br>
-        <b>消化金額：</b>{cost:,.0f}円<br>
-        <b>IMP：</b>{imp:,.0f}<br>
-        <b>クリック：</b>{clicks:,.0f}<br>
-        <b>CTR：</b>{ctr*100:.2f}%<br>""" if pd.notna(ctr) else """
-        <b>CTR：</b>-<br>
-    """
+    # ---------- caption 文字列 ----------
+    cap_html = "<div class='banner-caption'>"
+    cap_html += f"<b>広告名：</b>{ad}<br>"
+    cap_html += f"<b>消化金額：</b>{cost:,.0f}円<br>"
+    cap_html += f"<b>IMP：</b>{imp:,.0f}<br>"
+    cap_html += f"<b>クリック：</b>{clicks:,.0f}<br>"
+    if pd.notna(ctr):
+        cap_html += f"<b>CTR：</b>{ctr*100:.2f}%<br>"
+    else:
+        cap_html += "<b>CTR：</b>-<br>"
     cap_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
     cap_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
     cap_html += f"{canva_html}<br>"
@@ -223,6 +216,3 @@ for idx, (_, row) in enumerate(img_df.iterrows()):
 
     with cols[idx % 5]:
         st.markdown(card_html, unsafe_allow_html=True)
-
-except Exception as e:
-    st.error(f"❌ データ取得エラー: {e}")
