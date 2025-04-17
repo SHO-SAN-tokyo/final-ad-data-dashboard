@@ -163,7 +163,13 @@ st.dataframe(caption_df[["CampaignId", "AdName"]].head())
 st.subheader("デバッグ: caption_df の結合キーのデータ型")
 st.write(caption_df[["CampaignId", "AdName"]].apply(lambda x: x.map(type).unique()))
 
-# CPA / CV件数 を付与して KeyError 回避
+# マージ前に結合キーの空白文字を除去
+img_df["CampaignId"] = img_df["CampaignId"].str.strip()
+img_df["AdName"] = img_df["AdName"].str.strip()
+caption_df["CampaignId"] = caption_df["CampaignId"].str.strip()
+caption_df["AdName"] = caption_df["AdName"].str.strip()
+
+# CPA / CV件数 を付与
 img_df = img_df.merge(
     caption_df[["CampaignId", "AdName", "CV件数_base", "CPA"]],
     on=["CampaignId", "AdName"],
