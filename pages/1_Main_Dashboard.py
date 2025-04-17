@@ -68,6 +68,54 @@ try:
             col = str(i)
             filtered_df[col] = pd.to_numeric(filtered_df.get(col, 0), errors="coerce").fillna(0)
 
+        # -------------------------------------
+        # 📊 広告パフォーマンス概要の集計
+        # -------------------------------------
+        st.subheader("📈 広告パフォーマンス概要")
+
+        total_cost = filtered_df["Cost"].sum()
+        total_impressions = filtered_df["Impressions"].sum()
+        total_clicks = filtered_df["Clicks"].sum()
+        total_cv = filtered_df[[str(i) for i in range(1, 61)]].sum().sum()
+        total_reach = filtered_df["Reach"].sum() if "Reach" in filtered_df.columns else 0
+
+        cpa = total_cost / total_cv if total_cv else None
+        cvr = total_clicks / total_cv if total_cv else None
+        ctr = total_clicks / total_impressions if total_impressions else None
+        cpc = total_cost / total_clicks if total_clicks else None
+        cpm = (total_cost / total_impressions * 1000) if total_impressions else None
+        freq = total_impressions / total_reach if total_reach else None
+
+        perf_df = pd.DataFrame({
+            "指標": [
+                "CPA - 獲得単価",
+                "コンバージョン数",
+                "CVR - コンバージョン率",
+                "消化金額",
+                "インプレッション",
+                "CTR - クリック率",
+                "CPC - クリック単価",
+                "クリック数",
+                "CPM",
+                "フリークエンシー"
+            ],
+            "値": [
+                f"{cpa:,.0f} 円" if cpa else "-",
+                f"{int(total_cv)}" if total_cv else "0",
+                f"{cvr*100:.2f} %" if cvr else "-",
+                f"{total_cost:,.0f} 円",
+                f"{int(total_impressions):,}",
+                f"{ctr*100:.2f} %" if ctr else "-",
+                f"{cpc:,.0f} 円" if cpc else "-",
+                f"{int(total_clicks):,}",
+                f"{cpm:,.0f} 円" if cpm else "-",
+                f"{freq:.2f}" if freq else "-"
+            ]
+        })
+
+        st.dataframe(perf_df, hide_index=True, use_container_width=True)
+
+
         st.subheader("🖼️ 配信バナー")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🌟 CloudStorageUrl から画像を取得中...")
