@@ -12,15 +12,15 @@ st.set_page_config(page_title="配信バナー", layout="wide")
 st.markdown(
     """
     <style>
-      .banner-card{
-        padding:12px 12px 20px 12px;border:1px solid #e6e6e6;border-radius:12px;
-        background:#fafafa;height:100%;margin-bottom:14px;
-      }
-      .banner-card img{
-        width:100%;height:180px;object-fit:cover;border-radius:8px;cursor:pointer;
-      }
-      .banner-caption{margin-top:8px;font-size:14px;line-height:1.6;text-align:left;}
-      .gray-text{color:#888;}
+        .banner-card{
+            padding:12px 12px 20px 12px;border:1px solid #e6e6e6;border-radius:12px;
+            background:#fafafa;height:100%;margin-bottom:14px;
+        }
+        .banner-card img{
+            width:100%;height:180px;object-fit:cover;border-radius:8px;cursor:pointer;
+        }
+        .banner-caption{margin-top:8px;font-size:14px;line-height:1.6;text-align:left;}
+        .gray-text{color:#888;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -46,7 +46,7 @@ if df.empty:
 # ---------- 前処理 ----------
 df["カテゴリ"] = (
     df.get("カテゴリ", "")
-      .astype(str).str.strip().replace("", "未設定").fillna("未設定")
+    .astype(str).str.strip().replace("", "未設定").fillna("未設定")
 )
 df["Date"] = pd.to_datetime(df.get("Date"), errors="coerce")
 
@@ -54,7 +54,7 @@ df["Date"] = pd.to_datetime(df.get("Date"), errors="coerce")
 if not df["Date"].isnull().all():
     min_d, max_d = df["Date"].min().date(), df["Date"].max().date()
     sel_date = st.sidebar.date_input("日付フィルター", (min_d, max_d),
-                                     min_value=min_d, max_value=max_d)
+                                    min_value=min_d, max_value=max_d)
     if isinstance(sel_date, (list, tuple)) and len(sel_date) == 2:
         s, e = map(pd.to_datetime, sel_date)
         df = df[(df["Date"].dt.date >= s.date()) & (df["Date"].dt.date <= e.date())]
@@ -72,11 +72,11 @@ def update_client():
         st.session_state.selected_client = cs
 
 st.sidebar.text_input("クライアント検索", "", key="client_search",
-                      placeholder="Enter で決定", on_change=update_client)
+                     placeholder="Enter で決定", on_change=update_client)
 
 search_val = st.session_state.get("client_search", "")
 filtered_clients = [c for c in all_clients if search_val.lower() in c.lower()] \
-                   if search_val else all_clients
+                    if search_val else all_clients
 c_opts = ["すべて"] + filtered_clients
 sel_client = st.sidebar.selectbox(
     "クライアント", c_opts,
@@ -108,8 +108,8 @@ if img_df.empty:
     st.warning("⚠️ 表示できる画像がありません")
     st.stop()
 
-img_df["AdName"]      = img_df["AdName"].astype(str).str.strip()
-img_df["CampaignId"]  = img_df["CampaignId"].astype(str).str.strip()
+img_df["AdName"]     = img_df["AdName"].astype(str).str.strip()
+img_df["CampaignId"]   = img_df["CampaignId"].astype(str).str.strip()
 img_df["CloudStorageUrl"] = img_df["CloudStorageUrl"].astype(str).str.strip()
 img_df["AdNum"] = pd.to_numeric(img_df["AdName"], errors="coerce")
 img_df = img_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
@@ -122,8 +122,8 @@ def get_cv(r):
 img_df["CV件数"] = img_df.apply(get_cv, axis=1)
 
 latest = (img_df.sort_values("Date")
-                 .dropna(subset=["Date"])
-                 .loc[lambda d: d.groupby("AdName")["Date"].idxmax()])
+            .dropna(subset=["Date"])
+            .loc[lambda d: d.groupby("AdName")["Date"].idxmax()])
 latest_text_map = latest.set_index("AdName")["Description1ByAdType"].to_dict()
 
 agg_df = df.copy()
@@ -137,9 +137,9 @@ cv_sum_df = img_df.groupby(["CampaignId", "AdName"])["CV件数"].sum().reset_ind
 
 caption_df = (
     agg_df.groupby(["CampaignId", "AdName"])
-          .agg({"Cost": "sum", "Impressions": "sum", "Clicks": "sum"})
-          .reset_index()
-          .merge(cv_sum_df, on=["CampaignId", "AdName"], how="left")
+    .agg({"Cost": "sum", "Impressions": "sum", "Clicks": "sum"})
+    .reset_index()
+    .merge(cv_sum_df, on=["CampaignId", "AdName"], how="left")
 )
 caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
 caption_df["CPA"] = caption_df.apply(
@@ -147,12 +147,31 @@ caption_df["CPA"] = caption_df.apply(
     axis=1,
 )
 
+# デバッグ: caption_df の内容を確認
+st.subheader("デバッグ: caption_df の内容")
+st.dataframe(caption_df)
+
 # CPA / CV件数 を付与して KeyError 回避
 img_df = img_df.merge(
     caption_df[["CampaignId", "AdName", "CV件数", "CPA"]],
     on=["CampaignId", "AdName"],
     how="left"
 )
+
+# デバッグ: マージ後の img_df のカラムを確認
+st.subheader("デバッグ: マージ後の img_df のカラム")
+st.write(img_df.columns)
+
+# デバッグ: CPA 列が存在するか確認し、存在しない場合は作成
+if "CPA" not in img_df.columns:
+    st.warning("⚠️ CPA 列が img_df に存在しません。")
+    img_df["CPA"] = pd.NA
+
+# デバッグ: CV件数 列が存在するか確認し、存在しない場合は作成
+if "CV件数" not in img_df.columns:
+    st.warning("⚠️ CV件数 列が img_df に存在しません。")
+    img_df["CV件数"] = pd.NA
+
 img_df["CPA"]   = pd.to_numeric(img_df["CPA"], errors="coerce")
 img_df["CV件数"] = pd.to_numeric(img_df["CV件数"], errors="coerce").fillna(0)
 
@@ -206,13 +225,16 @@ for idx, (_, row) in enumerate(img_df.iterrows()):
     cap_html += f"<b>メインテキスト：</b>{text}</div>"
 
     card_html = f"""
-      <div class='banner-card'>
-        <a href="{row['CloudStorageUrl']}" target="_blank" rel="noopener">
-          <img src="{row['CloudStorageUrl']}">
-        </a>
-        {cap_html}
-      </div>
+        <div class='banner-card'>
+            <a href="{row['CloudStorageUrl']}" target="_blank" rel="noopener">
+                <img src="{row['CloudStorageUrl']}">
+            </a>
+            {cap_html}
+        </div>
     """
 
     with cols[idx % 5]:
         st.markdown(card_html, unsafe_allow_html=True)
+
+except Exception as e:
+    st.error(f"❌ データ取得エラー: {e}")
