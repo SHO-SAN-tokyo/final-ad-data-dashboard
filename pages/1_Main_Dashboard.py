@@ -196,32 +196,29 @@ with st.spinner("🔄 データを取得中..."):
     st.write(f"merged_img_df の行数 (マージ後): {len(merged_img_df)}")
     st.dataframe(merged_img_df)
 
-    # サフィックス付きの列名で img_df の CPA と CV件数を更新
+    # 正しい CV件数と CPA の列を選択し、分かりやすい名前に変更
     if "CV件数_base_x" in merged_img_df.columns:
-        img_df["CV件数_base"] = merged_img_df["CV件数_base_x"]
+        img_df["CV件数_計算"] = merged_img_df["CV件数_base_x"]
     elif "CV件数_base_y" in merged_img_df.columns:
-        img_df["CV件数_base"] = merged_img_df["CV件数_base_y"]
+        img_df["CV件数_計算"] = merged_img_df["CV件数_base_y"]
+    else:
+        img_df["CV件数_計算"] = pd.NA  # 該当する列がない場合の処理
 
     if "CPA_x" in merged_img_df.columns:
-        img_df["CPA"] = merged_img_df["CPA_x"]
+        img_df["CPA_計算"] = merged_img_df["CPA_x"]
     elif "CPA_y" in merged_img_df.columns:
-        img_df["CPA"] = merged_img_df["CPA_y"]
+        img_df["CPA_計算"] = merged_img_df["CPA_y"]
+    else:
+        img_df["CPA_計算"] = pd.NA  # 該当する列がない場合の処理
 
-    # マージ結果を img_df に代入
-    img_df = merged_img_df
+    # 新しい列名で更新
+    img_df["CPA"] = pd.to_numeric(img_df["CPA_計算"], errors="coerce")
+    img_df["CV件数"] = pd.to_numeric(img_df["CV件数_計算"], errors="coerce").fillna(0)
 
-    # デバッグ: CPA 列が存在するか確認し、存在しない場合は警告
-    if "CPA" not in img_df.columns:
-        st.warning("⚠️ CPA 列が img_df に存在しません。")
-        img_df["CPA"] = pd.NA
+    # 不要になった計算用列を削除 (任意)
+    img_df = img_df.drop(columns=["CPA_計算", "CV件数_計算"], errors='ignore')
+    img_df = img_df.drop(columns=["CV件数_base_x", "CV件数_base_y", "CPA_x", "CPA_y", "CV件数_base"], errors='ignore')
 
-    # デバッグ: CV件数_base 列が存在するか確認し、存在しない場合は警告
-    if "CV件数_base" not in img_df.columns:
-        st.warning("⚠️ CV件数_base 列が img_df に存在しません。")
-        img_df["CV件数_base"] = 0 # 0で埋める
-
-    img_df["CPA"]     = pd.to_numeric(img_df["CPA"], errors="coerce")
-    img_df["CV件数"] = pd.to_numeric(img_df["CV件数_base"], errors="coerce").fillna(0) # 並び替えと表示用に元のCV件数を使用
 
     caption_map = caption_df.set_index(["CampaignId", "AdName"]).to_dict("index")
 
@@ -233,7 +230,7 @@ with st.spinner("🔄 データを取得中..."):
         parts = re.split(r'[,\s]+', str(raw or ""))
         return [p for p in parts if p.startswith("http")]
 
-    st.subheader("デバッグ表示ループ前の img_df (修正後)")
+    st.subheader("デバッグ表示ループ前の img_df (列名整理後)")
     st.dataframe(img_df)
 
     cols = st.columns(5, gap="small")
@@ -244,9 +241,10 @@ with st.spinner("🔄 データを取得中..."):
         st.write(f"デバッグ表示ループ: cid='{cid}', ad='{ad}'")
         v   = caption_map.get((cid, ad), {})
         cost, imp, clicks = v.get("Cost", 0), v.get("Impressions", 0), v.get("Clicks", 0)
-        ctr, cpa_loop, cv_loop = v.get("CTR"), v.get("CPA"), v.get("CV件数", 0)
+        ctr, cpa_loop = v.get("CPA"), v.get("CTR")
+        cv_loop = v.get("CV件数", 0)
 
-        # メインテキストの取得（キーが存在しない場合は空文字列をデフォルト値とする）
+        # メインテキストの取得
         text = latest_text_map.get(ad, "")
 
         # canvaURL
@@ -269,8 +267,8 @@ with st.spinner("🔄 データを取得中..."):
             cap_html += f"<b>CTR：</b>{ctr*100:.2f}%<br>"
         else:
             cap_html += "<b>CTR：</b>-<br>"
-        cap_html += f"<b>CV数：</b>{int(cv_loop) if cv_loop > 0 else 'なし'}<br>"
-        cap_html += f"<b>CPA：</b>{cpa_loop:,.0f}円<br>" if pd.notna(cpa_loop) else "<b>CPA：</b>-<br>"
+        cap_html += f"<b>CV数：</b>{int(row['CV件数']) if pd.notna(row['CV件数']) and row['CV件数'] > 0 else 'なし'}<br>"
+        cap_html += f"<b>CPA：</b>{row['CPA']:,.0f}円<br>" if pd.notna(row['CPA']) else "<b>CPA：</b>-<br>"
         cap_html += f"{canva_html}<br>"
         cap_html += f"<b>メインテキスト：</b>{text}</div>"
 
