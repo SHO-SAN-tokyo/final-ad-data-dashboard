@@ -103,33 +103,18 @@ try:
             agg_df["AdNum"] = agg_df["AdNum"].astype(int)
 
             cv_sum_df = image_df.groupby(["CampaignId", "AdName"])["CV件数"].sum().reset_index()
-
-            caption_df = agg_df.groupby(["CampaignId", "AdName"]).agg({
-                "Cost": "sum",
-                "Impressions": "sum",
-                "Clicks": "sum"
-            }).reset_index()
+            caption_df = agg_df.groupby(["CampaignId", "AdName"]).agg({"Cost": "sum", "Impressions": "sum", "Clicks": "sum"}).reset_index()
             caption_df = caption_df.merge(cv_sum_df, on=["CampaignId", "AdName"], how="left")
-
             caption_df["CTR"] = caption_df["Clicks"] / caption_df["Impressions"]
-            caption_df["CPA"] = caption_df.apply(
-                lambda row: (row["Cost"] / row["CV件数"]) if pd.notna(row["CV件数"]) and row["CV件数"] > 0 else pd.NA,
-                axis=1
-            )
+            caption_df["CPA"] = caption_df.apply(lambda row: (row["Cost"] / row["CV件数"]) if pd.notna(row["CV件数"]) and row["CV件数"] > 0 else pd.NA, axis=1)
 
-            image_df = image_df.merge(
-                caption_df[["CampaignId", "AdName", "Cost", "Impressions", "Clicks", "CV件数", "CTR", "CPA"]],
-                on=["CampaignId", "AdName"],
-                how="left"
-            )
+            image_df = image_df.merge(caption_df[["CampaignId", "AdName", "Cost", "Impressions", "Clicks", "CV件数", "CTR", "CPA"]], on=["CampaignId", "AdName"], how="left")
 
             sort_option = st.radio("並び替え基準", ["AdNum", "CV件数(多)", "CPA(小)"])
             if sort_option == "CV件数(多)":
-                image_df = image_df[image_df["CV件数"] > 0]
-                image_df = image_df.sort_values(by="CV件数", ascending=False)
+                image_df = image_df[image_df["CV件数"] > 0].sort_values(by="CV件数", ascending=False)
             elif sort_option == "CPA(小)":
-                image_df = image_df[image_df["CPA"].notna()]
-                image_df = image_df.sort_values(by="CPA", ascending=True)
+                image_df = image_df[image_df["CPA"].notna()].sort_values(by="CPA", ascending=True)
             else:
                 image_df = image_df.sort_values("AdNum")
 
@@ -147,29 +132,12 @@ try:
                     imp = values.get("Impressions", 0)
                     clicks = values.get("Clicks", 0)
                     ctr = values.get("CTR")
-                    cpa = values.get("CPA")
+                    cpa = values.get("CPA", None)
                     cv = values.get("CV件数", 0)
                     text = latest_text_map.get(adname, "")
-                    canva_raw = row.get("canvaURL", "")
-                    canva_links = []
-
-                    if isinstance(canva_raw, str):
-                        urls = [u.strip() for u in canva_raw.split() if u.startswith("http")]
-                        if urls:
-                            for idx, url in enumerate(urls):
-                                label = f"canvaURL↗️" if len(urls) == 1 else f"canvaURL{idx+1}↗️"
-                                canva_links.append(
-                                    f"<a href='{url}' target='_blank' style='color: #1a73e8; font-size: 12px;'>{label}</a>"
-                                )
-                        else:
-                            canva_links.append("<span style='color: #999; font-size: 12px;'>canvaURL：なし</span>")
-                    else:
-                        canva_links.append("<span style='color: #999; font-size: 12px;'>canvaURL：なし</span>")
-
-                    canva_html = "<br>".join(canva_links)
 
                     caption_html = f"""
-                    <div style='text-align: left; font-size: 14px; line-height: 1.6'>
+                    <div style='text-align: left; font-size: 14px; line-height: 1.6; height: 300px; overflow-y: auto;'>
                     <b>広告名：</b>{adname}<br>
                     <b>消化金額：</b>{cost:,.0f}円<br>
                     <b>IMP：</b>{imp:,.0f}<br>
@@ -178,13 +146,17 @@ try:
                     caption_html += f"<b>CTR：</b>{ctr*100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
                     caption_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
                     caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
-                    caption_html += f"<b>メインテキスト：</b>{text}<br>"
-                    caption_html += canva_html
-                    caption_html += "</div>"
+                    caption_html += f"<b>メインテキスト：</b>{text}</div>"
 
                     with cols[i % 5]:
-                        st.image(row["CloudStorageUrl"], use_container_width=True)
-                        st.markdown(caption_html, unsafe_allow_html=True)
+                        st.markdown(f"""
+                        <div style='border: 1px solid #ccc; border-radius: 10px; padding: 8px; margin-bottom: 15px; height: 520px; background-color: #fafafa; display: flex; flex-direction: column; justify-content: space-between;'>
+                            <div style='height: 220px; display: flex; align-items: center; justify-content: center;'>
+                                <img src="{row['CloudStorageUrl']}" style="max-height: 100%; max-width: 100%; object-fit: contain;" />
+                            </div>
+                            {caption_html}
+                        </div>
+                        """, unsafe_allow_html=True)
 
 except Exception as e:
     st.error(f"❌ データ取得エラー: {e}")
