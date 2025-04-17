@@ -217,7 +217,7 @@ try:
                       """
                     cap_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
                     cap_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
-                    cap_html += f"<b>canvaURL：</b>{canva_html}<br>"
+                    cap_html += f"<b></b>{canva_html}<br>"
                     cap_html += f"<b>メインテキスト：</b>{text}</div>"
 
                     # ---- 画像をクリックで拡大（別タブ） ----
