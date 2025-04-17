@@ -4,9 +4,7 @@ from google.cloud import bigquery
 import pandas as pd
 import re
 
-# ------------------------------------------------------------
-# 0. ページ設定 & CSS
-# ------------------------------------------------------------
+# ------------------------------ 0. ページ設定 & CSS ------------------------------
 st.set_page_config(page_title="配信バナー", layout="wide")
 st.markdown(
     """
@@ -26,9 +24,7 @@ st.markdown(
 )
 st.title("🖼️ 配信バナー")
 
-# ------------------------------------------------------------
-# 1. データ取得
-# ------------------------------------------------------------
+# ------------------------------ 1. データ取得 ------------------------------
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 bq = bigquery.Client.from_service_account_info(info_dict)
@@ -81,11 +77,9 @@ for i in range(1, 61):
     col = str(i)
     df[col] = pd.to_numeric(df.get(col, 0), errors="coerce").fillna(0)
 
-# ------------------------------------------------------------
-# 2. 画像バナー表示
-# ------------------------------------------------------------
+# ------------------------------ 2. 画像バナー表示 ------------------------------
 img_df = df[df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
-if img_df.empty():
+if img_df.empty:
     st.warning("⚠️ 表示できる画像がありません")
     st.stop()
 
@@ -101,7 +95,7 @@ def row_cv(row):
     return row[col] if col in row and isinstance(row[col], (int, float)) else 0
 img_df["CV件数"] = img_df.apply(row_cv, axis=1)
 
-# ---- 最新 1 行を採用 ----
+# ---- 最新 1 行を採用 & メトリクス計算 ----
 latest_rows = (
     img_df.sort_values("Date")
           .dropna(subset=["Date"])
@@ -114,11 +108,10 @@ latest_rows["CPA"] = latest_rows.apply(
 )
 metric = latest_rows.set_index(["CampaignId", "AdName"]).to_dict("index")
 
-# ---- 並び替え用 CPA を img_df に付加 ----
+# ---- 並び替え用列を付加 ----
 img_df = img_df.merge(
     latest_rows[["CampaignId", "AdName", "CV件数", "CPA"]],
-    on=["CampaignId", "AdName"],
-    how="left"
+    on=["CampaignId", "AdName"], how="left"
 )
 
 # ---------- 並び替え ----------
@@ -143,6 +136,7 @@ for i, (_, r) in enumerate(img_df.iterrows()):
                                    m.get("CTR"), m.get("CV件数",0), m.get("CPA")
     text = m.get("Description1ByAdType","")
 
+    # canvaURL
     links = split_links(r.get("canvaURL",""))
     canva_html = (
         ", ".join(f'<a href="{l}" target="_blank">canvaURL{i+1 if len(links)>1 else ""}↗️</a>'
