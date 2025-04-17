@@ -135,26 +135,41 @@ try:
                     cpa = values.get("CPA", None)
                     cv = values.get("CV件数", 0)
                     text = latest_text_map.get(adname, "")
+                    canva_raw = row.get("canvaURL", "")
+                    canva_links = []
 
-                    caption_html = f"""
-                    <div style='text-align: left; font-size: 14px; line-height: 1.6; height: 300px; overflow-y: auto;'>
-                    <b>広告名：</b>{adname}<br>
-                    <b>消化金額：</b>{cost:,.0f}円<br>
-                    <b>IMP：</b>{imp:,.0f}<br>
-                    <b>クリック：</b>{clicks:,.0f}<br>
-                    """
-                    caption_html += f"<b>CTR：</b>{ctr*100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
-                    caption_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
-                    caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
-                    caption_html += f"<b>メインテキスト：</b>{text}</div>"
+                    if isinstance(canva_raw, str):
+                        urls = [u.strip() for u in canva_raw.split() if u.startswith("http")]
+                        if urls:
+                            for idx, url in enumerate(urls):
+                                label = f"Canva↗️" if len(urls) == 1 else f"Canva{idx+1}↗️"
+                                canva_links.append(
+                                    f"<a href='{url}' target='_blank' style='color: #1a73e8; font-size: 12px;'>{label}</a>"
+                                )
+                        else:
+                            canva_links.append("<span style='color: #999; font-size: 12px;'>canvaURL：なし✖</span>")
+                    else:
+                        canva_links.append("<span style='color: #999; font-size: 12px;'>canvaURL：なし✖</span>")
+
+                    canva_html = "<br>".join(canva_links)
 
                     with cols[i % 5]:
                         st.markdown(f"""
-                        <div style='border: 1px solid #ccc; border-radius: 10px; padding: 8px; margin-bottom: 15px; height: 520px; background-color: #fafafa; display: flex; flex-direction: column; justify-content: space-between;'>
-                            <div style='height: 220px; display: flex; align-items: center; justify-content: center;'>
-                                <img src="{row['CloudStorageUrl']}" style="max-height: 100%; max-width: 100%; object-fit: contain;" />
+                        <div style='border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 20px; height: 520px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; background-color: #f9f9f9;'>
+                            <a href="{row['CloudStorageUrl']}" target="_blank" style="width: 100%; height: 220px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                                <img src="{row['CloudStorageUrl']}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                            </a>
+                            <div style='text-align: left; font-size: 14px; line-height: 1.6; padding-top: 10px; width: 100%;'>
+                                <b>広告名：</b>{adname}<br>
+                                <b>消化金額：</b>{cost:,.0f}円<br>
+                                <b>IMP：</b>{imp:,.0f}<br>
+                                <b>クリック：</b>{clicks:,.0f}<br>
+                                {'<b>CTR：</b>{:.2f}%<br>'.format(ctr*100) if pd.notna(ctr) else '<b>CTR：</b>-<br>'}
+                                <b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>
+                                <b>CPA：</b>{f"{cpa:,.0f}円" if pd.notna(cpa) else '-'}<br>
+                                <b>メインテキスト：</b>{text}<br>
+                                {canva_html}
                             </div>
-                            {caption_html}
                         </div>
                         """, unsafe_allow_html=True)
 
