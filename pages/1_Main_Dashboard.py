@@ -176,8 +176,8 @@ try:
                 # ---------- 表示(見た目だけ変更) ----------
                 cols = st.columns(5, gap="small")
 
-                def truncate_with_link(full: str, max_len: int = 37) -> str:
-                    """37 文字超えたら … を summary にして全文は details で表示"""
+                def truncate_with_link(full: str, max_len: int = 25) -> str:
+                    """25 文字超えたら … を summary にして全文は details で表示"""
                     if len(full) <= max_len or full is None:
                         return full
                     short = full[:max_len] + "…"
