@@ -1,4 +1,3 @@
-# 1_Main_Dashboard.py
 import streamlit as st
 from google.cloud import bigquery
 import pandas as pd
@@ -11,42 +10,28 @@ info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info_dict)
 
-# クエリ実行（必要に応じて LIMIT を外すか WHERE 句で期間指定するのも検討）
 query = """
 SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data
-# LIMIT 1000
 """
 st.write("🔄 データを取得中...")
 
 try:
     df = client.query(query).to_dataframe()
-    
-    # --- デバッグ: クエリ直後のデータ件数 ---
-    # st.write("全件数 (df): ", df.shape)
 
     if df.empty:
         st.warning("⚠️ データがありません")
     else:
         st.success("✅ データ取得成功！")
 
-        # 前処理：カテゴリと日付の型変換（全件に対して適用）
         if "カテゴリ" in df.columns:
             df["カテゴリ"] = df["カテゴリ"].astype(str).str.strip().replace("", "未設定").fillna("未設定")
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-        
-        # -------------------------------------
-        # ① 日付フィルタの適用（全体のデータから最小・最大を取得）
-        # -------------------------------------
+
         if "Date" in df.columns and not df["Date"].isnull().all():
             min_date = df["Date"].min().date()
             max_date = df["Date"].max().date()
-            selected_date = st.sidebar.date_input(
-                "日付フィルター",
-                value=(min_date, max_date),
-                min_value=min_date,
-                max_value=max_date
-            )
+            selected_date = st.sidebar.date_input("日付フィルター", (min_date, max_date), min_value=min_date, max_value=max_date)
             if isinstance(selected_date, (list, tuple)) and len(selected_date) == 2:
                 start_date, end_date = pd.to_datetime(selected_date[0]), pd.to_datetime(selected_date[1])
                 date_filtered_df = df[(df["Date"].dt.date >= start_date.date()) & (df["Date"].dt.date <= end_date.date())]
@@ -55,14 +40,7 @@ try:
         else:
             date_filtered_df = df.copy()
 
-        # --- デバッグ: 日付フィルタ適用後の件数 ---
-        # st.write("日付フィルタ後 (date_filtered_df): ", date_filtered_df.shape)
-
         st.sidebar.header("🔍 フィルター")
-        
-        # -------------------------------------
-        # ② クライアントフィルター（検索付き＋Enterで選択反映）
-        # -------------------------------------
         all_clients = sorted(date_filtered_df["PromotionName"].dropna().unique())
 
         def update_client():
@@ -70,90 +48,33 @@ try:
             if cs in all_clients:
                 st.session_state.selected_client = cs
 
-        client_search = st.sidebar.text_input(
-            "クライアント検索",
-            "",
-            placeholder="必ず正しく入力してEnterを押す",
-            key="client_search",
-            on_change=update_client
-        )
-        if client_search:
-            filtered_clients = [client for client in all_clients if client_search.lower() in client.lower()]
-        else:
-            filtered_clients = all_clients
-
-        # --- デバッグ: クライアント候補リスト ---
-        # st.write("全クライアント:", all_clients)
-        # st.write("フィルタ適用後のクライアント:", filtered_clients)
-
+        client_search = st.sidebar.text_input("クライアント検索", "", placeholder="必ず正しく入力してEnterを押す", key="client_search", on_change=update_client)
+        filtered_clients = [client for client in all_clients if client_search.lower() in client.lower()] if client_search else all_clients
         client_options = ["すべて"] + filtered_clients
-        selected_client_in_state = st.session_state.get("selected_client", "すべて")
-        if selected_client_in_state in client_options:
-            default_index = client_options.index(selected_client_in_state)
-        else:
-            default_index = 0
-
+        default_index = client_options.index(st.session_state.get("selected_client", "すべて")) if st.session_state.get("selected_client", "すべて") in client_options else 0
         selected_client = st.sidebar.selectbox("クライアント", client_options, index=default_index)
+        client_filtered_df = date_filtered_df if selected_client == "すべて" else date_filtered_df[date_filtered_df["PromotionName"] == selected_client]
 
-        if selected_client != "すべて":
-            client_filtered_df = date_filtered_df[date_filtered_df["PromotionName"] == selected_client]
-        else:
-            client_filtered_df = date_filtered_df.copy()
-        
-        # --- デバッグ: クライアントフィルター後 ---
-        # st.write("クライアントフィルター後 (client_filtered_df): ", client_filtered_df.shape)
-        
-        # -------------------------------------
-        # ③ カテゴリフィルター（クライアントフィルター後の候補リスト）
-        # -------------------------------------
         selected_category = st.sidebar.selectbox("カテゴリ", ["すべて"] + sorted(client_filtered_df["カテゴリ"].dropna().unique()))
-        if selected_category != "すべて":
-            client_cat_filtered_df = client_filtered_df[client_filtered_df["カテゴリ"] == selected_category]
-        else:
-            client_cat_filtered_df = client_filtered_df.copy()
-        
-        # --- デバッグ: カテゴリフィルター後 ---
-        # st.write("カテゴリフィルター後 (client_cat_filtered_df): ", client_cat_filtered_df.shape)
+        client_cat_filtered_df = client_filtered_df if selected_category == "すべて" else client_filtered_df[client_filtered_df["カテゴリ"] == selected_category]
 
-        # -------------------------------------
-        # ④ キャンペーン名フィルター（クライアント＆カテゴリフィルタ後の候補リスト）
-        # -------------------------------------
         selected_campaign = st.sidebar.selectbox("キャンペーン名", ["すべて"] + sorted(client_cat_filtered_df["CampaignName"].dropna().unique()))
-        filtered_df = client_cat_filtered_df.copy()
-        if selected_campaign != "すべて":
-            filtered_df = filtered_df[filtered_df["CampaignName"] == selected_campaign]
-        
-        # --- デバッグ: キャンペーンフィルター後 ---
-        # st.write("キャンペーンフィルター後 (filtered_df): ", filtered_df.shape)
+        filtered_df = client_cat_filtered_df if selected_campaign == "すべて" else client_cat_filtered_df[client_cat_filtered_df["CampaignName"] == selected_campaign]
 
         st.subheader("📋 表形式データ")
         st.dataframe(filtered_df)
 
-        # ここで、全件補完用のカラム（"1"～"60"）を filtered_df に追加し、数値型に変換
         for i in range(1, 61):
             col = str(i)
             filtered_df[col] = pd.to_numeric(filtered_df.get(col, 0), errors="coerce").fillna(0)
 
-        # -------------------------------------
-        # ⑤ 画像表示・集計処理（filtered_df を基に実施）
-        # -------------------------------------
         st.subheader("🖼️ 配信バナー")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🌟 CloudStorageUrl から画像を取得中...")
-            
-            # image_df は filtered_df から作成するため、補完済みのカラムも引き継ぐ
             image_df = filtered_df[filtered_df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
-            
-            # --- デバッグ: image_df のカラム一覧と先頭5行（必要に応じてコメント解除） ---
-            # st.write("### image_df のカラム一覧")
-            # st.write(image_df.columns.tolist())
-            # st.write("### image_df の先頭5行")
-            # st.dataframe(image_df.head())
-            
             image_df["AdName"] = image_df["AdName"].astype(str).str.strip()
             image_df["CampaignId"] = image_df["CampaignId"].astype(str).str.strip()
             image_df["CloudStorageUrl"] = image_df["CloudStorageUrl"].astype(str).str.strip()
-            # AdNum は、AdName から数値に変換（例：AdName が "1" なら 1 となる）
             image_df["AdNum"] = pd.to_numeric(image_df["AdName"], errors="coerce")
             image_df = image_df.drop_duplicates(subset=["CampaignId", "AdName", "CloudStorageUrl"])
 
@@ -161,7 +82,6 @@ try:
                 if col in filtered_df.columns:
                     filtered_df[col] = pd.to_numeric(filtered_df[col], errors="coerce")
 
-            # get_cv 関数：各行の "AdNum" をもとに、その数値に対応する列（例："10"）の値を返す
             def get_cv(row):
                 adnum = row["AdNum"]
                 if pd.isna(adnum):
@@ -170,11 +90,6 @@ try:
                 return row[col_name] if (col_name in row and isinstance(row[col_name], (int, float))) else 0
 
             image_df["CV件数"] = image_df.apply(get_cv, axis=1)
-            
-            # --- デバッグ: get_cv の先頭行の返り値確認（必要ならコメント解除） ---
-            # if not image_df.empty:
-                # st.write("### 先頭行の get_cv の返り値")
-                # st.write(get_cv(image_df.iloc[0]))
 
             latest_rows = image_df.sort_values("Date").dropna(subset=["Date"])
             latest_rows = latest_rows.loc[latest_rows.groupby("AdName")["Date"].idxmax()]
@@ -202,11 +117,6 @@ try:
                 axis=1
             )
 
-            image_df.drop(
-                columns=["Cost", "Impressions", "Clicks", "CV件数", "CTR", "CPA"],
-                errors="ignore",
-                inplace=True
-            )
             image_df = image_df.merge(
                 caption_df[["CampaignId", "AdName", "Cost", "Impressions", "Clicks", "CV件数", "CTR", "CPA"]],
                 on=["CampaignId", "AdName"],
@@ -214,7 +124,6 @@ try:
             )
 
             sort_option = st.radio("並び替え基準", ["AdNum", "CV件数(多)", "CPA(小)"])
-
             if sort_option == "CV件数(多)":
                 image_df = image_df[image_df["CV件数"] > 0]
                 image_df = image_df.sort_values(by="CV件数", ascending=False)
@@ -238,9 +147,26 @@ try:
                     imp = values.get("Impressions", 0)
                     clicks = values.get("Clicks", 0)
                     ctr = values.get("CTR")
-                    cpa = values.get("CPA", None)
+                    cpa = values.get("CPA")
                     cv = values.get("CV件数", 0)
                     text = latest_text_map.get(adname, "")
+                    canva_raw = row.get("canvaURL", "")
+                    canva_links = []
+
+                    if isinstance(canva_raw, str):
+                        urls = [u.strip() for u in canva_raw.split() if u.startswith("http")]
+                        if urls:
+                            for idx, url in enumerate(urls):
+                                label = f"canvaURL↗️" if len(urls) == 1 else f"canvaURL{idx+1}↗️"
+                                canva_links.append(
+                                    f"<a href='{url}' target='_blank' style='color: #1a73e8; font-size: 12px;'>{label}</a>"
+                                )
+                        else:
+                            canva_links.append("<span style='color: #999; font-size: 12px;'>canvaURL：なし</span>")
+                    else:
+                        canva_links.append("<span style='color: #999; font-size: 12px;'>canvaURL：なし</span>")
+
+                    canva_html = "<br>".join(canva_links)
 
                     caption_html = f"""
                     <div style='text-align: left; font-size: 14px; line-height: 1.6'>
@@ -252,7 +178,9 @@ try:
                     caption_html += f"<b>CTR：</b>{ctr*100:.2f}%<br>" if pd.notna(ctr) else "<b>CTR：</b>-<br>"
                     caption_html += f"<b>CV数：</b>{int(cv) if cv > 0 else 'なし'}<br>"
                     caption_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
-                    caption_html += f"<b>メインテキスト：</b>{text}</div>"
+                    caption_html += f"<b>メインテキスト：</b>{text}<br>"
+                    caption_html += canva_html
+                    caption_html += "</div>"
 
                     with cols[i % 5]:
                         st.image(row["CloudStorageUrl"], use_container_width=True)
