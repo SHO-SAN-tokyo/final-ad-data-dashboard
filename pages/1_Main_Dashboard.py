@@ -117,9 +117,14 @@ def calculate_and_display_banners(df):
     grouped_data = df.groupby("CampaignId")[conversion_cols]
     print(f"Type of grouped_data: {type(grouped_data)}") # デバッグ出力
 
-    def debug_apply(x):
-        print(f"Type of x in apply: {type(x)}") # デバッグ出力
-        return pd.to_numeric(x, errors='coerce').fillna(0).sum(axis=1)
+    def debug_apply(group):
+        print(f"Type of group in apply: {type(group)}") # デバッグ出力 (group 全体の型を確認)
+        total_conversions = 0
+        for col in group.columns:
+            print(f"Type of group[{col}]: {type(group[col])}") # デバッグ出力 (各列の型を確認)
+            numeric_col = pd.to_numeric(group[col], errors='coerce').fillna(0)
+            total_conversions += numeric_col.sum()
+        return total_conversions
 
     campaign_conversions = grouped_data.apply(debug_apply).rename("TotalConversions").fillna(0)
 
