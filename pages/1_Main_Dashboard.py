@@ -224,6 +224,5 @@ for idx, (_, row) in enumerate(img_df.iterrows()):
     with cols[idx % 5]:
         st.markdown(card_html, unsafe_allow_html=True)
 
-
 except Exception as e:
     st.error(f"❌ データ取得エラー: {e}")
