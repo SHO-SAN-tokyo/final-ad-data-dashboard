@@ -188,6 +188,10 @@ st.subheader("デバッグ: マージ後 img_df")
 st.write(f"img_df の行数 (マージ後): {len(img_df)}")
 st.dataframe(img_df)
 
+# デバッグ: マージ後 img_df の CV件数と CPA
+st.subheader("デバッグ: マージ後 img_df (CV件数と CPA)")
+st.dataframe(img_df[["AdName", "CampaignId", "CV件数_base", "CPA"]])
+
 # デバッグ: CPA 列が存在するか確認し、存在しない場合は警告
 if "CPA" not in img_df.columns:
     st.warning("⚠️ CPA 列が img_df に存在しません。")
@@ -200,8 +204,6 @@ if "CV件数_base" not in img_df.columns:
 
 img_df["CPA"]   = pd.to_numeric(img_df["CPA"], errors="coerce")
 img_df["CV件数"] = pd.to_numeric(img_df["CV件数_base"], errors="coerce").fillna(0) # 並び替えと表示用に元のCV件数を使用
-
-caption_map = caption_df.set_index(["CampaignId", "AdName"]).to_dict("index")
 
 sort_opt = st.radio("並び替え基準", ["広告番号順", "コンバージョン数の多い順", "CPAの低い順"])
 if sort_opt == "コンバージョン数の多い順":
