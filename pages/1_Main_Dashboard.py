@@ -121,10 +121,13 @@ def get_cv(r):
     return r[col] if col in r and isinstance(r[col], (int, float)) else 0
 img_df["CV件数"] = img_df.apply(get_cv, axis=1)
 
-latest = (img_df.sort_values("Date")
-                 .dropna(subset=["Date"])
-                 .loc[lambda d: d.groupby("AdName")["Date"].idxmax()])
-latest_text_map = latest.set_index("AdName")["Description1ByAdType"].to_dict()
+# ★★★ 変更：CampaignId もキーに含めて最新テキストを取得 ★★★
+latest = (
+    img_df.sort_values("Date")
+          .dropna(subset=["Date"])
+          .loc[lambda d: d.groupby(["CampaignId", "AdName"])["Date"].idxmax()]
+)
+latest_text_map = latest.set_index(["CampaignId", "AdName"])["Description1ByAdType"].to_dict()
 
 agg_df = df.copy()
 agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
@@ -189,7 +192,7 @@ for idx, (_, row) in enumerate(img_df.iterrows()):
     v   = caption_map.get((cid, ad), {})
     cost, imp, clicks = v.get("Cost", 0), v.get("Impressions", 0), v.get("Clicks", 0)
     ctr, cpa, cv = v.get("CTR"), v.get("CPA"), v.get("CV件数", 0)
-    text = latest_text_map.get(ad, "")
+    text = latest_text_map.get((cid, ad), "")      # ★ CampaignId もキーに
 
     links = parse_canva_links(row.get("canvaURL", ""))
     if links:
