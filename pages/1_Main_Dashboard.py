@@ -246,6 +246,9 @@ with st.spinner("🔄 データを取得中..."):
         cost, imp, clicks = v.get("Cost", 0), v.get("Impressions", 0), v.get("Clicks", 0)
         ctr, cpa_loop, cv_loop = v.get("CTR"), v.get("CPA"), v.get("CV件数", 0)
 
+        # メインテキストの取得（キーが存在しない場合は空文字列をデフォルト値とする）
+        text = latest_text_map.get(ad, "")
+
         # canvaURL
         links = parse_canva_links(row.get("canvaURL", ""))
         if links:
