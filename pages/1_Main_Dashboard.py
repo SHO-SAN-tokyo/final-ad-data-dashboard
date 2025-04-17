@@ -112,11 +112,16 @@ def calculate_and_display_banners(df):
     img_df["AdNum"] = pd.to_numeric(img_df["AdName"], errors="coerce").fillna(-1).astype(int)
 
     conversion_cols = [str(i) for i in range(1, 61) if str(i) in df.columns]
+    print(f"conversion_cols: {conversion_cols}") # デバッグ出力
 
-    # キャンペーンIDごとのコンバージョン数を集計
-    campaign_conversions = df.groupby("CampaignId")[conversion_cols].apply(
-        lambda x: pd.to_numeric(x, errors='coerce').fillna(0).sum(axis=1)
-    ).rename("TotalConversions").fillna(0)
+    grouped_data = df.groupby("CampaignId")[conversion_cols]
+    print(f"Type of grouped_data: {type(grouped_data)}") # デバッグ出力
+
+    def debug_apply(x):
+        print(f"Type of x in apply: {type(x)}") # デバッグ出力
+        return pd.to_numeric(x, errors='coerce').fillna(0).sum(axis=1)
+
+    campaign_conversions = grouped_data.apply(debug_apply).rename("TotalConversions").fillna(0)
 
     # キャンペーンIDごとのコストと予算を取得
     campaign_cost = df.groupby("CampaignId")["Cost"].sum().rename("TotalCost").fillna(0)
