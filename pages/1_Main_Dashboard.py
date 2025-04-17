@@ -218,6 +218,10 @@ with st.spinner("🔄 データを取得中..."):
     st.subheader("デバッグ: caption_map の最初のキー")
     st.write(list(caption_map.keys())[:5])
 
+    def parse_canva_links(raw: str) -> list[str]:
+        parts = re.split(r'[,\s]+', str(raw or ""))
+        return [p for p in parts if p.startswith("http")]
+
     for idx, (_, row) in enumerate(img_df.iterrows()):
         ad  = row["AdName"]
         cid = row["CampaignId"]
