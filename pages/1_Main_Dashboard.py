@@ -69,52 +69,76 @@ try:
             filtered_df[col] = pd.to_numeric(filtered_df.get(col, 0), errors="coerce").fillna(0)
 
         # -------------------------------------
-        # 📊 広告パフォーマンス概要の集計
+        # 📊 広告パフォーマンス概要（filtered_df に基づく集計）
         # -------------------------------------
-        st.subheader("📈 広告パフォーマンス")
+        st.subheader("📈 広告パフォーマンス概要")
 
-        total_cost = filtered_df["Cost"].sum()
-        total_impressions = filtered_df["Impressions"].sum()
-        total_clicks = filtered_df["Clicks"].sum()
-        total_cv = filtered_df[[str(i) for i in range(1, 61)]].sum().sum()
-        total_reach = filtered_df["Reach"].sum() if "Reach" in filtered_df.columns else 0
+        try:
+            # 数値列を float に変換
+            filtered_df["Cost"] = pd.to_numeric(filtered_df["Cost"], errors="coerce").fillna(0)
+            filtered_df["Impressions"] = pd.to_numeric(filtered_df["Impressions"], errors="coerce").fillna(0)
+            filtered_df["Clicks"] = pd.to_numeric(filtered_df["Clicks"], errors="coerce").fillna(0)
+            filtered_df["コンバージョン数"] = pd.to_numeric(filtered_df["コンバージョン数"], errors="coerce").fillna(0)
+            filtered_df["予算"] = pd.to_numeric(filtered_df.get("予算", 0), errors="coerce").fillna(0)
+            filtered_df["Reach"] = pd.to_numeric(filtered_df.get("Reach", 0), errors="coerce").fillna(0)
 
-        cpa = total_cost / total_cv if total_cv else None
-        cvr = total_clicks / total_cv if total_cv else None
-        ctr = total_clicks / total_impressions if total_impressions else None
-        cpc = total_cost / total_clicks if total_clicks else None
-        cpm = (total_cost / total_impressions * 1000) if total_impressions else None
-        freq = total_impressions / total_reach if total_reach else None
+            # 合計値を取得
+            total_cost = filtered_df["Cost"].sum()
+            total_clicks = filtered_df["Clicks"].sum()
+            total_impressions = filtered_df["Impressions"].sum()
+            total_cv = filtered_df["コンバージョン数"].sum()
+            total_budget = filtered_df["予算"].sum()
+            total_reach = filtered_df["Reach"].sum()
 
-        perf_df = pd.DataFrame({
-            "指標": [
-                "CPA - 獲得単価",
-                "コンバージョン数",
-                "CVR - コンバージョン率",
-                "消化金額",
-                "インプレッション",
-                "CTR - クリック率",
-                "CPC - クリック単価",
-                "クリック数",
-                "CPM",
-                "フリークエンシー"
-            ],
-            "値": [
-                f"{cpa:,.0f} 円" if cpa else "-",
-                f"{int(total_cv)}" if total_cv else "0",
-                f"{cvr*100:.2f} %" if cvr else "-",
-                f"{total_cost:,.0f} 円",
-                f"{int(total_impressions):,}",
-                f"{ctr*100:.2f} %" if ctr else "-",
-                f"{cpc:,.0f} 円" if cpc else "-",
-                f"{int(total_clicks):,}",
-                f"{cpm:,.0f} 円" if cpm else "-",
-                f"{freq:.2f}" if freq else "-"
-            ]
-        })
+            # 各種指標の計算
+            cpa_by_cost = total_cost / total_cv if total_cv > 0 else None
+            cpa_by_budget = total_budget / total_cv if total_cv > 0 else None
+            ctr = total_clicks / total_impressions if total_impressions > 0 else None
+            cvr = total_clicks / total_cv if total_cv > 0 else None
+            cpc = total_cost / total_clicks if total_clicks > 0 else None
+            cpm = (total_cost / total_impressions) * 1000 if total_impressions > 0 else None
+            freq = total_impressions / total_reach if total_reach > 0 else None
 
-        st.dataframe(perf_df, hide_index=True, use_container_width=True)
+            # 指標表示
+            summary_data = {
+                "指標": [
+                    "CPA - 獲得単価（消化金額）",
+                    "CPA - 獲得単価（予算）",
+                    "コンバージョン数",
+                    "CVR - コンバージョン率",
+                    "消化金額",
+                    "インプレッション",
+                    "CTR - クリック率",
+                    "CPC - クリック単価",
+                    "クリック数",
+                    "CPM",
+                    "フリークエンシー"
+                ],
+                "値": [
+                    f"{cpa_by_cost:,.0f} 円" if cpa_by_cost is not None else "-",
+                    f"{cpa_by_budget:,.0f} 円" if cpa_by_budget is not None else "-",
+                    f"{int(total_cv):,}" if total_cv > 0 else "0",
+                    f"{cvr:.2%}" if cvr is not None else "-",
+                    f"{total_cost:,.0f} 円",
+                    f"{int(total_impressions):,}",
+                    f"{ctr:.2%}" if ctr is not None else "-",
+                    f"{cpc:,.0f} 円" if cpc is not None else "-",
+                    f"{int(total_clicks):,}",
+                    f"{cpm:,.0f} 円" if cpm is not None else "-",
+                    f"{freq:.2f}" if freq is not None else "-"
+                ]
+            }
 
+            perf_df = pd.DataFrame(summary_data)
+            st.dataframe(perf_df, hide_index=True, use_container_width=True)
+
+        except Exception as e:
+            st.error(f"❌ 指標の集計エラー: {e}")
+
+
+        # -------------------------------------
+        # 🖼️ 配信バナー（この下に続く）
+        # -------------------------------------
 
         st.subheader("🖼️ 配信バナー")
         if "CloudStorageUrl" in filtered_df.columns:
