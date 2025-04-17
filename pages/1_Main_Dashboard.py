@@ -74,23 +74,27 @@ try:
         st.subheader("📈 広告パフォーマンス概要")
 
         try:
-            # 数値列を float に変換
             filtered_df["Cost"] = pd.to_numeric(filtered_df["Cost"], errors="coerce").fillna(0)
             filtered_df["Impressions"] = pd.to_numeric(filtered_df["Impressions"], errors="coerce").fillna(0)
             filtered_df["Clicks"] = pd.to_numeric(filtered_df["Clicks"], errors="coerce").fillna(0)
-            filtered_df["コンバージョン数"] = pd.to_numeric(filtered_df["コンバージョン数"], errors="coerce")  # ここを修正
-            filtered_df["予算"] = pd.to_numeric(filtered_df.get("予算", 0), errors="coerce").fillna(0)
+
+            # ✅ 数値のみ集計（文字が混じっていたらスルー）
+            filtered_df["コンバージョン数"] = filtered_df["コンバージョン数"].apply(
+                lambda x: pd.to_numeric(x) if pd.notna(x) and str(x).strip().isdigit() else pd.NA
+            )
+            filtered_df["予算"] = filtered_df["予算"].apply(
+                lambda x: pd.to_numeric(x) if pd.notna(x) and str(x).strip().isdigit() else pd.NA
+            )
+
             filtered_df["Reach"] = pd.to_numeric(filtered_df.get("Reach", 0), errors="coerce").fillna(0)
 
-            # 合計値を取得（NaNは除外）
             total_cost = filtered_df["Cost"].sum()
             total_clicks = filtered_df["Clicks"].sum()
             total_impressions = filtered_df["Impressions"].sum()
-            total_cv = filtered_df["コンバージョン数"].sum(min_count=1)  # NaNのみなら None に
-            total_budget = filtered_df["予算"].sum()
+            total_cv = filtered_df["コンバージョン数"].sum(min_count=1)
+            total_budget = filtered_df["予算"].sum(min_count=1)
             total_reach = filtered_df["Reach"].sum()
 
-            # 各種指標の計算
             cpa_by_cost = total_cost / total_cv if total_cv and total_cv > 0 else None
             cpa_by_budget = total_budget / total_cv if total_cv and total_cv > 0 else None
             ctr = total_clicks / total_impressions if total_impressions > 0 else None
@@ -99,7 +103,6 @@ try:
             cpm = (total_cost / total_impressions) * 1000 if total_impressions > 0 else None
             freq = total_impressions / total_reach if total_reach > 0 else None
 
-            # 指標表示
             summary_data = {
                 "指標": [
                     "CPA - 獲得単価（消化金額）",
@@ -136,9 +139,8 @@ try:
             st.error(f"❌ 指標の集計エラー: {e}")
 
         # -------------------------------------
-        # 🖼️ 配信バナー（この下に続く）
+        # 🖼️ 配信バナー（※以前の通り、変更なし）
         # -------------------------------------
-
         st.subheader("🖼️ 配信バナー")
         if "CloudStorageUrl" in filtered_df.columns:
             st.write("🌟 CloudStorageUrl から画像を取得中...")
