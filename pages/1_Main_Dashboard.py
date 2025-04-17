@@ -14,12 +14,12 @@ st.markdown(
     <style>
       /* ── 画像 + キャプションを 1 枚のカードにまとめる ── */
       .banner-card{
-        padding: 12px 12px 20px 12px;border:1px solid #e6e6e6;border-radius:12px;
-        background:#fafafa;height:100%;
-        margin-bottom:14px;
+        padding:12px 12px 20px 12px;border:1px solid #e6e6e6;border-radius:12px;
+        background:#fafafa;height:100%;margin-bottom:14px;
       }
       .banner-card img{
         width:100%;height:180px;object-fit:cover;border-radius:8px;
+        cursor:pointer;              /* マウスオーバーで「クリック可」を示す */
       }
       .banner-caption{
         margin-top:8px;font-size:14px;line-height:1.6;text-align:left;
@@ -38,9 +38,7 @@ info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info_dict)
 
-query = """
-SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data
-"""
+query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data"
 st.write("🔄 データを取得中...")
 
 try:
@@ -116,7 +114,7 @@ try:
             filtered_df[col] = pd.to_numeric(filtered_df.get(col, 0), errors="coerce").fillna(0)
 
         # ------------------------------------------------------------
-        # 2. 画像バナー表示（カードデザインにしただけでロジック変更なし）
+        # 2. 画像バナー表示（ロジックは同じ・見た目のみ後段で変更）
         # ------------------------------------------------------------
         st.subheader("🖼️ 配信バナー")
         if "CloudStorageUrl" in filtered_df.columns:
@@ -134,7 +132,6 @@ try:
                 if col in filtered_df.columns:
                     filtered_df[col] = pd.to_numeric(filtered_df[col], errors="coerce")
 
-            # CV 列
             def get_cv(r):
                 n = r["AdNum"]
                 if pd.isna(n):
@@ -144,12 +141,10 @@ try:
 
             img_df["CV件数"] = img_df.apply(get_cv, axis=1)
 
-            # 最新テキスト
             latest = img_df.sort_values("Date").dropna(subset=["Date"])
             latest = latest.loc[latest.groupby("AdName")["Date"].idxmax()]
             latest_text_map = latest.set_index("AdName")["Description1ByAdType"].to_dict()
 
-            # 集計
             agg_df = filtered_df.copy()
             agg_df["AdName"] = agg_df["AdName"].astype(str).str.strip()
             agg_df["CampaignId"] = agg_df["CampaignId"].astype(str).str.strip()
@@ -167,11 +162,8 @@ try:
             caption_df["CPA"] = caption_df.apply(
                 lambda r: (r["Cost"] / r["CV件数"]) if pd.notna(r["CV件数"]) and r["CV件数"] > 0 else pd.NA, axis=1
             )
-
-            # カードに載せる値の辞書
             caption_map = caption_df.set_index(["CampaignId", "AdName"]).to_dict("index")
 
-            # 並び替え
             sort_opt = st.radio("並び替え基準", ["AdNum", "CV件数(多)", "CPA(小)"])
             if sort_opt == "CV件数(多)":
                 img_df = img_df[img_df["CV件数"] > 0].sort_values("CV件数", ascending=False)
@@ -183,19 +175,14 @@ try:
             if img_df.empty:
                 st.warning("⚠️ 表示できる画像がありません")
             else:
-                # ---------- ここが唯一の「表示変更」 ----------
                 cols = st.columns(5, gap="small")
                 for idx, (_, row) in enumerate(img_df.iterrows()):
                     ad  = row["AdName"]
                     cid = row["CampaignId"]
                     v   = caption_map.get((cid, ad), {})
-                    cost   = v.get("Cost", 0)
-                    imp    = v.get("Impressions", 0)
-                    clicks = v.get("Clicks", 0)
-                    ctr    = v.get("CTR")
-                    cpa    = v.get("CPA")
-                    cv     = v.get("CV件数", 0)
-                    text   = latest_text_map.get(ad, "")
+                    cost, imp, clicks = v.get("Cost", 0), v.get("Impressions", 0), v.get("Clicks", 0)
+                    ctr, cpa, cv = v.get("CTR"), v.get("CPA"), v.get("CV件数", 0)
+                    text = latest_text_map.get(ad, "")
 
                     cap_html = f"""
                       <div class='banner-caption'>
@@ -210,9 +197,12 @@ try:
                     cap_html += f"<b>CPA：</b>{cpa:,.0f}円<br>" if pd.notna(cpa) else "<b>CPA：</b>-<br>"
                     cap_html += f"<b>メインテキスト：</b>{text}</div>"
 
+                    # ---- ここだけ変更：画像を <a target="_blank"> で包む ----
                     card_html = f"""
                       <div class='banner-card'>
-                        <img src="{row['CloudStorageUrl']}">
+                        <a href="{row['CloudStorageUrl']}" target="_blank" rel="noopener">
+                          <img src="{row['CloudStorageUrl']}">
+                        </a>
                         {cap_html}
                       </div>
                     """
