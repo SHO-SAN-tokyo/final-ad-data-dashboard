@@ -104,8 +104,8 @@ try:
                        if sel_cmp != "すべて" else client_cat_filtered_df.copy())
 
         # ---------- 表形式 ----------
-        st.subheader("📋 表形式データ")
-        st.dataframe(filtered_df)
+        # st.subheader("📋 表形式データ")
+        # st.dataframe(filtered_df)
 
         # ---------- 1〜60 列補完 ----------
         for i in range(1, 61):
