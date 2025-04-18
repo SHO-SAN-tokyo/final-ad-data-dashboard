@@ -82,7 +82,7 @@ edited_df = st.data_editor(
 )
 
 # --- 保存処理 ---
-if st.button("💾 BigQueryに保存"):
+if st.button("💾 保存する"):
     try:
         save_df = edited_df[["カテゴリ", "広告目的", "CPA目標", "CVR目標", "CTR目標", "CPC目標", "CPM目標"]]
         save_df.to_gbq(
@@ -91,7 +91,7 @@ if st.button("💾 BigQueryに保存"):
             if_exists="replace",
             credentials=credentials
         )
-        st.success("✅ BigQueryに保存されました！")
+        st.success("✅ 保存しました！")
         st.cache_data.clear()
     except Exception as e:
         st.error(f"❌ 保存に失敗しました: {e}")
