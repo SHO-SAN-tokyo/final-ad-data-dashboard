@@ -81,25 +81,42 @@ edited_df = st.data_editor(
     }
 )
 
-# --- 保存処理 ---
-if st.button("💾 保存する"):
-    try:
-        save_df = edited_df[["カテゴリ", "広告目的", "CPA目標", "CVR目標", "CTR目標", "CPC目標", "CPM目標"]]
-        save_df.to_gbq(
-            destination_table=target_table,
-            project_id=project_id,
-            if_exists="replace",
-            credentials=credentials
-        )
-        st.success("✅ 保存しました！")
-        st.cache_data.clear()
-    except Exception as e:
-        st.error(f"❌ 保存に失敗しました: {e}")
+# --- 保存状態管理 ---
+if "saving" not in st.session_state:
+    st.session_state["saving"] = False
 
-# --- ボタンの色をカスタマイズ（CSS適用） ---
+# --- 保存用フォーム ---
+with st.form("save_form"):
+    disabled = st.session_state["saving"]
+    button_label = "保存中..." if disabled else "💾 保存する"
+
+    submitted = st.form_submit_button(
+        button_label,
+        disabled=disabled,
+        use_container_width=True
+    )
+
+    if submitted:
+        st.session_state["saving"] = True
+        try:
+            save_df = edited_df[["カテゴリ", "広告目的", "CPA目標", "CVR目標", "CTR目標", "CPC目標", "CPM目標"]]
+            save_df.to_gbq(
+                destination_table=target_table,
+                project_id=project_id,
+                if_exists="replace",
+                credentials=credentials
+            )
+            st.success("✅ 保存しました！")
+            st.cache_data.clear()
+        except Exception as e:
+            st.error(f"❌ 保存に失敗しました: {e}")
+        finally:
+            st.session_state["saving"] = False
+
+# --- カスタムボタンスタイル（保存中グレー対応） ---
 st.markdown("""
     <style>
-    div.stButton > button:first-child {
+    div.stButton > button {
         background-color: #4a84da;
         color: white;
         border: 1px solid #4a84da;
@@ -108,9 +125,15 @@ st.markdown("""
         font-weight: 600;
         transition: 0.3s ease;
     }
-    div.stButton > button:first-child:hover {
+    div.stButton > button:hover:enabled {
         background-color: #3f77cc;
         border-color: #3f77cc;
+    }
+    div.stButton > button:disabled {
+        background-color: #cccccc !important;
+        color: #666666 !important;
+        border-color: #bbbbbb !important;
+        cursor: not-allowed;
     }
     </style>
 """, unsafe_allow_html=True)
