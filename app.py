@@ -7,8 +7,8 @@ st.set_page_config(page_title="Ad Drive", layout="wide")
 # 🔸 表示名とモジュール名のマッピング（絵文字はなくてもOK）
 PAGES = {
     "ホーム": "pages.home",
-    "メインダッシュボード": "pages.Main_Dashboard",
-    "ユニット設定": "pages.Unit_Setting"
+    "メインダッシュボード": "pages.1_Main_Dashboard",
+    "ユニット設定": "pages.2_Unit_Setting"
 }
 
 # 🔹 サイドバーのメニュー
