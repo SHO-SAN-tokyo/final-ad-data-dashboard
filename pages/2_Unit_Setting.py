@@ -2,7 +2,7 @@ import streamlit as st
 from google.cloud import bigquery
 import pandas as pd
 
-st.set_page_config(page_title="Unit設定", layout="wide")
+def render():
 st.title("⚙️ Unit設定ページ")
 
 # BigQuery 認証
