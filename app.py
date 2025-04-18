@@ -7,7 +7,7 @@ st.markdown("### 🔗 ページ一覧")
 
 st.page_link("pages/01_🫧Ad_Drive.py", label="🫧 Ad Drive")
 st.page_link("pages/02_🧩SHO-SAN_market.py", label="🧩 SHO-SAN_market")
-st.page_link("pages/03_⚙️Unit_Settings.py", label="⚙️ Unit設定")
+st.page_link("pages/10_⚙️Unit_Settings.py", label="⚙️ Unit設定")
 
 
 
