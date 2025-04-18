@@ -39,7 +39,7 @@ def get_unique_values():
 @st.cache_data(ttl=60)
 def load_target_data():
     try:
-        query = f"SELECT * FROM {project_id}.{target_table}"
+        query = f"SELECT * FROM `{project_id}`.`{target_table}`"
         return client.query(query).to_dataframe()
     except Exception as e:
         st.warning("⚠️ まだ目標データが存在しない可能性があります。")
