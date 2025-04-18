@@ -4,7 +4,9 @@ from google.cloud import bigquery
 import pandas as pd, numpy as np, re
 
 # ---------- 0. ページ設定 & CSS ----------
-st.set_page_config(page_title="配信バナー", layout="wide")
+st.set_page_config(page_title="Ad_Drive", layout="wide")
+st.title("🫧 Ad Drive")
+
 st.markdown("""
 <style>
  .banner-card{padding:12px 12px 20px;border:1px solid #e6e6e6;border-radius:12px;
