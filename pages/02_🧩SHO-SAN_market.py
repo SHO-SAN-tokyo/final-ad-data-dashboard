@@ -35,7 +35,7 @@ if "Date" in df.columns:
         if isinstance(selected_range, tuple) and len(selected_range) == 2:
             df = df[(df["Date"].dt.date >= selected_range[0]) & (df["Date"].dt.date <= selected_range[1])]
 
-# 絞り込みフィルター
+# フィルター
 filters = {
     "都道府県": "🏙️ 都道府県を選択",
     "カテゴリ": "🏷️ カテゴリを選択",
@@ -48,23 +48,19 @@ for col, label in filters.items():
         if choice != "すべて":
             df = df[df[col] == choice]
 
-# 数値列変換
+# 数値変換（広告指標）
 for col in ["CTR", "CVR", "CPA", "CPC", "CPM"]:
-    if col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df[col] = pd.to_numeric(df[col], errors="coerce")
 
+# 数値変換（KPI目標）←重要
 for col in ["CTR目標", "CVR目標", "CPA目標", "CPC目標", "CPM目標"]:
-    kpi_df[col] = pd.to_numeric(kpi_df[col], errors="coerce")
+    if col in kpi_df.columns:
+        kpi_df[col] = pd.to_numeric(kpi_df[col], errors="coerce")
 
-# KPI結合
-missing_cols = [col for col in ["カテゴリ", "広告目的"] if col not in df.columns or col not in kpi_df.columns]
-if missing_cols:
-    st.error(f"必要な列が見つかりません: {', '.join(missing_cols)}")
-    st.stop()
-
+# KPIとのJOIN
 merged = pd.merge(df, kpi_df, how="left", on=["カテゴリ", "広告目的"])
 
-# 評価関数
+# 指標評価
 def evaluate(actual, target, higher_is_better=True):
     if pd.isna(actual) or pd.isna(target):
         return "-"
@@ -91,7 +87,7 @@ merged["CTR評価"] = merged.apply(lambda r: evaluate(r["CTR"], r["CTR目標"], 
 merged["CVR評価"] = merged.apply(lambda r: evaluate(r["CVR"], r["CVR目標"], True), axis=1)
 merged["CPA評価"] = merged.apply(lambda r: evaluate(r["CPA"], r["CPA目標"], False), axis=1)
 
-# グルーピング
+# 集計
 grouped = merged.groupby(["カテゴリ", "広告目的"]).agg({
     "CTR": "mean", "CTR目標": "mean", "CTR評価": "first",
     "CVR": "mean", "CVR目標": "mean", "CVR評価": "first",
