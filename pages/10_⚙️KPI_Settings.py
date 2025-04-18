@@ -95,3 +95,22 @@ if st.button("💾 保存する"):
         st.cache_data.clear()
     except Exception as e:
         st.error(f"❌ 保存に失敗しました: {e}")
+
+# --- ボタンの色をカスタマイズ（CSS適用） ---
+st.markdown("""
+    <style>
+    div.stButton > button:first-child {
+        background-color: #2563eb;
+        color: white;
+        border: 1px solid #1d4ed8;
+        border-radius: 0.5rem;
+        padding: 0.6em 1.2em;
+        font-weight: 600;
+        transition: 0.3s ease;
+    }
+    div.stButton > button:first-child:hover {
+        background-color: #1e40af;
+        border-color: #1e3a8a;
+    }
+    </style>
+""", unsafe_allow_html=True)
