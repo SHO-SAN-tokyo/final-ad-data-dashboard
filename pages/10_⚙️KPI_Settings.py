@@ -1,4 +1,3 @@
-じゃあ色とか新しく設定してるから、こっちのコードを元に書いてくれる？
 import streamlit as st
 import pandas as pd
 from google.cloud import bigquery
