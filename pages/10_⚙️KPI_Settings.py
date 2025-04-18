@@ -21,20 +21,31 @@ target_table = "SHOSAN_Ad_Tokyo.Target_Indicators"
 # --- 広告データからカテゴリと広告目的を取得 ---
 @st.cache_data(ttl=60)
 def get_unique_values():
-    query = f"""
-        SELECT DISTINCT カテゴリ, 広告目的
-        FROM `{project_id}.{source_table}`
-        WHERE カテゴリ IS NOT NULL AND 広告目的 IS NOT NULL
-    """
-    df = pd.read_gbq(query, project_id=project_id, credentials=credentials)
-    return df["カテゴリ"].unique(), df["広告目的"].unique()
+    try:
+        query = f"""
+            SELECT DISTINCT カテゴリ, 広告目的
+            FROM `{project_id}.{source_table}`
+            WHERE カテゴリ IS NOT NULL AND 広告目的 IS NOT NULL
+        """
+        df = client.query(query).to_dataframe()
+        return df["カテゴリ"].unique(), df["広告目的"].unique()
+    except Exception as e:
+        st.error(f"❌ カテゴリ・広告目的の取得に失敗しました: {e}")
+        st.stop()
 
 カテゴリ一覧, 広告目的一覧 = get_unique_values()
 
 # --- 既存の目標データ読み込み ---
 @st.cache_data(ttl=60)
 def load_target_data():
-    return pd.read_gbq(f"SELECT * FROM `{project_id}.{target_table}`", project_id=project_id, credentials=credentials)
+    try:
+        query = f"SELECT * FROM `{project_id}.{target_table}`"
+        return client.query(query).to_dataframe()
+    except Exception as e:
+        st.warning("⚠️ まだ目標データが存在しない可能性があります。")
+        return pd.DataFrame(columns=[
+            "カテゴリ", "広告目的", "CPA目標", "CVR目標", "CTR目標", "CPC目標", "CPM目標"
+        ])
 
 target_df = load_target_data()
 
@@ -73,7 +84,6 @@ edited_df = st.data_editor(
 # --- 保存処理 ---
 if st.button("💾 BigQueryに保存"):
     try:
-        # 保存対象のカラムだけ残す（不要なインデックス列などを除外）
         save_df = edited_df[["カテゴリ", "広告目的", "CPA目標", "CVR目標", "CTR目標", "CPC目標", "CPM目標"]]
         save_df.to_gbq(
             destination_table=target_table,
