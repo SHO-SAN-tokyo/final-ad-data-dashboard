@@ -1,7 +1,7 @@
 # 1_Main_Dashboard.py
 import streamlit as st
 from google.cloud import bigquery
-import pandas as pd, re, numpy as np
+import pandas as pd, numpy as np, re
 
 # ---------- 0. 画面設定 & CSS ----------
 st.set_page_config(page_title="配信バナー", layout="wide")
@@ -42,12 +42,13 @@ if not df["Date"].isnull().all():
 
 # ---------- サイドバー絞り込み ----------
 st.sidebar.header("🔍 フィルター")
-def sb(label,ser):
-    opts=["すべて"]+sorted(ser.dropna().unique())
+def _select(label,col):
+    opts=["すべて"]+sorted(df[col].dropna().unique())
     sel=st.sidebar.selectbox(label,opts)
     return None if sel=="すべて" else sel
-for col,label in [("PromotionName","クライアント"),("カテゴリ","カテゴリ"),("CampaignName","キャンペーン名")]:
-    if (v:=sb(label,df[col])) is not None: df=df[df[col]==v]
+for c,lbl in [("PromotionName","クライアント"),("カテゴリ","カテゴリ"),("CampaignName","キャンペーン名")]:
+    v=_select(lbl,c)
+    if v is not None: df=df[df[c]==v]
 
 # ---------- 1〜60 列補完 ----------
 for i in range(1,61):
@@ -55,46 +56,63 @@ for i in range(1,61):
     df[col]=pd.to_numeric(df.get(col,0), errors="coerce").fillna(0)
 
 # ======================================================================
-# ★ A. 数値サマリー表  （画像バナーに影響なし）★
+# ★ A. 数値サマリー表 ★
 # ======================================================================
-# 必要列を数値化
+# 数値化
 df["Cost"]           = pd.to_numeric(df.get("Cost"), errors="coerce")
 df["Impressions"]    = pd.to_numeric(df.get("Impressions"), errors="coerce")
 df["Clicks"]         = pd.to_numeric(df.get("Clicks"), errors="coerce")
 df["コンバージョン数"]= pd.to_numeric(df.get("コンバージョン数"), errors="coerce")
 df["Reach"]          = pd.to_numeric(df.get("Reach"), errors="coerce")
 
-# 合計値
+# ① 期間合計（Cost / Imp / Click）
 tot_cost  = df["Cost"].sum(skipna=True)
 tot_imp   = df["Impressions"].sum(skipna=True)
 tot_clk   = df["Clicks"].sum(skipna=True)
-tot_conv  = df["コンバージョン数"].sum(skipna=True)
+
+# ② Ad 単位で「最新行」のコンバージョン数を取得して合計
+latest_conv = (df.dropna(subset=["Date"])
+                .sort_values("Date")
+                .loc[lambda d: d.groupby(["CampaignId","AdName"])["Date"].idxmax()]
+                ["コンバージョン数"].fillna(0))
+tot_conv = latest_conv.sum()
+
+# ③ Reach 合計
 tot_reach = df["Reach"].sum(skipna=True)
 
-def safe_div(n,d):
-    return np.nan if (d==0 or pd.isna(d)) else n/d
+def div(n,d): return np.nan if (d==0 or pd.isna(d)) else n/d
 
 summary = pd.DataFrame({
-    "指標": ["CPA(円)","コンバージョン数","CVR","消化金額(円)","インプレッション","CTR","CPC(円)","クリック数","CPM(円)","フリークエンシー"],
+    "指標": ["CPA","コンバージョン数","CVR","消化金額","インプレッション",
+           "CTR","CPC","クリック数","CPM","フリークエンシー"],
     "値": [
-        safe_div(tot_cost,tot_conv),
+        div(tot_cost,tot_conv),            # CPA
         tot_conv,
-        safe_div(tot_conv,tot_clk),
+        div(tot_conv,tot_clk),             # CVR
         tot_cost,
         tot_imp,
-        safe_div(tot_clk,tot_imp),
-        safe_div(tot_cost,tot_clk),
+        div(tot_clk,tot_imp),              # CTR
+        div(tot_cost,tot_clk),             # CPC
         tot_clk,
-        safe_div(tot_cost*1000,tot_imp),
-        safe_div(tot_imp,tot_reach)
-    ]
+        div(tot_cost*1000,tot_imp),        # CPM
+        div(tot_imp,tot_reach)             # Freq
+    ],
+    "単位": ["円","","%","円","","%","円","","円",""]
 })
 
+# 小数は不要：四捨五入→整数
+def fmt(v,u):
+    if pd.isna(v): return "-"
+    v=round(v)
+    return f"{v:,.0f}{u}" if u else f"{v:,.0f}"
+summary["値"] = summary.apply(lambda r: fmt(r["値"],r["単位"]),axis=1)
+summary.drop(columns="単位",inplace=True)
+
 st.subheader("📊 集計サマリー")
-st.table(summary.style.format({"値":"{:,}".format}).format({"値":lambda v:"-" if pd.isna(v) else f"{v:,.2f}" if isinstance(v,float) else f"{int(v):,}"}))
+st.table(summary)
 
 # ======================================================================
-# B. 画像バナー表示　（以前のロジックそのまま）
+# B. 画像バナー表示（ロジック変更なし・表示順だけ CPA 修正）
 # ======================================================================
 st.subheader("🌟並び替え")
 
@@ -105,53 +123,50 @@ img_src["AdName"]     = img_src["AdName"].astype(str).str.strip()
 img_src["CampaignId"] = img_src["CampaignId"].astype(str).str.strip()
 img_src["AdNum"]      = pd.to_numeric(img_src["AdName"], errors="coerce")
 
-# 同 CampaignId × AdName で最新 1 行
+# Ad 単位で最新行のみ
 latest = (img_src.dropna(subset=["Date"])
           .sort_values("Date")
           .loc[lambda d: d.groupby(["CampaignId","AdName"])["Date"].idxmax()]
           .copy())
 
+# 最新行で CV を計算
 def row_cv(r):
     n=r["AdNum"]; col=str(int(n)) if pd.notna(n) else None
     return r[col] if col and col in r and isinstance(r[col],(int,float)) else 0
 latest["CV件数"]=latest.apply(row_cv,axis=1)
 
-# 期間合計（Cost/Imp/Click）
+# 最新行で CPA を計算（Cost / CV件数）
+latest["CPA"] = latest.apply(lambda r: div(r["Cost"], r["CV件数"]), axis=1)
+
+# 並び替え
+opt=st.radio("並び替え基準",["広告番号順","コンバージョン数の多い順","CPAの低い順"])
+if opt=="コンバージョン数の多い順":
+    latest=latest[latest["CV件数"]>0].sort_values("CV件数",ascending=False)
+elif opt=="CPAの低い順":
+    latest=latest[latest["CPA"].notna()].sort_values("CPA")
+else:
+    latest=latest.sort_values("AdNum")
+
+# 表示用マップ（Cost, Imp, Click は期間合計）
 agg=(df.assign(AdName=lambda d:d["AdName"].astype(str).str.strip(),
                CampaignId=lambda d:d["CampaignId"].astype(str).str.strip())
       .groupby(["CampaignId","AdName"])
       .agg({"Cost":"sum","Impressions":"sum","Clicks":"sum"})
       .reset_index())
-sum_map   = agg.set_index(["CampaignId","AdName"]).to_dict("index")
-latest_map= latest.set_index(["CampaignId","AdName"])[["CV件数","Description1ByAdType"]].to_dict("index")
-img_df    = latest.copy()
+sum_map = agg.set_index(["CampaignId","AdName"]).to_dict("index")
 
-# 並び替え
-opt=st.radio("並び替え基準",["広告番号順","コンバージョン数の多い順","CPAの低い順"])
-if opt=="コンバージョン数の多い順":
-    img_df=img_df[img_df["CV件数"]>0].sort_values("CV件数",ascending=False)
-elif opt=="CPAの低い順":
-    def _cpa(r):
-        cost=sum_map.get((r["CampaignId"],r["AdName"]),{}).get("Cost",0)
-        return cost/r["CV件数"] if r["CV件数"] else np.nan
-    img_df["_CPA"]=img_df.apply(_cpa,axis=1)
-    img_df=img_df[img_df["_CPA"].notna()].sort_values("_CPA")
-else:
-    img_df=img_df.sort_values("AdNum")
-
-# 表示
 cols=st.columns(5,gap="small")
 def canva_links(raw):
     return [u for u in re.split(r'[,\s]+', str(raw or "")) if u.startswith("http")]
 
-for i,(_,r) in enumerate(img_df.iterrows()):
+for i,(_,r) in enumerate(latest.iterrows()):
     key=(r["CampaignId"],r["AdName"])
     s=sum_map.get(key,{})
-    l=latest_map.get(key,{})
     cost,imp,clk=s.get("Cost",0),s.get("Impressions",0),s.get("Clicks",0)
-    cv=l.get("CV件数",0)
-    cpa=safe_div(cost,cv)
-    text=l.get("Description1ByAdType","")
+    cv  = int(r["CV件数"])
+    cpa = round(r["CPA"]) if pd.notna(r["CPA"]) else np.nan
+    ctr = div(clk,imp)
+    text= r.get("Description1ByAdType","")
 
     links=canva_links(r.get("canvaURL",""))
     canva_html=(" ,".join(f'<a href="{u}" target="_blank">canvaURL{i+1 if len(links)>1 else ""}↗️</a>'
@@ -163,8 +178,8 @@ for i,(_,r) in enumerate(img_df.iterrows()):
         f"<b>消化金額：</b>{cost:,.0f}円",
         f"<b>IMP：</b>{imp:,.0f}",
         f"<b>クリック：</b>{clk:,.0f}",
-        f"<b>CTR：</b>{safe_div(clk,imp)*100:,.2f}%" if imp else "<b>CTR：</b>-",
-        f"<b>CV数：</b>{int(cv) if cv else 'なし'}",
+        f"<b>CTR：</b>{round(ctr*100):,}%") if ctr is not np.nan else "<b>CTR：</b>-",
+        f"<b>CV数：</b>{cv if cv else 'なし'}",
         f"<b>CPA：</b>{cpa:,.0f}円" if pd.notna(cpa) else "<b>CPA：</b>-",
         canva_html,
         f"<b>メインテキスト：</b>{text}",
