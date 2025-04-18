@@ -3,7 +3,7 @@ from google.cloud import bigquery
 import pandas as pd
 
 st.set_page_config(page_title="Unit設定", layout="wide")
-st.title("⚙️ Unit設定ページ")
+st.title("⚙️ Unit設定")
 
 # BigQuery 認証
 info_dict = dict(st.secrets["connections"]["bigquery"])
