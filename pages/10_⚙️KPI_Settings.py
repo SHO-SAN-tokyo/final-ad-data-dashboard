@@ -5,10 +5,12 @@ import pandas as pd
 st.set_page_config(page_title="KPI設定", layout="wide")
 st.title("⚙️ KPI設定")
 
-# BigQuery 認証
+# BigQuery認証
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
-client = bigquery.Client.from_service_account_info(info_dict)
+bq_client = bigquery.Client.from_service_account_info(info_dict)
+project_id = "careful-chess-406412"
+table_id = "SHOSAN_Ad_Tokyo.Target_Indicators"
 
 # データ取得
 @st.cache_data(ttl=60)
