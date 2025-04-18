@@ -3,6 +3,7 @@ import streamlit as st
 from google.cloud import bigquery
 import pandas as pd, numpy as np, re
 
+def render():
 # --------- CSS ----------
 st.markdown("""
 <style>
