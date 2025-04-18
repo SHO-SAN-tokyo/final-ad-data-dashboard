@@ -86,7 +86,7 @@ editable_df = st.data_editor(
     key="editable_unit_table"
 )
 
-if st.button("💾 編集内容を保存する"):
+if st.button("💾 保存する"):
     with st.spinner("保存中です..."):
         try:
             job_config = bigquery.LoadJobConfig(
@@ -113,3 +113,23 @@ grouped = current_df.groupby("Unit")
 for unit, group in grouped:
     st.markdown(f"#### 🟢 Unit: {unit}")
     st.dataframe(group[["担当者"]].reset_index(drop=True), use_container_width=True)
+
+
+# --- ボタンの色をカスタマイズ（CSS適用） ---
+st.markdown("""
+    <style>
+    div.stButton > button:first-child {
+        background-color: #4a84da;
+        color: white;
+        border: 1px solid #4a84da;
+        border-radius: 0.5rem;
+        padding: 0.6em 1.2em;
+        font-weight: 600;
+        transition: 0.3s ease;
+    }
+    div.stButton > button:first-child:hover {
+        background-color: #3f77cc;
+        border-color: #3f77cc;
+    }
+    </style>
+""", unsafe_allow_html=True)
