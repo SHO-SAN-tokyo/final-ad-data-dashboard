@@ -23,9 +23,9 @@ target_table = "SHOSAN_Ad_Tokyo.Target_Indicators"
 def get_unique_values():
     try:
         query = f"""
-            SELECT DISTINCT カテゴリ, 広告目的
+            SELECT DISTINCT `カテゴリ`, `広告目的`
             FROM `{project_id}.{source_table}`
-            WHERE カテゴリ IS NOT NULL AND 広告目的 IS NOT NULL
+            WHERE `カテゴリ` IS NOT NULL AND `広告目的` IS NOT NULL
         """
         df = client.query(query).to_dataframe()
         return df["カテゴリ"].unique(), df["広告目的"].unique()
