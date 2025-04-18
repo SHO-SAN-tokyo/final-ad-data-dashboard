@@ -16,7 +16,6 @@ st.markdown("""
  .gray-text{color:#888;}
 </style>
 """, unsafe_allow_html=True)
-st.title("🫧 Ad Drive 🫧")
 
 # ---------- 1. BigQuery ----------
 cred = dict(st.secrets["connections"]["bigquery"])
