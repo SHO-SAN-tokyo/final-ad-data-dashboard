@@ -90,7 +90,7 @@ summary = pd.DataFrame({
         disp(div(tot_imp, tot_reach))
     ]
 })
-st.subheader("📊 集計サマリー")
+st.subheader("💠広告数値")
 st.table(summary)
 
 # ---------- 4. 画像バナー（ロジックは以前と同じ） ----------
