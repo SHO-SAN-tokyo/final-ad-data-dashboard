@@ -3,3 +3,4 @@ pandas
 google-cloud-bigquery
 db-dtypes
 streamlit-option-menu
+pandas_gbq
