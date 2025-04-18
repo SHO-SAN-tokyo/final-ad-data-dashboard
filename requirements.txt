@@ -2,4 +2,4 @@ streamlit
 pandas
 google-cloud-bigquery
 db-dtypes
-pip install streamlit-option-menu
+streamlit-option-menu
