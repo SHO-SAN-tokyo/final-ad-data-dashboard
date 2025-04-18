@@ -8,7 +8,7 @@ st.set_page_config(page_title="Ad Drive", layout="wide")
 with st.sidebar:
     selected = option_menu(
         menu_title="📑 メニュー",
-        options=["🏠 ホーム", "📊 メインダッシュボード", "ユニット設定"],
+        options=["ホーム", "メインダッシュボード", "ユニット設定"],
         icons=["house", "bar-chart", "gear"],
         menu_icon="cast",
         default_index=0
