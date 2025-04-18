@@ -100,9 +100,9 @@ if st.button("💾 保存する"):
 st.markdown("""
     <style>
     div.stButton > button:first-child {
-        background-color: #2563eb;
+        background-color: #4a84da;
         color: white;
-        border: 1px solid #1d4ed8;
+        border: 1px solid #4a84da;
         border-radius: 0.5rem;
         padding: 0.6em 1.2em;
         font-weight: 600;
