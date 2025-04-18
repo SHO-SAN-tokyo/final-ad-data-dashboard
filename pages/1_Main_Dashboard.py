@@ -4,6 +4,8 @@ from google.cloud import bigquery
 import pandas as pd, numpy as np, re
 
 def render():
+    st.title("📊 メインダッシュボード")
+ 
 # --------- CSS ----------
 st.markdown("""
 <style>
