@@ -111,6 +111,9 @@ st.markdown("""
         font-size: 1.1rem;
         justify-content: center;
     }
+    .st-emotion-cache-br351g p {
+        padding: 0 35px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
