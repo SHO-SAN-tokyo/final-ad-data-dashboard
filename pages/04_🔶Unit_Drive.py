@@ -16,8 +16,8 @@ client = bigquery.Client.from_service_account_info(info_dict)
 
 # データ取得
 def load_data():
-    df = client.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data`").to_dataframe()
-    unit_df = client.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.UnitMapping`").to_dataframe()
+    df = client.query("SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data").to_dataframe()
+    unit_df = client.query("SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.UnitMapping").to_dataframe()
     return df, unit_df
 
 df, unit_df = load_data()
@@ -34,7 +34,7 @@ df = df[(df["Date"].dt.date >= date_range[0]) & (df["Date"].dt.date <= date_rang
 # 最新CV, 予算、フィー（キャンペーンごとに1件）
 latest = df.sort_values("Date").dropna(subset=["Date"])
 latest = latest.loc[latest.groupby("CampaignId")["Date"].idxmax()]
-latest = latest[["CampaignId", "コンバージョン数", "予算", "フィー", "担当者", "フロント"]]
+latest = latest[["CampaignId", "コンバージョン数", "予算", "フィー", "担当者", "フロント", "CampaignName"]]
 
 # Unitの付与
 latest = latest.merge(unit_df, on="担当者", how="left")
@@ -127,3 +127,19 @@ for idx, row in person_summary.iterrows():
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+# --- キャンペーン一覧テーブル ---
+st.write("#### 📋 キャンペーン一覧（フィルター反映）")
+campaign_table = filtered_df[["CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
+campaign_table = campaign_table.rename(columns={"所属": "Unit"})
+campaign_table = campaign_table[["CampaignName", "担当者", "Unit", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
+
+st.dataframe(
+    campaign_table.style.format({
+        "予算": "¥{:.0f}",
+        "フィー": "¥{:.0f}",
+        "消化金額": "¥{:.0f}",
+        "CPA": "¥{:.0f}"
+    }),
+    use_container_width=True
+)
