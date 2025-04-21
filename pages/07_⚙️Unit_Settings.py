@@ -70,7 +70,7 @@ try:
                         )
                         job = client.load_table_from_dataframe(updated_df, full_table, job_config=job_config)
                         job.result()
-                        st.success(f"✅ {selected_person} を Unit『{input_unit}』に追加しました！")
+                        st.success(f"✅ {selected_person} を『{input_unit}』に追加しました！")
                         st.cache_data.clear()
                         current_df = load_unit_mapping()
                 except Exception as e:
