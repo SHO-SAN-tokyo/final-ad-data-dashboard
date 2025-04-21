@@ -58,7 +58,7 @@ for col in kpi_df.columns:
 merged = pd.merge(merged, kpi_df, how="left", on=["カテゴリ", "広告目的"])
 
 # ---------------- フィルタ ----------------
-st.markdown("### 📂 表示条件")
+st.markdown("### 📂 条件を絞り込む")
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
