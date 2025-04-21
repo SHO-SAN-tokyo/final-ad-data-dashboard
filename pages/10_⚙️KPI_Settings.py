@@ -44,7 +44,12 @@ def load_target_data():
     except Exception as e:
         st.warning("⚠️ まだ目標データが存在しない可能性があります。")
         return pd.DataFrame(columns=[
-            "カテゴリ", "広告目的", "CPA目標", "CVR目標", "CTR目標", "CPC目標", "CPM目標"
+            "カテゴリ", "広告目的",
+            "CPA_best", "CPA_good", "CPA_min",
+            "CVR_best", "CVR_good", "CVR_min",
+            "CTR_best", "CTR_good", "CTR_min",
+            "CPC_best", "CPC_good", "CPC_min",
+            "CPM_best", "CPM_good", "CPM_min"
         ])
 
 target_df = load_target_data()
@@ -58,33 +63,34 @@ for cat in カテゴリ一覧:
                 pd.DataFrame([{
                     "カテゴリ": cat,
                     "広告目的": obj,
-                    "CPA目標": None,
-                    "CVR目標": None,
-                    "CTR目標": None,
-                    "CPC目標": None,
-                    "CPM目標": None
+                    "CPA_best": None, "CPA_good": None, "CPA_min": None,
+                    "CVR_best": None, "CVR_good": None, "CVR_min": None,
+                    "CTR_best": None, "CTR_good": None, "CTR_min": None,
+                    "CPC_best": None, "CPC_good": None, "CPC_min": None,
+                    "CPM_best": None, "CPM_good": None, "CPM_min": None
                 }])
             ], ignore_index=True)
 
 # --- 編集UI ---
-st.markdown("### 🎯 カテゴリ × 広告目的ごとの目標値を設定")
+st.markdown("### 🎯 カテゴリ × 広告目的ごとの4段階目標を設定")
 edited_df = st.data_editor(
     target_df.sort_values(["カテゴリ", "広告目的"]),
     use_container_width=True,
-    num_rows="dynamic",
-    column_config={
-        "CPA目標": st.column_config.NumberColumn(format="¥%d"),
-        "CVR目標": st.column_config.NumberColumn(format="%.2f %%"),
-        "CTR目標": st.column_config.NumberColumn(format="%.2f %%"),
-        "CPC目標": st.column_config.NumberColumn(format="¥%d"),
-        "CPM目標": st.column_config.NumberColumn(format="¥%d"),
-    }
+    num_rows="dynamic"
 )
 
 # --- 保存処理 ---
 if st.button("💾 保存する"):
     try:
-        save_df = edited_df[["カテゴリ", "広告目的", "CPA目標", "CVR目標", "CTR目標", "CPC目標", "CPM目標"]]
+        save_columns = [
+            "カテゴリ", "広告目的",
+            "CPA_best", "CPA_good", "CPA_min",
+            "CVR_best", "CVR_good", "CVR_min",
+            "CTR_best", "CTR_good", "CTR_min",
+            "CPC_best", "CPC_good", "CPC_min",
+            "CPM_best", "CPM_good", "CPM_min"
+        ]
+        save_df = edited_df[save_columns]
         save_df.to_gbq(
             destination_table=target_table,
             project_id=project_id,
