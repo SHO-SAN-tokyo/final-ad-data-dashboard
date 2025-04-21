@@ -5,7 +5,7 @@ from google.oauth2 import service_account
 
 # ページ設定
 st.set_page_config(page_title="⚙️ KPI設定", layout="wide")
-st.title("⚙️ 広告KPI設定（4段階評価：◎○△×）")
+st.title("⚙️ 広告KPI設定")
 
 # --- 認証 ---
 info_dict = dict(st.secrets["connections"]["bigquery"])
