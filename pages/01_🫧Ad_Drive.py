@@ -9,7 +9,7 @@ st.title("🫧 Ad Drive")
 
 st.subheader("📊 すべての広告数値・配信バナー")
 
-st.markdown("<h5 style='margin-top: 2rem;'>📂 条件で絞り込む</h5>", unsafe_allow_html=True)
+st.markdown("<h5 style='margin-top: 2rem;'>📂 左のフィルターから条件で絞り込む</h5>", unsafe_allow_html=True)
 
 st.markdown("""
 <style>
