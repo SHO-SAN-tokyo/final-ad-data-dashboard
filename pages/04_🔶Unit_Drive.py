@@ -135,7 +135,7 @@ for idx, row in person_summary.iterrows():
 st.markdown("<div style='margin-top: 4.5rem;'></div>", unsafe_allow_html=True)
 
 # --- キャンペーン一覧テーブル ---
-st.write("#### 📋 キャンペーン一覧（フィルター反映）")
+st.write("#### 📋 キャンペーン一覧")
 campaign_table = filtered_df[["CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
 campaign_table = campaign_table.rename(columns={"所属": "Unit"})
 campaign_table = campaign_table[["CampaignName", "担当者", "Unit", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
