@@ -6,7 +6,7 @@ from google.cloud import bigquery
 st.set_page_config(page_title="カテゴリ×都道府県 達成率モニター", layout="wide")
 st.title("🧩SHO-SAN Market")
 
-st.subheader("📊 カテゴリ×都道府県 達成率モニター")
+st.subheader("📊 カテゴリ × 都道府県  達成率モニター")
 
 # BigQuery接続
 info_dict = dict(st.secrets["connections"]["bigquery"])
