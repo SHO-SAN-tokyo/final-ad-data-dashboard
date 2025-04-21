@@ -132,7 +132,7 @@ for idx, row in person_summary.iterrows():
         """, unsafe_allow_html=True)
 
 # 余白
-st.markdown("<div style='margin-top: 3.5rem;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 4.5rem;'></div>", unsafe_allow_html=True)
 
 # --- キャンペーン一覧テーブル ---
 st.write("#### 📋 キャンペーン一覧（フィルター反映）")
