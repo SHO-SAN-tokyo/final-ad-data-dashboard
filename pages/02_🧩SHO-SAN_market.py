@@ -4,7 +4,7 @@ from google.cloud import bigquery
 import pandas as pd
 
 st.set_page_config(page_title="SHO-SANマーケット", layout="wide")
-st.title("🌿 SHO-SAN 広告市場（地方・都道府県別）")
+st.title("🌿 SHO-SAN 広告市場（地方別 KPI）")
 
 # BigQuery認証
 info_dict = dict(st.secrets["connections"]["bigquery"])
@@ -38,7 +38,7 @@ agg = df.groupby("CampaignId").agg({
     "都道府県": "first", "地方": "first"
 }).reset_index()
 
-# KPI指標計算
+# 指標計算
 merged = pd.merge(agg, latest_cv, on="CampaignId", how="left")
 merged["CTR"] = merged["Clicks"] / merged["Impressions"]
 merged["CVR"] = merged["最新CV"] / merged["Clicks"]
@@ -46,7 +46,7 @@ merged["CPA"] = merged["Cost"] / merged["最新CV"]
 merged["CPC"] = merged["Cost"] / merged["Clicks"]
 merged["CPM"] = (merged["Cost"] / merged["Impressions"]) * 1000
 
-# KPI目標結合
+# KPI目標の型変換と結合
 for col in ["CPA目標", "CVR目標", "CTR目標", "CPC目標", "CPM目標"]:
     kpi_df[col] = pd.to_numeric(kpi_df[col], errors="coerce")
 merged = pd.merge(merged, kpi_df, how="left", on=["カテゴリ", "広告目的"])
@@ -70,22 +70,28 @@ merged["CTR評価"] = merged.apply(lambda r: evaluate(r["CTR"], r["CTR目標"], 
 merged["CVR評価"] = merged.apply(lambda r: evaluate(r["CVR"], r["CVR目標"], True), axis=1)
 merged["CPA評価"] = merged.apply(lambda r: evaluate(r["CPA"], r["CPA目標"], False), axis=1)
 
-# 表示
-st.subheader("🗾 地方・都道府県別パフォーマンス")
+# 表示データ：地方とカテゴリがある行のみ
+display_df = merged[merged["地方"].notna()]
 
-for region in sorted(merged["地方"].dropna().unique()):
+st.subheader("📊 地方別 KPI評価")
+
+for region in sorted(display_df["地方"].dropna().unique()):
     st.markdown(f"## 🏯 {region}")
-    region_df = merged[merged["地方"] == region]
+    region_df = display_df[display_df["地方"] == region]
     cols = st.columns(2)
 
     for i, (_, row) in enumerate(region_df.iterrows()):
+        ctr_goal = f"{row['CTR目標']:.2%}" if pd.notna(row["CTR目標"]) else "未設定"
+        cvr_goal = f"{row['CVR目標']:.2%}" if pd.notna(row["CVR目標"]) else "未設定"
+        cpa_goal = f"¥{row['CPA目標']:,.0f}" if pd.notna(row["CPA目標"]) else "未設定"
+
+        # ✅ 都道府県の表示は値があるときだけ
+        prefecture_label = f"<b>{row['都道府県']}</b>｜" if pd.notna(row["都道府県"]) else ""
+
         with cols[i % 2]:
-            ctr_goal = f"{row['CTR目標']:.2%}" if pd.notna(row["CTR目標"]) else "未設定"
-            cvr_goal = f"{row['CVR目標']:.2%}" if pd.notna(row["CVR目標"]) else "未設定"
-            cpa_goal = f"¥{row['CPA目標']:,.0f}" if pd.notna(row["CPA目標"]) else "未設定"
             st.markdown(f'''
 <div style="background-color:#f7f9fc; padding:15px; border-radius:10px; margin:10px 0; box-shadow:0 2px 4px rgba(0,0,0,0.06);">
-  <h4 style="margin-bottom:10px;">📍 <b>{row["都道府県"]}</b>｜{row["カテゴリ"]}（{row["広告目的"]}）</h4>
+  <h4 style="margin-bottom:10px;">📍 {prefecture_label}{row["カテゴリ"]}（{row["広告目的"]}）</h4>
   <ul style="list-style:none; padding-left:0; font-size:15px;">
     <li>CTR：{row["CTR"]:.2%}（目標 {ctr_goal}） → {row["CTR評価"]}</li>
     <li>CVR：{row["CVR"]:.2%}（目標 {cvr_goal}） → {row["CVR評価"]}</li>
