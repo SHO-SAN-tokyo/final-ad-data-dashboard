@@ -7,6 +7,8 @@ from datetime import datetime
 st.set_page_config(page_title="Unit Drive", layout="wide")
 st.title("🔶 Unit Drive")
 
+st.subheader("📊 広告TM パフォーマンス")
+
 # 認証
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
