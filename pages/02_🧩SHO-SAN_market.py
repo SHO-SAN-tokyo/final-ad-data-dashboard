@@ -92,6 +92,17 @@ if selected_region != "すべて":
 if selected_pref != "すべて":
     merged = merged[merged["都道府県"] == selected_pref]
 
+# 先にCSSを読み込む
+st.markdown("""<style>
+section[data-testid="stHorizontalBlock"] div[role="tablist"] > div {
+    flex-grow: 1 !important;
+}
+section[data-testid="stHorizontalBlock"] div[role="tab"] {
+    flex: 1 1 200px !important;
+    justify-content: center;
+}
+</style>""", unsafe_allow_html=True)
+
 # 指標別タブ
 tabs = st.tabs(["💰 CPA", "🔥 CVR", "⚡ CTR", "🧮 CPC", "📡 CPM"])
 tab_map = {
