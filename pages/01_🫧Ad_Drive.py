@@ -7,7 +7,7 @@ import pandas as pd, numpy as np, re
 st.set_page_config(page_title="Ad_Drive", layout="wide")
 st.title("🫧 Ad Drive")
 
-st.subheader("📊 広告数値・配信バナー")
+st.subheader("📂 条件を絞り込む")
 
 st.markdown("""
 <style>
