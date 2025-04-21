@@ -5,7 +5,7 @@ from google.oauth2 import service_account
 
 # ページ設定
 st.set_page_config(page_title="⚙️ KPI設定", layout="wide")
-st.title("⚙️ 広告KPI設定")
+st.title("⚙️ 広告KPI設定（4段階評価：◎○△×）")
 
 # --- 認証 ---
 info_dict = dict(st.secrets["connections"]["bigquery"])
@@ -82,9 +82,7 @@ edited_df = st.data_editor(
         "カテゴリ": st.column_config.TextColumn(disabled=True),
         "広告目的": st.column_config.TextColumn(disabled=True)
     },
-    hide_index=True,
-    disabled=[],
-    column_fixed=["カテゴリ", "広告目的"]
+    hide_index=True
 )
 
 # --- 保存処理 ---
