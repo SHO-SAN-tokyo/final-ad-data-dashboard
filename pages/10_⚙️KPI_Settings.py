@@ -71,19 +71,33 @@ for cat in カテゴリ一覧:
                 }])
             ], ignore_index=True)
 
-# --- 編集UI ---
-st.markdown("### 🎯 カテゴリ × 広告目的ごとの4段階目標を設定")
-edited_df = st.data_editor(
-    target_df.sort_values(["カテゴリ", "広告目的"]),
-    use_container_width=True,
-    num_rows="dynamic",
-    column_order=["カテゴリ", "広告目的"] + [col for col in target_df.columns if col not in ["カテゴリ", "広告目的"]],
-    column_config={
-        "カテゴリ": st.column_config.TextColumn(disabled=True),
-        "広告目的": st.column_config.TextColumn(disabled=True)
-    },
-    hide_index=True
-)
+# --- 折りたたみ式のセクションごとに表示 ---
+st.markdown("### 🎯 カテゴリ × 広告目的ごとの4段階目標を設定（折りたたみ表示）")
+
+edited_df = target_df.sort_values(["カテゴリ", "広告目的"]).copy()
+
+for metric in ["CPA", "CVR", "CTR", "CPC", "CPM"]:
+    with st.expander(f"📌 {metric} の目標設定", expanded=False):
+        sub_cols = ["カテゴリ", "広告目的", f"{metric}_best", f"{metric}_good", f"{metric}_min"]
+        sub_df = edited_df[sub_cols].copy()
+
+        updated_df = st.data_editor(
+            sub_df,
+            key=f"{metric}_editor",
+            use_container_width=True,
+            num_rows="dynamic",
+            column_config={
+                "カテゴリ": st.column_config.TextColumn(disabled=True),
+                "広告目的": st.column_config.TextColumn(disabled=True),
+                f"{metric}_best": st.column_config.NumberColumn(format="%.2f"),
+                f"{metric}_good": st.column_config.NumberColumn(format="%.2f"),
+                f"{metric}_min": st.column_config.NumberColumn(format="%.2f"),
+            },
+            hide_index=True
+        )
+
+        for col in [f"{metric}_best", f"{metric}_good", f"{metric}_min"]:
+            edited_df[col] = updated_df[col]
 
 # --- 保存処理 ---
 if st.button("💾 保存する"):
