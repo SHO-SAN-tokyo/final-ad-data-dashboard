@@ -15,7 +15,7 @@ client = bigquery.Client.from_service_account_info(info_dict)
 @st.cache_data
 def load_data():
     df = client.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data`").to_dataframe()
-    kpi_df = client.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Target_Indicators`").to_dataframe()
+    kpi_df = client.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Target_Indicators_Meta`").to_dataframe()
     return df, kpi_df
 
 df, kpi_df = load_data()
