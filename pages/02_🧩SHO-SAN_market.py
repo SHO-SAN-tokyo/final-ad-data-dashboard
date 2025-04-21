@@ -19,28 +19,27 @@ def load_data():
 
 df, kpi_df = load_data()
 
-# --- 前処理 ---
+# 前処理
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 df["Cost"] = pd.to_numeric(df["Cost"], errors="coerce").fillna(0)
 df["Clicks"] = pd.to_numeric(df["Clicks"], errors="coerce").fillna(0)
 df["Impressions"] = pd.to_numeric(df["Impressions"], errors="coerce").fillna(0)
 df["コンバージョン数"] = pd.to_numeric(df["コンバージョン数"], errors="coerce").fillna(0)
 
-# --- 日付フィルター ---
-if not df["Date"].isnull().all():
+# 📅 日付フィルタ
+if "Date" in df.columns:
     min_date = df["Date"].min().date()
     max_date = df["Date"].max().date()
-    selected_range = st.date_input("📅 日付フィルター", (min_date, max_date), min_value=min_date, max_value=max_date)
-    if isinstance(selected_range, (tuple, list)) and len(selected_range) == 2:
-        start_date, end_date = pd.to_datetime(selected_range[0]), pd.to_datetime(selected_range[1])
-        df = df[(df["Date"] >= start_date) & (df["Date"] <= end_date)]
+    selected_date = st.sidebar.date_input("日付フィルター", (min_date, max_date), min_value=min_date, max_value=max_date)
+    if isinstance(selected_date, (list, tuple)) and len(selected_date) == 2:
+        start_date, end_date = pd.to_datetime(selected_date[0]), pd.to_datetime(selected_date[1])
+        df = df[(df["Date"].dt.date >= start_date.date()) & (df["Date"].dt.date <= end_date.date())]
 
-# --- 最新CV ---
+# 最新CV
 latest_cv = df.sort_values("Date").dropna(subset=["Date"])
 latest_cv = latest_cv.loc[latest_cv.groupby("CampaignId")["Date"].idxmax()]
 latest_cv = latest_cv[["CampaignId", "コンバージョン数"]].rename(columns={"コンバージョン数": "最新CV"})
 
-# --- 集計 ---
 agg = df.groupby("CampaignId").agg({
     "Cost": "sum",
     "Clicks": "sum",
@@ -59,7 +58,7 @@ merged["CPA"] = merged["Cost"] / merged["最新CV"]
 merged["CPC"] = merged["Cost"] / merged["Clicks"]
 merged["CPM"] = (merged["Cost"] / merged["Impressions"]) * 1000
 
-# --- KPI マージ ---
+# KPIマージ
 goal_cols = [
     "CPA_best", "CPA_good", "CPA_min",
     "CVR_best", "CVR_good", "CVR_min",
@@ -72,8 +71,8 @@ for col in goal_cols:
         kpi_df[col] = pd.to_numeric(kpi_df[col], errors="coerce")
 merged = pd.merge(merged, kpi_df, how="left", on=["カテゴリ", "広告目的"])
 
-# --- フィルター ---
-st.subheader("📂 条件を絞り込み")
+# ---------------- フィルター ----------------
+st.markdown("<h5 style='margin-top: 0;'>📂 条件を絞り込む</h5>", unsafe_allow_html=True)
 col1, col2, col3, col4 = st.columns(4)
 
 category_options = ["すべて"] + sorted(merged["カテゴリ"].dropna().unique())
@@ -99,7 +98,7 @@ if selected_region != "すべて":
 if selected_pref != "すべて":
     merged = merged[merged["都道府県"] == selected_pref]
 
-# --- スタイル ---
+# 🌐 タブデザイン
 st.markdown("""
     <style>
     section[data-testid="stHorizontalBlock"] > div {
@@ -115,19 +114,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- タブ & グラフ描画 ---
-tabs = st.tabs(["💰 CPA", "🔥 CVR", "⚡ CTR", "🧮 CPC", "📡 CPM"])
+tabs = st.tabs(["💰 CPA", "🔥 CVR", "⚡ CTR", "🧰 CPC", "📱 CPM"])
 tab_map = {
-    "💰 CPA": ("CPA", "CPA_best", "CPA_good", "CPA_min"),
-    "🔥 CVR": ("CVR", "CVR_best", "CVR_good", "CVR_min"),
-    "⚡ CTR": ("CTR", "CTR_best", "CTR_good", "CTR_min"),
-    "🧮 CPC": ("CPC", "CPC_best", "CPC_good", "CPC_min"),
-    "📡 CPM": ("CPM", "CPM_best", "CPM_good", "CPM_min")
+    "💰 CPA": ("CPA", "CPA_best", "CPA_good", "CPA_min", "円"),
+    "🔥 CVR": ("CVR", "CVR_best", "CVR_good", "CVR_min", "%"),
+    "⚡ CTR": ("CTR", "CTR_best", "CTR_good", "CTR_min", "%"),
+    "🧰 CPC": ("CPC", "CPC_best", "CPC_good", "CPC_min", "円"),
+    "📱 CPM": ("CPM", "CPM_best", "CPM_good", "CPM_min", "円")
 }
 
 color_map = {"◎": "#88c999", "○": "#d3dc74", "△": "#f3b77d", "×": "#e88c8c"}
 
-for label, (metric, best_col, good_col, min_col) in tab_map.items():
+for label, (metric, best_col, good_col, min_col, unit) in tab_map.items():
     with tabs[list(tab_map.keys()).index(label)]:
         st.markdown(f"### {label} 達成率グラフ")
         plot_df = merged[["都道府県", metric, best_col, good_col, min_col, "CampaignName"]].dropna()
@@ -149,11 +147,12 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
         plot_df["評価"] = plot_df.apply(judge, axis=1)
 
         total = len(plot_df)
-        count_ok = (plot_df["評価"].isin(["◎", "○"]))
+        count_ok = (plot_df["評価"].isin(["◎", "○"])).sum()
         count_ng = (plot_df["評価"] == "×").sum()
         mean_val = plot_df[metric].mean()
         avg_goal = plot_df[best_col].mean()
 
+        # 📊 カード風サマリー
         st.markdown("""
         <style>
         .summary-card { display: flex; gap: 2rem; margin: 1rem 0 1.5rem 0; }
@@ -169,14 +168,20 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
 
         st.markdown(f"""
         <div class="summary-card">
-            <div class="card">🎯 目標値: {avg_goal:,.0f}円</div>
-            <div class="card">✅ 達成: {count_ok.sum()}件</div>
+            <div class="card">🎯 目標値: {avg_goal:,.0f}{unit}</div>
+            <div class="card">✅ 達成: {count_ok}件</div>
             <div class="card">❌ 未達成: {count_ng}件</div>
-            <div class="card">📈 平均: {mean_val:,.0f}円</div>
+            <div class="card">📈 平均: {mean_val:,.0f}{unit}</div>
         </div>
         """, unsafe_allow_html=True)
 
+        # グラフ
         plot_df["ラベル"] = plot_df["CampaignName"].fillna("無名")
+        if unit == "円":
+            value_format = lambda x: f"{x:,.0f}円"
+        else:
+            value_format = lambda x: f"{x:.2%}"
+
         fig = px.bar(
             plot_df,
             y="ラベル",
@@ -189,7 +194,7 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
         )
         fig.update_traces(
             textposition="outside", marker_line_width=0, width=0.25,
-            hovertemplate="<b>%{y}</b><br>実績値: %{customdata[0]:,.1f}<br>達成率: %{x:.1f}%<extra></extra>"
+            hovertemplate="<b>%{y}</b><br>実績値: " + "%{customdata[0]:,.0f}" + f"{unit}<br>達成率: " + "%{x:.1f}%<extra></extra>"
         )
         fig.update_layout(
             xaxis_title="達成率（%）", yaxis_title="", showlegend=True,
