@@ -5,7 +5,9 @@ import pandas as pd, numpy as np, re
 
 # ---------- 0. ページ設定 & CSS ----------
 st.set_page_config(page_title="Ad_Drive", layout="wide")
-st.title("🫧 Ad Drive すべての広告")
+st.title("🫧 Ad Drive")
+
+st.subheader("📊 広告数値・配信バナー")
 
 st.markdown("""
 <style>
