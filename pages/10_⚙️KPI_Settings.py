@@ -76,7 +76,15 @@ st.markdown("### 🎯 カテゴリ × 広告目的ごとの4段階目標を設�
 edited_df = st.data_editor(
     target_df.sort_values(["カテゴリ", "広告目的"]),
     use_container_width=True,
-    num_rows="dynamic"
+    num_rows="dynamic",
+    column_order=["カテゴリ", "広告目的"] + [col for col in target_df.columns if col not in ["カテゴリ", "広告目的"]],
+    column_config={
+        "カテゴリ": st.column_config.TextColumn(disabled=True),
+        "広告目的": st.column_config.TextColumn(disabled=True)
+    },
+    hide_index=True,
+    disabled=[],
+    column_fixed=["カテゴリ", "広告目的"]
 )
 
 # --- 保存処理 ---
