@@ -6,12 +6,11 @@ from google.cloud import bigquery
 st.set_page_config(page_title="カテゴリ×都道府県 達成率モニター", layout="wide")
 st.title("📊 カテゴリ×都道府県 達成率モニター")
 
-# 認証
+# BigQuery 認証
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info_dict)
 
-# データ取得
 @st.cache_data
 def load_data():
     df = client.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data`").to_dataframe()
@@ -39,6 +38,7 @@ agg = df.groupby("CampaignId").agg({
     "Impressions": "sum",
     "カテゴリ": "first",
     "広告目的": "first",
+    "地方": "first",
     "都道府県": "first",
     "CampaignName": "first"
 }).reset_index()
@@ -50,50 +50,58 @@ merged["CPA"] = merged["Cost"] / merged["最新CV"]
 merged["CPC"] = merged["Cost"] / merged["Clicks"]
 merged["CPM"] = (merged["Cost"] / merged["Impressions"]) * 1000
 
-# KPIを統合
-for col in [
-    "CPA_best", "CPA_good", "CPA_min",
-    "CVR_best", "CVR_good", "CVR_min",
-    "CTR_best", "CTR_good", "CTR_min",
-    "CPC_best", "CPC_good", "CPC_min",
-    "CPM_best", "CPM_good", "CPM_min"
-]:
-    if col in kpi_df.columns:
+# KPI数値型に
+for col in kpi_df.columns:
+    if col not in ["カテゴリ", "広告目的"]:
         kpi_df[col] = pd.to_numeric(kpi_df[col], errors="coerce")
+
 merged = pd.merge(merged, kpi_df, how="left", on=["カテゴリ", "広告目的"])
 
-# カテゴリ選択
-selected_category = st.selectbox("📂 表示カテゴリ", sorted(merged["カテゴリ"].dropna().unique()))
-cat_df = merged[merged["カテゴリ"] == selected_category]
+# ---------------- フィルタ ----------------
+st.markdown("### 📂 表示条件")
 
-# 指標選択タブ
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    category = st.selectbox("カテゴリ", ["すべて"] + sorted(merged["カテゴリ"].dropna().unique()))
+with col2:
+    purpose = st.selectbox("広告目的", ["すべて"] + sorted(merged["広告目的"].dropna().unique()))
+with col3:
+    area = st.selectbox("地方", ["すべて"] + sorted(merged["地方"].dropna().unique()))
+with col4:
+    pref = st.selectbox("都道府県", ["すべて"] + sorted(merged["都道府県"].dropna().unique()))
+
+filtered_df = merged.copy()
+if category != "すべて":
+    filtered_df = filtered_df[filtered_df["カテゴリ"] == category]
+if purpose != "すべて":
+    filtered_df = filtered_df[filtered_df["広告目的"] == purpose]
+if area != "すべて":
+    filtered_df = filtered_df[filtered_df["地方"] == area]
+if pref != "すべて":
+    filtered_df = filtered_df[filtered_df["都道府県"] == pref]
+
+# ---------------- タブ ----------------
 tabs = st.tabs(["🎯 CPA", "🔁 CVR", "⚡ CTR", "🧮 CPC", "📡 CPM"])
 tab_map = {
     "🎯 CPA": ("CPA", "CPA_best", "CPA_good", "CPA_min"),
     "🔁 CVR": ("CVR", "CVR_best", "CVR_good", "CVR_min"),
     "⚡ CTR": ("CTR", "CTR_best", "CTR_good", "CTR_min"),
     "🧮 CPC": ("CPC", "CPC_best", "CPC_good", "CPC_min"),
-    "📡 CPM": ("CPM", "CPM_best", "CPM_good", "CPM_min")
+    "📡 CPM": ("CPM", "CPM_best", "CPM_good", "CPM_min"),
 }
-
-# 色分けマップ
-color_map = {
-    "◎": "#88c999",
-    "○": "#d3dc74",
-    "△": "#f3b77d",
-    "×": "#e88c8c"
-}
+color_map = {"◎": "#88c999", "○": "#d3dc74", "△": "#f3b77d", "×": "#e88c8c"}
 
 for label, (metric, best_col, good_col, min_col) in tab_map.items():
     with tabs[list(tab_map.keys()).index(label)]:
         st.markdown(f"### {label} 達成率グラフ")
-        plot_df = cat_df[["都道府県", metric, best_col, good_col, min_col, "CampaignName"]].dropna()
+
+        plot_df = filtered_df[["都道府県", metric, best_col, good_col, min_col, "CampaignName"]].dropna()
         plot_df = plot_df[plot_df["都道府県"] != ""]
         if plot_df.empty:
             st.warning("📭 データがありません")
             continue
 
-        # 達成率と評価を計算
+        # 評価計算
         plot_df["達成率"] = (plot_df[best_col] / plot_df[metric]) * 100
         def judge(row):
             val = row[metric]
@@ -107,7 +115,6 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
                 return "△"
             else:
                 return "×"
-
         plot_df["評価"] = plot_df.apply(judge, axis=1)
 
         # --- サマリー ---
@@ -137,23 +144,17 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
         )
 
         fig.update_traces(
-            textposition="outside",
             marker_line_width=0,
+            textposition="outside",
             hovertemplate="%{y}<br>達成率: %{x:.1f}%<extra></extra>",
+            width=0.25
         )
-
-        # 棒の太さ（width）を狭める
-        fig.update_traces(
-            marker_line_width=0, textposition="outside", width=0.4
-        )
-
         fig.update_layout(
             xaxis_title="達成率（%）",
             yaxis_title="",
-            height=200 + len(plot_df) * 18,
+            height=200 + len(plot_df) * 14,
             width=1100,
             margin=dict(t=40, l=60, r=40),
             showlegend=True,
         )
-
         st.plotly_chart(fig, use_container_width=False)
