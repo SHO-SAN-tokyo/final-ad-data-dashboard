@@ -4,7 +4,9 @@ import plotly.express as px
 from google.cloud import bigquery
 
 st.set_page_config(page_title="カテゴリ×都道府県 達成率モニター", layout="wide")
-st.title("📊 カテゴリ×都道府県 達成率モニター")
+st.title("🧩SHO-SAN Market")
+
+st.subheader("📊 カテゴリ×都道府県 達成率モニター")
 
 # BigQuery接続
 info_dict = dict(st.secrets["connections"]["bigquery"])
@@ -27,7 +29,7 @@ df["Impressions"] = pd.to_numeric(df["Impressions"], errors="coerce").fillna(0)
 df["コンバージョン数"] = pd.to_numeric(df["コンバージョン数"], errors="coerce").fillna(0)
 
 # 🎯 日付フィルター（ページ上部）
-st.subheader("📅 日付フィルター")
+st.markdown("<h5 style='margin-top: 2rem;'>📅 日付フィルター</h5>", unsafe_allow_html=True)
 min_date = df["Date"].min().date()
 max_date = df["Date"].max().date()
 selected_date = st.date_input("期間を選択", (min_date, max_date), min_value=min_date, max_value=max_date)
