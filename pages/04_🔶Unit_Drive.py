@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime
 
 st.set_page_config(page_title="Unit Drive", layout="wide")
-st.title("🔶 Ad Staff SCORE")
+st.title("🔶 Unit Drive")
 
 # 認証
 info_dict = dict(st.secrets["connections"]["bigquery"])
