@@ -129,6 +129,9 @@ latest = latest.merge(
 latest["CPA_sort"] = latest.apply(lambda r: div(r["Cost_agg"], r["CV件数"]), axis=1)
 sum_map = agg.set_index(["CampaignId", "AdName"]).to_dict("index")
 
+# 余白
+st.markdown("<div style='margin-top: 3.5rem;'></div>", unsafe_allow_html=True)
+
 st.subheader("💠配信バナー")
 opt = st.radio("並び替え基準",
                ["広告番号順", "コンバージョン数の多い順", "CPAの低い順"])
