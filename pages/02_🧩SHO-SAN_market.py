@@ -93,15 +93,23 @@ if selected_pref != "すべて":
     merged = merged[merged["都道府県"] == selected_pref]
 
 # 先にCSSを読み込む
-st.markdown("""<style>
-section[data-testid="stHorizontalBlock"] div[role="tablist"] > div {
-    flex-grow: 1 !important;
-}
-section[data-testid="stHorizontalBlock"] div[role="tab"] {
-    flex: 1 1 400px !important;
-    justify-content: center;
-}
-</style>""", unsafe_allow_html=True)
+st.markdown("""
+    <style>
+    /* タブ全体に左右余白を追加して中央寄せに */
+    section[data-testid="stHorizontalBlock"] > div {
+        padding: 0 80px;
+        justify-content: center !important;
+    }
+
+    /* 各タブのサイズを調整 */
+    section[data-testid="stHorizontalBlock"] div[role="tab"] {
+        min-width: 180px !important;
+        padding: 0.6rem 1.2rem;
+        font-size: 1.1rem;
+        justify-content: center;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # 指標別タブ
 tabs = st.tabs(["💰 CPA", "🔥 CVR", "⚡ CTR", "🧮 CPC", "📡 CPM"])
