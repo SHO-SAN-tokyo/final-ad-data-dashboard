@@ -73,7 +73,7 @@ for col in goal_cols:
 merged = pd.merge(merged, kpi_df, how="left", on=["カテゴリ", "広告目的"])
 
 # --- フィルター ---
-st.subheader("📂 条件を縛り込む")
+st.subheader("📂 条件を絞り込み")
 col1, col2, col3, col4 = st.columns(4)
 
 category_options = ["すべて"] + sorted(merged["カテゴリ"].dropna().unique())
