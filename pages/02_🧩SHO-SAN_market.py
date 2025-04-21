@@ -124,20 +124,42 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
             else: return "×"
         plot_df["評価"] = plot_df.apply(judge, axis=1)
 
+        # 📊 サマリー（カード風）
         total = len(plot_df)
         count_ok = (plot_df["評価"].isin(["◎", "○"])).sum()
         count_ng = (plot_df["評価"] == "×").sum()
         mean_val = plot_df[metric].mean()
+        avg_goal = plot_df[best_col].mean()
 
+        card_style = """
+        <style>
+        .summary-card {
+            display: flex;
+            gap: 2rem;
+            margin: 1rem 0 1.5rem 0;
+        }
+        .card {
+            background: #f8f9fa;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        </style>
+        """
+
+        st.markdown(card_style, unsafe_allow_html=True)
         st.markdown(f"""
-        <div style='display: flex; gap: 3rem; font-size: 16px; font-weight: bold; margin-top: 10px; margin-bottom: 20px;'>
-            <div>🎯 目標値: {plot_df[best_col].mean():,.0f}円</div>
-            <div>✅ 達成: {count_ok}件</div>
-            <div>❌ 未達成: {count_ng}件</div>
-            <div>📈 平均: {mean_val:,.0f}円</div>
+        <div class="summary-card">
+            <div class="card">🎯 目標値: {avg_goal:,.0f}円</div>
+            <div class="card">✅ 達成: {count_ok}件</div>
+            <div class="card">❌ 未達成: {count_ng}件</div>
+            <div class="card">📈 平均: {mean_val:,.0f}円</div>
         </div>
         """, unsafe_allow_html=True)
 
+        # グラフ描画
         plot_df["ラベル"] = plot_df["CampaignName"].fillna("無名")
         fig = px.bar(
             plot_df,
@@ -146,16 +168,19 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
             color="評価",
             orientation="h",
             color_discrete_map=color_map,
-            text=plot_df["達成率"].map(lambda x: f"{x:.1f}%" if pd.notna(x) else ""),
+            text=plot_df["達成率"].map(lambda x: f"{x:.1f}%" if pd.notna(x) else "")
         )
         fig.update_traces(
             textposition="outside", marker_line_width=0, width=0.25,
-            hovertemplate="%{y}<br>達成率: %{x:.1f}%<extra></extra>",
+            hovertemplate="%{y}<br>達成率: %{x:.1f}%<extra></extra>"
         )
         fig.update_layout(
-            xaxis_title="達成率（%）", yaxis_title="", showlegend=True,
+            xaxis_title="達成率（%）",
+            yaxis_title="",
+            showlegend=True,
             height=200 + len(plot_df) * 20,
-            width=1000, margin=dict(t=40, l=60, r=20),
+            width=1000,
+            margin=dict(t=40, l=60, r=20),
             modebar=dict(remove=True)
         )
         st.plotly_chart(fig, use_container_width=False)
