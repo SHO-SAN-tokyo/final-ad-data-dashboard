@@ -46,11 +46,16 @@ try:
         st.info("✨ すべての担当者がUnitに振り分けられています。")
     else:
         selected_person = st.selectbox("👤 担当者を選択", unassigned_df["担当者"])
-        input_unit = st.text_input("🏷️ 割り当てるUnit名")
+        input_unit = st.text_input("🏷️ 割り当てるUnit名（所属）")
+        input_status = st.text_input("🪪 雇用形態（例: 正社員、業務委託 など）")
 
         if st.button("＋ この担当者をUnitに追加"):
             if selected_person and input_unit:
-                new_row = pd.DataFrame([{"担当者": selected_person, "Unit": input_unit}])
+                new_row = pd.DataFrame([{
+                    "担当者": selected_person,
+                    "所属": input_unit,
+                    "雇用形態": input_status
+                }])
                 updated_df = pd.concat([current_df, new_row], ignore_index=True)
 
                 try:
@@ -59,7 +64,8 @@ try:
                             write_disposition="WRITE_TRUNCATE",
                             schema=[
                                 bigquery.SchemaField("担当者", "STRING"),
-                                bigquery.SchemaField("Unit", "STRING"),
+                                bigquery.SchemaField("所属", "STRING"),
+                                bigquery.SchemaField("雇用形態", "STRING"),
                             ]
                         )
                         job = client.load_table_from_dataframe(updated_df, full_table, job_config=job_config)
@@ -80,7 +86,7 @@ st.markdown("---")
 st.markdown("### 📝 既存のUnit割当を編集・並べ替え")
 
 editable_df = st.data_editor(
-    current_df.sort_values(["Unit", "担当者"]),
+    current_df.sort_values(["所属", "担当者"]),
     use_container_width=True,
     num_rows="dynamic",
     key="editable_unit_table"
@@ -93,7 +99,8 @@ if st.button("💾 保存する"):
                 write_disposition="WRITE_TRUNCATE",
                 schema=[
                     bigquery.SchemaField("担当者", "STRING"),
-                    bigquery.SchemaField("Unit", "STRING"),
+                    bigquery.SchemaField("所属", "STRING"),
+                    bigquery.SchemaField("雇用形態", "STRING"),
                 ]
             )
             job = client.load_table_from_dataframe(editable_df, full_table, job_config=job_config)
@@ -108,12 +115,11 @@ if st.button("💾 保存する"):
 st.markdown("---")
 st.markdown("### 🧩 Unitごとの担当者一覧")
 
-grouped = current_df.groupby("Unit")
+grouped = current_df.groupby("所属")
 
 for unit, group in grouped:
     st.markdown(f"#### 🟢 Unit: {unit}")
-    st.dataframe(group[["担当者"]].reset_index(drop=True), use_container_width=True)
-
+    st.dataframe(group[["担当者", "雇用形態"]].reset_index(drop=True), use_container_width=True)
 
 # --- ボタンの色をカスタマイズ（CSS適用） ---
 st.markdown("""
