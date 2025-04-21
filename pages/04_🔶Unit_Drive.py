@@ -81,6 +81,9 @@ for idx, row in unit_summary.iterrows():
         </div>
         """, unsafe_allow_html=True)
 
+# 余白
+st.markdown("<div style='margin-top: 3.5rem;'></div>", unsafe_allow_html=True)
+
 # --- 担当者別フィルター ---
 st.write("#### 👨‍💼 担当者ごとのスコア")
 col1, col2, col3 = st.columns(3)
@@ -127,6 +130,9 @@ for idx, row in person_summary.iterrows():
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+# 余白
+st.markdown("<div style='margin-top: 3.5rem;'></div>", unsafe_allow_html=True)
 
 # --- キャンペーン一覧テーブル ---
 st.write("#### 📋 キャンペーン一覧（フィルター反映）")
