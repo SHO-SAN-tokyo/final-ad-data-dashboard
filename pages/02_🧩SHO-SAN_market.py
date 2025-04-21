@@ -95,7 +95,7 @@ if selected_pref != "すべて":
 # 🎨 デザインとタブ設定
 st.markdown("""
     <style>
-    div[role="tab"] {
+    .tab-list p {
         padding: 0 20px;
     }
     section[data-testid="stHorizontalBlock"] > div {
