@@ -26,12 +26,11 @@ df["Clicks"] = pd.to_numeric(df["Clicks"], errors="coerce").fillna(0)
 df["Impressions"] = pd.to_numeric(df["Impressions"], errors="coerce").fillna(0)
 df["コンバージョン数"] = pd.to_numeric(df["コンバージョン数"], errors="coerce").fillna(0)
 
-# 最新CV（キャンペーンごとに1件）
+# 最新CV
 latest_cv = df.sort_values("Date").dropna(subset=["Date"])
 latest_cv = latest_cv.loc[latest_cv.groupby("CampaignId")["Date"].idxmax()]
 latest_cv = latest_cv[["CampaignId", "コンバージョン数"]].rename(columns={"コンバージョン数": "最新CV"})
 
-# 集計
 agg = df.groupby("CampaignId").agg({
     "Cost": "sum",
     "Clicks": "sum",
@@ -50,7 +49,7 @@ merged["CPA"] = merged["Cost"] / merged["最新CV"]
 merged["CPC"] = merged["Cost"] / merged["Clicks"]
 merged["CPM"] = (merged["Cost"] / merged["Impressions"]) * 1000
 
-# KPIマージ
+# KPI merge
 goal_cols = [
     "CPA_best", "CPA_good", "CPA_min",
     "CVR_best", "CVR_good", "CVR_min",
@@ -63,8 +62,8 @@ for col in goal_cols:
         kpi_df[col] = pd.to_numeric(kpi_df[col], errors="coerce")
 merged = pd.merge(merged, kpi_df, how="left", on=["カテゴリ", "広告目的"])
 
-# ---------------- フィルター ----------------
-st.subheader("📂 条件を絞り込む")
+# Filters
+st.subheader("📂 条件を縛り込む")
 col1, col2, col3, col4 = st.columns(4)
 
 category_options = ["すべて"] + sorted(merged["カテゴリ"].dropna().unique())
@@ -79,10 +78,8 @@ with col3:
     selected_region = st.selectbox("地方", 地方_options)
 with col4:
     都道府県候補 = merged[merged["地方"] == selected_region]["都道府県"].dropna().unique() if selected_region != "すべて" else merged["都道府県"].dropna().unique()
-    都道府県_options = ["すべて"] + sorted(都道府県候補)
-    selected_pref = st.selectbox("都道府県", 都道府県_options)
+    selected_pref = st.selectbox("都道府県", ["すべて"] + sorted(都道府県候補))
 
-# フィルタ適用
 if selected_category != "すべて":
     merged = merged[merged["カテゴリ"] == selected_category]
 if selected_objective != "すべて":
@@ -92,16 +89,12 @@ if selected_region != "すべて":
 if selected_pref != "すべて":
     merged = merged[merged["都道府県"] == selected_pref]
 
-# 先にCSSを読み込む
 st.markdown("""
     <style>
-    /* タブ全体に左右余白を追加して中央寄せに */
     section[data-testid="stHorizontalBlock"] > div {
         padding: 0 80px;
         justify-content: center !important;
     }
-
-    /* 各タブのサイズを調整 */
     section[data-testid="stHorizontalBlock"] div[role="tab"] {
         min-width: 180px !important;
         padding: 0.6rem 1.2rem;
@@ -111,8 +104,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 指標別タブ
-tabs = st.tabs(["💰 CPA", "🔥 CVR", "⚡ CTR", "🧮 CPC", "📡 CPM"])
+tabs = st.tabs(["💰 CPA", "🔥 CVR", "⚡ CTR", "🧰 CPC", "📱 CPM"])
 tab_map = {
     "💰 CPA": ("CPA", "CPA_best", "CPA_good", "CPA_min"),
     "🔥 CVR": ("CVR", "CVR_best", "CVR_good", "CVR_min"),
@@ -133,42 +125,36 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
             continue
 
         plot_df["達成率"] = (plot_df[best_col] / plot_df[metric]) * 100
+
         def judge(row):
             val = row[metric]
-            if pd.isna(val) or pd.isna(row[min_col]):
-                return None
+            if pd.isna(val) or pd.isna(row[min_col]): return None
             if val <= row[best_col]: return "◎"
             elif val <= row[good_col]: return "○"
             elif val <= row[min_col]: return "△"
             else: return "×"
+
         plot_df["評価"] = plot_df.apply(judge, axis=1)
 
-        # 📊 サマリー（カード風）
         total = len(plot_df)
         count_ok = (plot_df["評価"].isin(["◎", "○"])).sum()
         count_ng = (plot_df["評価"] == "×").sum()
         mean_val = plot_df[metric].mean()
         avg_goal = plot_df[best_col].mean()
 
-        card_style = """
+        st.markdown("""
         <style>
-        .summary-card {
-            display: flex;
-            gap: 2rem;
-            margin: 1rem 0 1.5rem 0;
-        }
+        .summary-card { display: flex; gap: 2rem; margin: 1rem 0 1.5rem 0; }
         .card {
             background: #f8f9fa;
             padding: 1rem 1.5rem;
             border-radius: 0.75rem;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            font-weight: bold;
-            font-size: 1.1rem;
+            font-weight: bold; font-size: 1.1rem;
         }
         </style>
-        """
+        """, unsafe_allow_html=True)
 
-        st.markdown(card_style, unsafe_allow_html=True)
         st.markdown(f"""
         <div class="summary-card">
             <div class="card">🎯 目標値: {avg_goal:,.0f}円</div>
@@ -178,7 +164,6 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
         </div>
         """, unsafe_allow_html=True)
 
-        # グラフ描画
         plot_df["ラベル"] = plot_df["CampaignName"].fillna("無名")
         fig = px.bar(
             plot_df,
@@ -187,19 +172,16 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
             color="評価",
             orientation="h",
             color_discrete_map=color_map,
-            text=plot_df["達成率"].map(lambda x: f"{x:.1f}%" if pd.notna(x) else "")
+            text=plot_df["達成率"].map(lambda x: f"{x:.1f}%" if pd.notna(x) else ""),
+            custom_data=[plot_df[metric]]
         )
         fig.update_traces(
             textposition="outside", marker_line_width=0, width=0.25,
-            hovertemplate="%{y}<br>達成率: %{x:.1f}%<extra></extra>"
+            hovertemplate="<b>%{y}</b><br>実績値: %{customdata[0]:,.1f}<br>達成率: %{x:.1f}%<extra></extra>"
         )
         fig.update_layout(
-            xaxis_title="達成率（%）",
-            yaxis_title="",
-            showlegend=True,
+            xaxis_title="達成率（%）", yaxis_title="", showlegend=True,
             height=200 + len(plot_df) * 40,
-            width=1000,
-            margin=dict(t=40, l=60, r=20),
-            modebar=dict(remove=True)
+            width=1000, margin=dict(t=40, l=60, r=20), modebar=dict(remove=True)
         )
         st.plotly_chart(fig, use_container_width=False)
