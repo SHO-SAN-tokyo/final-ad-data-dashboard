@@ -5,7 +5,7 @@ from google.oauth2 import service_account
 
 # ページ設定
 st.set_page_config(page_title="⚙️ KPI設定", layout="wide")
-st.title("⚙️ 広告KPI設定")
+st.title("⚙️ 広告KPI設定（4段階評価：◎○△×）")
 
 # --- 認証 ---
 info_dict = dict(st.secrets["connections"]["bigquery"])
@@ -81,6 +81,12 @@ for metric in ["CPA", "CVR", "CTR", "CPC", "CPM"]:
         sub_cols = ["カテゴリ", "広告目的", f"{metric}_best", f"{metric}_good", f"{metric}_min"]
         sub_df = edited_df[sub_cols].copy()
 
+        # ✅ 金額系 or パーセンテージ系でフォーマット切り替え
+        if metric in ["CPA", "CPC", "CPM"]:
+            fmt = "¥%d"
+        elif metric in ["CVR", "CTR"]:
+            fmt = "%.1f %%"
+
         updated_df = st.data_editor(
             sub_df,
             key=f"{metric}_editor",
@@ -89,9 +95,9 @@ for metric in ["CPA", "CVR", "CTR", "CPC", "CPM"]:
             column_config={
                 "カテゴリ": st.column_config.TextColumn(disabled=True),
                 "広告目的": st.column_config.TextColumn(disabled=True),
-                f"{metric}_best": st.column_config.NumberColumn(format="%.2f"),
-                f"{metric}_good": st.column_config.NumberColumn(format="%.2f"),
-                f"{metric}_min": st.column_config.NumberColumn(format="%.2f"),
+                f"{metric}_best": st.column_config.NumberColumn(format=fmt),
+                f"{metric}_good": st.column_config.NumberColumn(format=fmt),
+                f"{metric}_min": st.column_config.NumberColumn(format=fmt),
             },
             hide_index=True
         )
