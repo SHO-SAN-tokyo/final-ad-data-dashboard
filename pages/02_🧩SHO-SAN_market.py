@@ -114,9 +114,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-tabs = st.tabs(["  💰 CPA  ", "  🔥 CVR  ", "  ⚡ CTR  ", "  🧰 CPC  ", "  📱 CPM  "])
+tabs = st.tabs(["💰 CPA", "🔥 CVR", "⚡ CTR", "🧰 CPC", "📱 CPM"])
 tab_map = {
-    "  💰 CPA  ": ("CPA", "CPA_best", "CPA_good", "CPA_min", "円"),
+    "💰 CPA": ("CPA", "CPA_best", "CPA_good", "CPA_min", "円"),
     "🔥 CVR": ("CVR", "CVR_best", "CVR_good", "CVR_min", "%"),
     "⚡ CTR": ("CTR", "CTR_best", "CTR_good", "CTR_min", "%"),
     "🧰 CPC": ("CPC", "CPC_best", "CPC_good", "CPC_min", "円"),
