@@ -178,7 +178,7 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
             xaxis_title="達成率（%）",
             yaxis_title="",
             showlegend=True,
-            height=200 + len(plot_df) * 20,
+            height=200 + len(plot_df) * 24,
             width=1000,
             margin=dict(t=40, l=60, r=20),
             modebar=dict(remove=True)
