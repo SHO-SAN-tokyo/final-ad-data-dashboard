@@ -50,7 +50,7 @@ merged["CPA"] = merged["Cost"] / merged["最新CV"]
 merged["CPC"] = merged["Cost"] / merged["Clicks"]
 merged["CPM"] = (merged["Cost"] / merged["Impressions"]) * 1000
 
-# KPI数値型に
+# KPI統合
 for col in kpi_df.columns:
     if col not in ["カテゴリ", "広告目的"]:
         kpi_df[col] = pd.to_numeric(kpi_df[col], errors="coerce")
@@ -59,17 +59,27 @@ merged = pd.merge(merged, kpi_df, how="left", on=["カテゴリ", "広告目的"
 
 # ---------------- フィルタ ----------------
 st.markdown("### 📂 表示条件")
-
 col1, col2, col3, col4 = st.columns(4)
+
 with col1:
     category = st.selectbox("カテゴリ", ["すべて"] + sorted(merged["カテゴリ"].dropna().unique()))
+
 with col2:
     purpose = st.selectbox("広告目的", ["すべて"] + sorted(merged["広告目的"].dropna().unique()))
+
 with col3:
     area = st.selectbox("地方", ["すべて"] + sorted(merged["地方"].dropna().unique()))
-with col4:
-    pref = st.selectbox("都道府県", ["すべて"] + sorted(merged["都道府県"].dropna().unique()))
 
+# 地方に応じて都道府県を絞る
+if area == "すべて":
+    pref_list = ["すべて"] + sorted(merged["都道府県"].dropna().unique())
+else:
+    pref_list = ["すべて"] + sorted(merged[merged["地方"] == area]["都道府県"].dropna().unique())
+
+with col4:
+    pref = st.selectbox("都道府県", pref_list)
+
+# フィルタ適用
 filtered_df = merged.copy()
 if category != "すべて":
     filtered_df = filtered_df[filtered_df["カテゴリ"] == category]
@@ -87,7 +97,7 @@ tab_map = {
     "🔁 CVR": ("CVR", "CVR_best", "CVR_good", "CVR_min"),
     "⚡ CTR": ("CTR", "CTR_best", "CTR_good", "CTR_min"),
     "🧮 CPC": ("CPC", "CPC_best", "CPC_good", "CPC_min"),
-    "📡 CPM": ("CPM", "CPM_best", "CPM_good", "CPM_min"),
+    "📡 CPM": ("CPM", "CPM_best", "CPM_good", "CPM_min")
 }
 color_map = {"◎": "#88c999", "○": "#d3dc74", "△": "#f3b77d", "×": "#e88c8c"}
 
@@ -101,8 +111,8 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
             st.warning("📭 データがありません")
             continue
 
-        # 評価計算
         plot_df["達成率"] = (plot_df[best_col] / plot_df[metric]) * 100
+
         def judge(row):
             val = row[metric]
             if pd.isna(val) or pd.isna(row[min_col]):
@@ -131,7 +141,6 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
         </div>
         """, unsafe_allow_html=True)
 
-        # --- グラフ ---
         plot_df["ラベル"] = plot_df["CampaignName"].fillna("無名")
         fig = px.bar(
             plot_df,
