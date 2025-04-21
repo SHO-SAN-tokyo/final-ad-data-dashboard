@@ -92,8 +92,8 @@ editable_df = st.data_editor(
     key="editable_unit_table"
 )
 
-if st.button("💾 保存する"):
-    with st.spinner("保存中です..."):
+if st.button("💾 修正内容を保存する"):
+    with st.spinner("修正内容を保存中です..."):
         try:
             job_config = bigquery.LoadJobConfig(
                 write_disposition="WRITE_TRUNCATE",
