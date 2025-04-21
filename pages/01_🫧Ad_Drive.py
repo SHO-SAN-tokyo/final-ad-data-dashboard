@@ -9,6 +9,8 @@ st.title("🫧 Ad Drive")
 
 st.subheader("📊 すべての広告数値・配信バナー")
 
+st.markdown("<h5 style='margin-top: 2rem;'>📂 条件で絞り込む</h5>", unsafe_allow_html=True)
+
 st.markdown("""
 <style>
  .banner-card{padding:12px 12px 20px;border:1px solid #e6e6e6;border-radius:12px;
