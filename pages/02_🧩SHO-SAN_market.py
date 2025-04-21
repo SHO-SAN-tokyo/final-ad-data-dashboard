@@ -1,12 +1,13 @@
 
 import streamlit as st
-from google.cloud import bigquery
 import pandas as pd
+import matplotlib.pyplot as plt
+from google.cloud import bigquery
 
-st.set_page_config(page_title="SHO-SANマーケット", layout="wide")
-st.title("🌿 SHO-SAN 広告市場（地方別 KPI）")
+st.set_page_config(page_title="SHO-SAN Market - 達成率分析", layout="wide")
+st.title("📊 カテゴリ×都道府県 達成率モニター")
 
-# BigQuery認証
+# BigQuery接続
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info_dict)
@@ -14,34 +15,31 @@ client = bigquery.Client.from_service_account_info(info_dict)
 @st.cache_data
 def load_data():
     df = client.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data`").to_dataframe()
-    kpi = client.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Target_Indicators`").to_dataframe()
-    return df, kpi
+    kpi_df = client.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Target_Indicators`").to_dataframe()
+    return df, kpi_df
 
 df, kpi_df = load_data()
 
 # 前処理
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-df["コンバージョン数"] = pd.to_numeric(df["コンバージョン数"], errors="coerce").fillna(0)
 df["Cost"] = pd.to_numeric(df["Cost"], errors="coerce").fillna(0)
 df["Clicks"] = pd.to_numeric(df["Clicks"], errors="coerce").fillna(0)
 df["Impressions"] = pd.to_numeric(df["Impressions"], errors="coerce").fillna(0)
+df["コンバージョン数"] = pd.to_numeric(df["コンバージョン数"], errors="coerce").fillna(0)
 
-# 最新CV抽出
+# 最新CV（キャンペーンごとに1件）
 latest_cv = df.sort_values("Date").dropna(subset=["Date"])
 latest_cv = latest_cv.loc[latest_cv.groupby("CampaignId")["Date"].idxmax()]
 latest_cv = latest_cv[["CampaignId", "コンバージョン数"]].rename(columns={"コンバージョン数": "最新CV"})
 
-# 合計値
+# 集計
 agg = df.groupby("CampaignId").agg({
     "Cost": "sum", "Clicks": "sum", "Impressions": "sum",
-    "カテゴリ": "first", "広告目的": "first",
-    "都道府県": "first", "地方": "first"
+    "カテゴリ": "first", "広告目的": "first", "都道府県": "first"
 }).reset_index()
 
-# 欠損値補完
 agg["カテゴリ"] = agg["カテゴリ"].fillna("未設定")
 agg["広告目的"] = agg["広告目的"].fillna("未設定")
-agg["地方"] = agg["地方"].fillna("未設定")
 agg["都道府県"] = agg["都道府県"].fillna("")
 
 # 指標計算
@@ -52,54 +50,49 @@ merged["CPA"] = merged["Cost"] / merged["最新CV"]
 merged["CPC"] = merged["Cost"] / merged["Clicks"]
 merged["CPM"] = (merged["Cost"] / merged["Impressions"]) * 1000
 
-# KPI目標の型変換と結合
+# KPI統合
 for col in ["CPA目標", "CVR目標", "CTR目標", "CPC目標", "CPM目標"]:
     kpi_df[col] = pd.to_numeric(kpi_df[col], errors="coerce")
 merged = pd.merge(merged, kpi_df, how="left", on=["カテゴリ", "広告目的"])
 
-# 評価関数
-def evaluate(actual, target, higher_is_better=True):
-    if pd.isna(actual) or pd.isna(target) or target == 0:
-        return "-"
-    if higher_is_better:
-        if actual >= target * 1.2: return "◎"
-        elif actual >= target: return "○"
-        elif actual >= target * 0.8: return "△"
-        else: return "×"
-    else:
-        if actual <= target * 0.8: return "◎"
-        elif actual <= target: return "○"
-        elif actual <= target * 1.2: return "△"
-        else: return "×"
+# カテゴリ選択
+selected_category = st.selectbox("📂 表示カテゴリ", sorted(merged["カテゴリ"].unique()))
+cat_df = merged[merged["カテゴリ"] == selected_category]
 
-merged["CTR評価"] = merged.apply(lambda r: evaluate(r["CTR"], r["CTR目標"], True), axis=1)
-merged["CVR評価"] = merged.apply(lambda r: evaluate(r["CVR"], r["CVR目標"], True), axis=1)
-merged["CPA評価"] = merged.apply(lambda r: evaluate(r["CPA"], r["CPA目標"], False), axis=1)
+# 指標別タブ
+tabs = st.tabs(["🎯 CPA", "🔁 CVR", "⚡ CTR", "🧮 CPC", "📡 CPM"])
+tab_map = {
+    "🎯 CPA": ("CPA", "CPA目標"),
+    "🔁 CVR": ("CVR", "CVR目標"),
+    "⚡ CTR": ("CTR", "CTR目標"),
+    "🧮 CPC": ("CPC", "CPC目標"),
+    "📡 CPM": ("CPM", "CPM目標"),
+}
 
-# 表示対象データ
-display_df = merged.copy()
+for label, (metric, goal_col) in tab_map.items():
+    with tabs[list(tab_map.keys()).index(label)]:
+        st.subheader(f"{label} 達成率グラフ")
+        plot_df = cat_df[["都道府県", metric, goal_col]].dropna()
+        plot_df = plot_df[plot_df["都道府県"] != ""]
+        if plot_df.empty:
+            st.info("データがありません")
+            continue
+        plot_df["達成率"] = (plot_df[goal_col] / plot_df[metric]) * 100
+        plot_df = plot_df.sort_values("達成率", ascending=False)
 
-st.subheader("📊 地方別 KPI評価（未設定も表示）")
+        colors = ["green" if val >= 100 else "red" for val in plot_df["達成率"]]
 
-for region in sorted(display_df["地方"].unique()):
-    st.markdown(f"## 🏯 {region}")
-    region_df = display_df[display_df["地方"] == region]
-    cols = st.columns(2)
+        fig, ax = plt.subplots(figsize=(8, max(4, len(plot_df)*0.4)))
+        bars = ax.barh(plot_df["都道府県"], plot_df["達成率"], color=colors)
+        ax.set_xlabel("達成率（%）")
+        ax.set_title(f"{selected_category}｜{metric}達成率")
+        ax.set_xlim(0, max(120, plot_df["達成率"].max() + 10))
 
-    for i, (_, row) in enumerate(region_df.iterrows()):
-        ctr_goal = f"{row['CTR目標']:.2%}" if pd.notna(row["CTR目標"]) else "未設定"
-        cvr_goal = f"{row['CVR目標']:.2%}" if pd.notna(row["CVR目標"]) else "未設定"
-        cpa_goal = f"¥{row['CPA目標']:,.0f}" if pd.notna(row["CPA目標"]) else "未設定"
-        pref_display = f"<b>{row['都道府県']}</b>｜" if row["都道府県"] else ""
+        for bar, val in zip(bars, plot_df["達成率"]):
+            ax.text(val + 1, bar.get_y() + bar.get_height()/2, f"{val:.1f}%", va='center')
 
-        with cols[i % 2]:
-            st.markdown(f'''
-<div style="background-color:#f7f9fc; padding:15px; border-radius:10px; margin:10px 0; box-shadow:0 2px 4px rgba(0,0,0,0.06);">
-  <h4 style="margin-bottom:10px;">📍 {pref_display}{row["カテゴリ"]}（{row["広告目的"]}）</h4>
-  <ul style="list-style:none; padding-left:0; font-size:15px;">
-    <li>CTR：{row["CTR"]:.2%}（目標 {ctr_goal}） → {row["CTR評価"]}</li>
-    <li>CVR：{row["CVR"]:.2%}（目標 {cvr_goal}） → {row["CVR評価"]}</li>
-    <li>CPA：¥{row["CPA"]:,.0f}（目標 {cpa_goal}） → {row["CPA評価"]}</li>
-  </ul>
-</div>
-''', unsafe_allow_html=True)
+        goal_val = plot_df[goal_col].mean()
+        ax.text(0.98, 1.03, f"🎯 目標値：{goal_val:.2f}", transform=ax.transAxes,
+                ha="right", va="bottom", fontsize=10, fontweight="bold", color="gray")
+
+        st.pyplot(fig)
