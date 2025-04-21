@@ -19,18 +19,28 @@ def load_data():
 
 df, kpi_df = load_data()
 
-# 前処理
+# --- 前処理 ---
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 df["Cost"] = pd.to_numeric(df["Cost"], errors="coerce").fillna(0)
 df["Clicks"] = pd.to_numeric(df["Clicks"], errors="coerce").fillna(0)
 df["Impressions"] = pd.to_numeric(df["Impressions"], errors="coerce").fillna(0)
 df["コンバージョン数"] = pd.to_numeric(df["コンバージョン数"], errors="coerce").fillna(0)
 
-# 最新CV
+# --- 日付フィルター ---
+if not df["Date"].isnull().all():
+    min_date = df["Date"].min().date()
+    max_date = df["Date"].max().date()
+    selected_range = st.date_input("📅 日付フィルター", (min_date, max_date), min_value=min_date, max_value=max_date)
+    if isinstance(selected_range, (tuple, list)) and len(selected_range) == 2:
+        start_date, end_date = pd.to_datetime(selected_range[0]), pd.to_datetime(selected_range[1])
+        df = df[(df["Date"] >= start_date) & (df["Date"] <= end_date)]
+
+# --- 最新CV ---
 latest_cv = df.sort_values("Date").dropna(subset=["Date"])
 latest_cv = latest_cv.loc[latest_cv.groupby("CampaignId")["Date"].idxmax()]
 latest_cv = latest_cv[["CampaignId", "コンバージョン数"]].rename(columns={"コンバージョン数": "最新CV"})
 
+# --- 集計 ---
 agg = df.groupby("CampaignId").agg({
     "Cost": "sum",
     "Clicks": "sum",
@@ -49,7 +59,7 @@ merged["CPA"] = merged["Cost"] / merged["最新CV"]
 merged["CPC"] = merged["Cost"] / merged["Clicks"]
 merged["CPM"] = (merged["Cost"] / merged["Impressions"]) * 1000
 
-# KPI merge
+# --- KPI マージ ---
 goal_cols = [
     "CPA_best", "CPA_good", "CPA_min",
     "CVR_best", "CVR_good", "CVR_min",
@@ -62,7 +72,7 @@ for col in goal_cols:
         kpi_df[col] = pd.to_numeric(kpi_df[col], errors="coerce")
 merged = pd.merge(merged, kpi_df, how="left", on=["カテゴリ", "広告目的"])
 
-# Filters
+# --- フィルター ---
 st.subheader("📂 条件を縛り込む")
 col1, col2, col3, col4 = st.columns(4)
 
@@ -89,6 +99,7 @@ if selected_region != "すべて":
 if selected_pref != "すべて":
     merged = merged[merged["都道府県"] == selected_pref]
 
+# --- スタイル ---
 st.markdown("""
     <style>
     section[data-testid="stHorizontalBlock"] > div {
@@ -104,7 +115,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-tabs = st.tabs(["💰 CPA", "🔥 CVR", "⚡ CTR", "🧰 CPC", "📱 CPM"])
+# --- タブ & グラフ描画 ---
+tabs = st.tabs(["💰 CPA", "🔥 CVR", "⚡ CTR", "🧮 CPC", "📡 CPM"])
 tab_map = {
     "💰 CPA": ("CPA", "CPA_best", "CPA_good", "CPA_min"),
     "🔥 CVR": ("CVR", "CVR_best", "CVR_good", "CVR_min"),
@@ -137,7 +149,7 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
         plot_df["評価"] = plot_df.apply(judge, axis=1)
 
         total = len(plot_df)
-        count_ok = (plot_df["評価"].isin(["◎", "○"])).sum()
+        count_ok = (plot_df["評価"].isin(["◎", "○"]))
         count_ng = (plot_df["評価"] == "×").sum()
         mean_val = plot_df[metric].mean()
         avg_goal = plot_df[best_col].mean()
@@ -158,7 +170,7 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
         st.markdown(f"""
         <div class="summary-card">
             <div class="card">🎯 目標値: {avg_goal:,.0f}円</div>
-            <div class="card">✅ 達成: {count_ok}件</div>
+            <div class="card">✅ 達成: {count_ok.sum()}件</div>
             <div class="card">❌ 未達成: {count_ng}件</div>
             <div class="card">📈 平均: {mean_val:,.0f}円</div>
         </div>
