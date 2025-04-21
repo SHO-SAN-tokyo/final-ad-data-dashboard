@@ -47,7 +47,7 @@ try:
     else:
         selected_person = st.selectbox("👤 担当者を選択", unassigned_df["担当者"])
         input_unit = st.text_input("🏷️ 割り当てるUnit名（所属）")
-        input_status = st.text_input("🪪 雇用形態（例: 正社員、業務委託 など）")
+        input_status = st.text_input("🪪 雇用形態（社員、インターン、業務委託など")
 
         if st.button("＋ この担当者をUnitに追加"):
             if selected_person and input_unit:
