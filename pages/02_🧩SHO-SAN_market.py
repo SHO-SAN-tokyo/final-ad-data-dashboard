@@ -131,7 +131,7 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
 
         st.markdown(f"""
         <div style='display: flex; gap: 3rem; font-size: 16px; font-weight: bold; margin-top: 10px; margin-bottom: 20px;'>
-            <div>🎯 目標値平均: {plot_df[best_col].mean():,.0f}円</div>
+            <div>🎯 目標値: {plot_df[best_col].mean():,.0f}円</div>
             <div>✅ 達成: {count_ok}件</div>
             <div>❌ 未達成: {count_ng}件</div>
             <div>📈 平均: {mean_val:,.0f}円</div>
