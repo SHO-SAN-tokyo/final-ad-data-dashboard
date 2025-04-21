@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -72,16 +71,24 @@ tab_map = {
 for label, (metric, goal_col) in tab_map.items():
     with tabs[list(tab_map.keys()).index(label)]:
         st.subheader(f"{label} 達成率グラフ")
-        plot_df = cat_df[["都道府県", metric, goal_col]].dropna()
+
+        # NaNや0除外：目標も指標も両方入ってる行だけ
+        plot_df = cat_df[["都道府県", metric, goal_col]].copy()
+        plot_df = plot_df.dropna(subset=[goal_col, metric])
         plot_df = plot_df[plot_df["都道府県"] != ""]
+        plot_df = plot_df[plot_df[metric] > 0]
+
         if plot_df.empty:
-            st.info("データがありません")
+            st.info("📭 データがありません（目標未設定または指標=0）")
             continue
+
         plot_df["達成率"] = (plot_df[goal_col] / plot_df[metric]) * 100
         plot_df = plot_df.sort_values("達成率", ascending=False)
 
+        # 色分け（達成：緑、未達：赤）
         colors = ["green" if val >= 100 else "red" for val in plot_df["達成率"]]
 
+        # グラフ描画
         fig, ax = plt.subplots(figsize=(8, max(4, len(plot_df)*0.4)))
         bars = ax.barh(plot_df["都道府県"], plot_df["達成率"], color=colors)
         ax.set_xlabel("達成率（%）")
@@ -91,8 +98,9 @@ for label, (metric, goal_col) in tab_map.items():
         for bar, val in zip(bars, plot_df["達成率"]):
             ax.text(val + 1, bar.get_y() + bar.get_height()/2, f"{val:.1f}%", va='center')
 
+        # 目標値を右上に表示（平均値ベース）
         goal_val = plot_df[goal_col].mean()
-        ax.text(0.98, 1.03, f"🎯 目標値：{goal_val:.2f}", transform=ax.transAxes,
+        ax.text(0.98, 1.03, f"🎯 平均目標値：{goal_val:.2f}", transform=ax.transAxes,
                 ha="right", va="bottom", fontsize=10, fontweight="bold", color="gray")
 
         st.pyplot(fig)
