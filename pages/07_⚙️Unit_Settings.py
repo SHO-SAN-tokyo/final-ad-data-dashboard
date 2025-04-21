@@ -118,7 +118,7 @@ st.markdown("### 🧩 Unitごとの担当者一覧")
 grouped = current_df.groupby("所属")
 
 for unit, group in grouped:
-    st.markdown(f"#### 🟢 Unit: {unit}")
+    st.markdown(f"#### 🟢 {unit}")
     st.dataframe(group[["担当者", "雇用形態"]].reset_index(drop=True), use_container_width=True)
 
 # --- ボタンの色をカスタマイズ（CSS適用） ---
