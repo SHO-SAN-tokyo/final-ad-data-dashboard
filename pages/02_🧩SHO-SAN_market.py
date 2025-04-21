@@ -142,10 +142,15 @@ for label, (metric, best_col, good_col, min_col) in tab_map.items():
             hovertemplate="%{y}<br>達成率: %{x:.1f}%<extra></extra>",
         )
 
+        # 棒の太さ（width）を狭める
+        fig.update_traces(
+            marker_line_width=0, textposition="outside", width=0.4
+        )
+
         fig.update_layout(
             xaxis_title="達成率（%）",
             yaxis_title="",
-            height=200 + len(plot_df) * 28,
+            height=200 + len(plot_df) * 18,
             width=1100,
             margin=dict(t=40, l=60, r=40),
             showlegend=True,
