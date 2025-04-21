@@ -72,7 +72,7 @@ for cat in カテゴリ一覧:
             ], ignore_index=True)
 
 # --- 折りたたみ式のセクションごとに表示 ---
-st.markdown("### 🎯 カテゴリ × 広告目的ごとの4段階目標を設定（折りたたみ表示）")
+st.markdown("### 🎯 カテゴリ × 広告目的ごとの目標を設定")
 
 edited_df = target_df.sort_values(["カテゴリ", "広告目的"]).copy()
 
