@@ -4,7 +4,7 @@ import plotly.express as px
 from google.cloud import bigquery
 
 st.set_page_config(page_title="カテゴリ×都道府県 達成率モニター", layout="wide")
-st.title("🧩SHO-SAN Market")
+st.title("🧩SHO-SAN market")
 
 st.subheader("📊 カテゴリ × 都道府県  達成率モニター")
 
