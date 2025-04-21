@@ -1,85 +1,91 @@
 import streamlit as st
 import pandas as pd
 from google.cloud import bigquery
+from google.oauth2 import service_account
 
+# --- ページ設定 ---
 st.set_page_config(page_title="Unit Drive", layout="wide")
 st.title("🚗 Unit Drive")
 
-# --- BigQuery 認証 ---
+# --- 認証 ---
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
-client = bigquery.Client.from_service_account_info(info_dict)
+credentials = service_account.Credentials.from_service_account_info(info_dict)
+client = bigquery.Client(credentials=credentials, project=credentials.project_id)
 
-# --- データ読み込み ---
+# --- テーブル情報 ---
+project_id = "careful-chess-406412"
+dataset = "SHOSAN_Ad_Tokyo"
+source_table = f"{project_id}.{dataset}.Final_Ad_Data"
+unit_table = f"{project_id}.{dataset}.ClientSetting"
+
+# --- データ取得 ---
 @st.cache_data(ttl=60)
 def load_data():
-    ad_df = client.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data`").to_dataframe()
-    unit_map = client.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.UnitMapping`").to_dataframe()
-    return ad_df, unit_map
+    df = client.query(f"SELECT * FROM `{source_table}`").to_dataframe()
+    unit_df = client.query(f"SELECT * FROM `{unit_table}`").to_dataframe()
+    return df, unit_df
 
-ad_df, unit_map = load_data()
+df, unit_df = load_data()
 
-# --- 日付フィルター ---
-ad_df["Date"] = pd.to_datetime(ad_df["Date"], errors="coerce")
-min_date = ad_df["Date"].min().date()
-max_date = ad_df["Date"].max().date()
-date_range = st.date_input("📅 日付で絞り込む", (min_date, max_date), min_value=min_date, max_value=max_date)
-if len(date_range) == 2:
-    start_date, end_date = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
-    ad_df = ad_df[(ad_df["Date"] >= start_date) & (ad_df["Date"] <= end_date)]
+# --- 日付フィルタ ---
+df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+min_date, max_date = df["Date"].min().date(), df["Date"].max().date()
+selected_date = st.date_input("🗓️ 日付", (min_date, max_date), min_value=min_date, max_value=max_date)
+if isinstance(selected_date, (list, tuple)) and len(selected_date) == 2:
+    start_date, end_date = pd.to_datetime(selected_date[0]), pd.to_datetime(selected_date[1])
+    df = df[(df["Date"] >= start_date) & (df["Date"] <= end_date)]
 
-# --- Unit/担当者/フロントの紐づけ ---
-ad_df = ad_df.merge(unit_map, how="left", on="担当者")
-
-# --- 最新の1行だけ使う値 ---
-latest = ad_df.sort_values("Date").dropna(subset=["Date"])
+# --- 最新CVの抽出 ---
+latest = df.sort_values("Date").dropna(subset=["Date"])
 latest = latest.loc[latest.groupby("CampaignId")["Date"].idxmax()]
 
-# --- キャンペーン単位に集計 ---
-agg = ad_df.groupby("CampaignId").agg({
-    "Cost": "sum"
-}).reset_index()
+# --- ユニット情報統合 ---
+latest = latest.merge(unit_df[["担当者", "所属"]], on="担当者", how="left")
+latest.rename(columns={"所属": "Unit"}, inplace=True)
 
-latest_cols = ["CampaignId", "コンバージョン数", "予算", "フィー"]
-latest_values = latest[latest_cols].copy()
-for col in ["コンバージョン数", "予算", "フィー"]:
-    latest_values[col] = pd.to_numeric(latest_values[col], errors="coerce").fillna(0)
+# --- 各キャンペーンの済み金額は合計 ---
+cost_df = df.groupby("CampaignId")["Cost"].sum().reset_index()
+latest = latest.merge(cost_df, on="CampaignId", suffixes=("_latest", ""))
 
-campaign_df = agg.merge(latest_values, on="CampaignId", how="left")
-campaign_df = campaign_df.merge(latest[["CampaignId", "担当者", "フロント", "Unit"]], on="CampaignId", how="left")
+# --- NaN変換 ---
+latest["予算"] = pd.to_numeric(latest["予算"], errors="coerce").fillna(0)
+latest["フィー"] = pd.to_numeric(latest["フィー"], errors="coerce").fillna(0)
+latest["コンバージョン数"] = pd.to_numeric(latest["コンバージョン数"], errors="coerce").fillna(0)
+latest["Cost"] = latest["Cost"].fillna(0)
 
-campaign_df["CPA"] = campaign_df["Cost"] / campaign_df["コンバージョン数"].replace(0, pd.NA)
+# --- CPA計算 ---
+latest["CPA"] = latest["Cost"] / latest["コンバージョン数"].replace({0: None})
 
-# --- Unit単位に集計 ---
-unit_summary = campaign_df.groupby("Unit").agg(
-    CPA_mean=("CPA", "mean"),
-    campaign_count=("CampaignId", "nunique"),
-    budget_total=("予算", "sum"),
-    cost_total=("Cost", "sum"),
-    fee_total=("フィー", "sum"),
-    cv_total=("コンバージョン数", "sum")
-).reset_index()
-
-unit_summary = unit_summary.sort_values("Unit")
+# --- ユニットごとに集計 ---
+summary = latest.groupby("Unit").agg(
+    CPA=("CPA", "mean"),
+    Campaigns=("CampaignId", "nunique"),
+    予算=("予算", "sum"),
+    Cost=("Cost", "sum"),
+    フィー=("フィー", "sum"),
+).reset_index().sort_values("Unit")
 
 # --- 表示 ---
-st.markdown("""<style>.card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }</style>""", unsafe_allow_html=True)
+st.markdown("---")
+st.markdown("### 🔹 Unit別スコアカード")
 
-st.markdown("<div class='card-grid'>", unsafe_allow_html=True)
+colors = ["#b4c5d9", "#d3d8e8", "#e4eaf4", "#c9d8c5", "#c6c9d3", "#dcdcdc"]
+col_count = 3
+cols = st.columns(col_count)
 
-color_palette = ["#f2f2f2", "#e8eaf6", "#e3f2fd", "#e0f7fa", "#e8f5e9", "#f9fbe7"]
-for idx, row in unit_summary.iterrows():
-    bg = color_palette[idx % len(color_palette)]
-    st.markdown(f"""
-    <div style='background:{bg}; padding:1.5rem; border-radius:1rem; text-align:center; box-shadow:0 2px 4px rgba(0,0,0,0.05);'>
-        <div style='font-size:1.5rem; font-weight:600;'>{row['Unit']}</div>
-        <div style='font-size:1.3rem; font-weight:500; margin:0.5rem 0;'>CPA: ¥{row['CPA_mean']:,.0f}</div>
-        <div style='font-size:0.9rem; line-height:1.4;'>📊 キャンペーン数: {row['campaign_count']}<br>
-        💰 予算: ¥{row['budget_total']:,.0f}<br>
-        🔥 消化金額: ¥{row['cost_total']:,.0f}<br>
-        🎯 CV数: {row['cv_total']}<br>
-        💼 フィー: ¥{row['fee_total']:,.0f}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.markdown("</div>", unsafe_allow_html=True)
+for i, row in summary.iterrows():
+    with cols[i % col_count]:
+        st.markdown(f"""
+        <div style='background-color:{colors[i % len(colors)]}; border-radius:1rem; padding:1.5rem; margin:1rem 0;'>
+            <div style='font-size:1.5rem; font-weight:bold; text-align:center'>{row['Unit']}</div>
+            <div style='font-size:1.5rem; text-align:center;'>平均CPA<br><span style='font-size:2rem;'>{row['CPA']:,.0f}円</span></div>
+            <hr style='margin:1rem 0;'>
+            <div style='font-size:0.9rem; text-align:center; line-height:1.6;'>
+                キャンペーン数: {row['Campaigns']}<br>
+                予算: {row['予算']:,.0f}円<br>
+                消化金額: {row['Cost']:,.0f}円<br>
+                フィー: {row['フィー']:,.0f}円
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
