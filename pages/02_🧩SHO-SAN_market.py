@@ -98,7 +98,7 @@ section[data-testid="stHorizontalBlock"] div[role="tablist"] > div {
     flex-grow: 1 !important;
 }
 section[data-testid="stHorizontalBlock"] div[role="tab"] {
-    flex: 1 1 200px !important;
+    flex: 1 1 400px !important;
     justify-content: center;
 }
 </style>""", unsafe_allow_html=True)
