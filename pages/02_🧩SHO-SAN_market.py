@@ -38,6 +38,12 @@ agg = df.groupby("CampaignId").agg({
     "都道府県": "first", "地方": "first"
 }).reset_index()
 
+# 欠損値補完
+agg["カテゴリ"] = agg["カテゴリ"].fillna("未設定")
+agg["広告目的"] = agg["広告目的"].fillna("未設定")
+agg["地方"] = agg["地方"].fillna("未設定")
+agg["都道府県"] = agg["都道府県"].fillna("")
+
 # 指標計算
 merged = pd.merge(agg, latest_cv, on="CampaignId", how="left")
 merged["CTR"] = merged["Clicks"] / merged["Impressions"]
@@ -70,12 +76,12 @@ merged["CTR評価"] = merged.apply(lambda r: evaluate(r["CTR"], r["CTR目標"], 
 merged["CVR評価"] = merged.apply(lambda r: evaluate(r["CVR"], r["CVR目標"], True), axis=1)
 merged["CPA評価"] = merged.apply(lambda r: evaluate(r["CPA"], r["CPA目標"], False), axis=1)
 
-# 表示データ：地方とカテゴリがある行のみ
-display_df = merged[merged["地方"].notna()]
+# 表示対象データ
+display_df = merged.copy()
 
-st.subheader("📊 地方別 KPI評価")
+st.subheader("📊 地方別 KPI評価（未設定も表示）")
 
-for region in sorted(display_df["地方"].dropna().unique()):
+for region in sorted(display_df["地方"].unique()):
     st.markdown(f"## 🏯 {region}")
     region_df = display_df[display_df["地方"] == region]
     cols = st.columns(2)
@@ -84,14 +90,12 @@ for region in sorted(display_df["地方"].dropna().unique()):
         ctr_goal = f"{row['CTR目標']:.2%}" if pd.notna(row["CTR目標"]) else "未設定"
         cvr_goal = f"{row['CVR目標']:.2%}" if pd.notna(row["CVR目標"]) else "未設定"
         cpa_goal = f"¥{row['CPA目標']:,.0f}" if pd.notna(row["CPA目標"]) else "未設定"
-
-        # ✅ 都道府県の表示は値があるときだけ
-        prefecture_label = f"<b>{row['都道府県']}</b>｜" if pd.notna(row["都道府県"]) else ""
+        pref_display = f"<b>{row['都道府県']}</b>｜" if row["都道府県"] else ""
 
         with cols[i % 2]:
             st.markdown(f'''
 <div style="background-color:#f7f9fc; padding:15px; border-radius:10px; margin:10px 0; box-shadow:0 2px 4px rgba(0,0,0,0.06);">
-  <h4 style="margin-bottom:10px;">📍 {prefecture_label}{row["カテゴリ"]}（{row["広告目的"]}）</h4>
+  <h4 style="margin-bottom:10px;">📍 {pref_display}{row["カテゴリ"]}（{row["広告目的"]}）</h4>
   <ul style="list-style:none; padding-left:0; font-size:15px;">
     <li>CTR：{row["CTR"]:.2%}（目標 {ctr_goal}） → {row["CTR評価"]}</li>
     <li>CVR：{row["CVR"]:.2%}（目標 {cvr_goal}） → {row["CVR評価"]}</li>
