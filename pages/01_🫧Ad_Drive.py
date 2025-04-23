@@ -1,4 +1,4 @@
-# 1_Main_Dashboard.py
+# 1_Main_Dashboard.py  ★今回の修正は “★ 修正” とコメントしてあります
 import streamlit as st
 from google.cloud import bigquery
 import pandas as pd, numpy as np, re
@@ -6,11 +6,8 @@ import pandas as pd, numpy as np, re
 # ---------- 0. ページ設定 & CSS ----------
 st.set_page_config(page_title="Ad_Drive", layout="wide")
 st.title("🫧 Ad Drive")
-
 st.subheader("📊 すべての広告数値・配信バナー")
-
 st.markdown("<h5 style='margin-top: 2rem;'>📂 左のフィルターから条件で絞り込む</h5>", unsafe_allow_html=True)
-
 st.markdown("""
 <style>
  .banner-card{padding:12px 12px 20px;border:1px solid #e6e6e6;border-radius:12px;
@@ -67,10 +64,10 @@ tot_cost = df["Cost"].sum()
 tot_imp  = df["Impressions"].sum()
 tot_clk  = df["Clicks"].sum()
 
-# ★★ 修正版 → コンバージョン数は「最新行」だけを合計 ★★
+# ★ 修正：CampaignId ごと “最新行” だけでコンバージョン数合計
 conv_latest_idx = (df.dropna(subset=["Date"])
                     .sort_values("Date")
-                    .groupby(["CampaignId", "AdName"])["Date"].idxmax())
+                    .groupby("CampaignId")["Date"].idxmax())   # ← AdName を外す
 tot_conv = df.loc[conv_latest_idx, "コンバージョン数"].fillna(0).sum()
 
 tot_reach = df["Reach"].sum()
@@ -98,7 +95,7 @@ summary = pd.DataFrame({
 st.subheader("💠広告数値")
 st.table(summary)
 
-# ---------- 4. 画像バナー（ロジックは以前と同じ） ----------
+# ---------- 4. 画像バナー（以前と同じ） ----------
 img = df[df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
 img["AdName"]     = img["AdName"].astype(str).str.strip()
 img["CampaignId"] = img["CampaignId"].astype(str).str.strip()
@@ -129,10 +126,9 @@ latest = latest.merge(
 latest["CPA_sort"] = latest.apply(lambda r: div(r["Cost_agg"], r["CV件数"]), axis=1)
 sum_map = agg.set_index(["CampaignId", "AdName"]).to_dict("index")
 
-# 余白
 st.markdown("<div style='margin-top: 3.5rem;'></div>", unsafe_allow_html=True)
-
 st.subheader("💠配信バナー")
+
 opt = st.radio("並び替え基準",
                ["広告番号順", "コンバージョン数の多い順", "CPAの低い順"])
 if opt == "コンバージョン数の多い順":
@@ -142,8 +138,7 @@ elif opt == "CPAの低い順":
 else:
     latest = latest.sort_values("AdNum")
 
-def urls(raw):
-    return [u for u in re.split(r"[,\s]+", str(raw or "")) if u.startswith("http")]
+def urls(raw): return [u for u in re.split(r"[,\s]+", str(raw or "")) if u.startswith("http")]
 
 cols = st.columns(5, gap="small")
 for i, (_, r) in enumerate(latest.iterrows()):
