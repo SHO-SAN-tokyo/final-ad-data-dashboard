@@ -162,10 +162,10 @@ for label, (metric, best_col, good_col, min_col, unit) in tab_map.items():
         st.markdown(f"""
         <div class="summary-card">
             <div class="card">🎯 目標値<br><div class="value">{avg_goal:,.0f}{unit}</div></div>
-            <div class="card">◎ ハイ達成<br><div class="value">{count_high}件</div></div>
-            <div class="card">○ 通常達成<br><div class="value">{count_good}件</div></div>
-            <div class="card">△ もう少し<br><div class="value">{count_mid}件</div></div>
-            <div class="card">× 未達成<br><div class="value">{count_ng}件</div></div>
+            <div class="card">💎 ハイ達成<br><div class="value">{count_high}件</div></div>
+            <div class="card">🟢 通常達成<br><div class="value">{count_good}件</div></div>
+            <div class="card">🟡 もう少し<br><div class="value">{count_mid}件</div></div>
+            <div class="card">✖️ 未達成<br><div class="value">{count_ng}件</div></div>
             <div class="card">📈 平均<br><div class="value">{mean_val:,.0f}{unit}</div></div>
         </div>
         """, unsafe_allow_html=True)
