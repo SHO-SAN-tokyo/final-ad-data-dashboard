@@ -89,7 +89,7 @@ disp_percent = lambda v: "-" if pd.isna(v) else f"{v:.2f}%"
 summary = pd.DataFrame({
     "指標": ["CPA", "コンバージョン数", "CVR", "消化金額",
            "インプレッション", "CTR", "CPC", "クリック数",
-           "CPM", "フリークエンシー"],
+           "CPM"],
     "値": [
         disp(div(tot_cost, tot_conv), "円"),
         disp(tot_conv),
@@ -100,7 +100,6 @@ summary = pd.DataFrame({
         disp(div(tot_cost, tot_clk_all), "円"),
         disp(tot_clk_all),
         disp(div(tot_cost * 1000, tot_imp), "円"),
-        disp(div(tot_imp, tot_reach))
     ]
 })
 
