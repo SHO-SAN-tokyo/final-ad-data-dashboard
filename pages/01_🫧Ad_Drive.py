@@ -1,4 +1,4 @@
-# 1_Main_Dashboard.py   ★今回の修正は “★ 修正” コメントのみ
+# 1_Main_Dashboard.py   ★今回の修正は “★ 修正” コメントだけです
 import streamlit as st
 from google.cloud import bigquery
 import pandas as pd, numpy as np, re
@@ -77,8 +77,8 @@ latest_idx  = (df.dropna(subset=["Date"])
 latest_df   = df.loc[latest_idx].copy()
 
 tot_conv = latest_df["コンバージョン数"].fillna(0).sum()    # 最新行ベース
-tot_clk_latest = latest_df["Clicks"].fillna(0).sum()         # 最新行ベース
-tot_clk_all    = df["Clicks"].sum()
+tot_clk_latest = latest_df["Clicks"].fillna(0).sum()         # （参考値）最新行クリック
+tot_clk_all    = df["Clicks"].sum()                          # ★ 修正: 全期間クリック
 
 tot_reach = df["Reach"].sum()
 
@@ -93,10 +93,10 @@ summary = pd.DataFrame({
     "値": [
         disp(div(tot_cost, tot_conv), "円"),
         disp(tot_conv),
-        disp_percent(div(tot_conv, tot_clk_latest) * 100),     # ★ 修正
+        disp_percent(div(tot_conv, tot_clk_all) * 100),     # ★ 修正 - 分母を全クリックに
         disp(tot_cost, "円"),
         disp(tot_imp),
-        disp_percent(div(tot_clk_all, tot_imp) * 100),          # ★ 修正
+        disp_percent(div(tot_clk_all, tot_imp) * 100),
         disp(div(tot_cost, tot_clk_all), "円"),
         disp(tot_clk_all),
         disp(div(tot_cost * 1000, tot_imp), "円"),
@@ -175,8 +175,7 @@ for i, (_, r) in enumerate(latest.iterrows()):
         f"<b>消化金額：</b>{cost:,.0f}円",
         f"<b>IMP：</b>{imp:,.0f}",
         f"<b>クリック：</b>{clk:,.0f}",
-        f"<b>CTR：</b>{ctr*100:.2f}%"
-            if pd.notna(ctr) else "<b>CTR：</b>-",
+        f"<b>CTR：</b>{ctr*100:.2f}%" if pd.notna(ctr) else "<b>CTR：</b>-",
         f"<b>CV数：</b>{cv if cv else 'なし'}",
         f"<b>CPA：</b>{cpa:.0f}円" if pd.notna(cpa) else "<b>CPA：</b>-",
         canva_html,
