@@ -1,4 +1,4 @@
-# 1_Main_Dashboard.py  ★今回の修正は “★ 修正” とコメントしてあります
+# 1_Main_Dashboard.py   ★今回の修正は “★ 修正” コメントのみ
 import streamlit as st
 from google.cloud import bigquery
 import pandas as pd, numpy as np, re
@@ -7,16 +7,21 @@ import pandas as pd, numpy as np, re
 st.set_page_config(page_title="Ad_Drive", layout="wide")
 st.title("🫧 Ad Drive")
 st.subheader("📊 すべての広告数値・配信バナー")
-st.markdown("<h5 style='margin-top: 2rem;'>📂 左のフィルターから条件で絞り込む</h5>", unsafe_allow_html=True)
-st.markdown("""
-<style>
- .banner-card{padding:12px 12px 20px;border:1px solid #e6e6e6;border-radius:12px;
-              background:#fafafa;height:100%;margin-bottom:14px;}
- .banner-card img{width:100%;height:180px;object-fit:cover;border-radius:8px;cursor:pointer;}
- .banner-caption{margin-top:8px;font-size:14px;line-height:1.6;text-align:left;}
- .gray-text{color:#888;}
-</style>
-""", unsafe_allow_html=True)
+st.markdown("<h5 style='margin-top:2rem;'>📂 左のフィルターから条件で絞り込む</h5>",
+            unsafe_allow_html=True)
+
+st.markdown(
+    """
+    <style>
+      .banner-card{padding:12px 12px 20px;border:1px solid #e6e6e6;border-radius:12px;
+                   background:#fafafa;height:100%;margin-bottom:14px;}
+      .banner-card img{width:100%;height:180px;object-fit:cover;border-radius:8px;cursor:pointer;}
+      .banner-caption{margin-top:8px;font-size:14px;line-height:1.6;text-align:left;}
+      .gray-text{color:#888;}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # ---------- 1. BigQuery ----------
 cred = dict(st.secrets["connections"]["bigquery"])
@@ -30,11 +35,12 @@ if df.empty:
     st.warning("⚠️ データがありません"); st.stop()
 
 # ---------- 2. 前処理 ----------
-df["カテゴリ"] = df.get("カテゴリ","").astype(str).str.strip().replace("", "未設定").fillna("未設定")
+df["カテゴリ"] = df.get("カテゴリ", "").astype(str).str.strip().replace("", "未設定").fillna("未設定")
 df["Date"]     = pd.to_datetime(df.get("Date"), errors="coerce")
 
 dmin, dmax = df["Date"].min().date(), df["Date"].max().date()
 sel = st.sidebar.date_input("日付フィルター", (dmin, dmax), min_value=dmin, max_value=dmax)
+
 if isinstance(sel, (list, tuple)) and len(sel) == 2:
     s, e = map(pd.to_datetime, sel)
     df = df[(df["Date"].dt.date >= s.date()) & (df["Date"].dt.date <= e.date())]
@@ -47,11 +53,11 @@ for col, lbl in [("PromotionName", "クライアント"),
                  ("カテゴリ", "カテゴリ"),
                  ("CampaignName", "キャンペーン名")]:
     opts = ["すべて"] + sorted(df[col].dropna().unique())
-    sel  = st.sidebar.selectbox(lbl, opts)
+    sel = st.sidebar.selectbox(lbl, opts)
     if sel != "すべて":
         df = df[df[col] == sel]
 
-# 1〜60 列数値化
+# 1〜60 列を数値化
 for i in range(1, 61):
     c = str(i)
     df[c] = pd.to_numeric(df.get(c, 0), errors="coerce").fillna(0)
@@ -62,18 +68,23 @@ for c in ["Cost", "Impressions", "Clicks", "コンバージョン数", "Reach"]:
 
 tot_cost = df["Cost"].sum()
 tot_imp  = df["Impressions"].sum()
-tot_clk  = df["Clicks"].sum()
 
-# ★ 修正：CampaignId ごと “最新行” だけでコンバージョン数合計
-conv_latest_idx = (df.dropna(subset=["Date"])
-                    .sort_values("Date")
-                    .groupby("CampaignId")["Date"].idxmax())   # ← AdName を外す
-tot_conv = df.loc[conv_latest_idx, "コンバージョン数"].fillna(0).sum()
+# ★ 修正: CampaignId ごとの “最新行” を取得して
+latest_idx  = (df.dropna(subset=["Date"])
+                 .sort_values("Date")
+                 .groupby("CampaignId")["Date"].idxmax())
+
+latest_df   = df.loc[latest_idx].copy()
+
+tot_conv = latest_df["コンバージョン数"].fillna(0).sum()    # 最新行ベース
+tot_clk_latest = latest_df["Clicks"].fillna(0).sum()         # 最新行ベース
+tot_clk_all    = df["Clicks"].sum()
 
 tot_reach = df["Reach"].sum()
 
 div  = lambda n, d: np.nan if (d == 0 or pd.isna(d)) else n / d
 disp = lambda v, u="": "-" if pd.isna(v) else f"{int(round(v)):,}{u}"
+disp_percent = lambda v: "-" if pd.isna(v) else f"{v:.2f}%"
 
 summary = pd.DataFrame({
     "指標": ["CPA", "コンバージョン数", "CVR", "消化金額",
@@ -82,20 +93,21 @@ summary = pd.DataFrame({
     "値": [
         disp(div(tot_cost, tot_conv), "円"),
         disp(tot_conv),
-        disp(div(tot_conv, tot_clk) * 100, "%"),
+        disp_percent(div(tot_conv, tot_clk_latest) * 100),     # ★ 修正
         disp(tot_cost, "円"),
         disp(tot_imp),
-        disp(div(tot_clk, tot_imp) * 100, "%"),
-        disp(div(tot_cost, tot_clk), "円"),
-        disp(tot_clk),
+        disp_percent(div(tot_clk_all, tot_imp) * 100),          # ★ 修正
+        disp(div(tot_cost, tot_clk_all), "円"),
+        disp(tot_clk_all),
         disp(div(tot_cost * 1000, tot_imp), "円"),
         disp(div(tot_imp, tot_reach))
     ]
 })
+
 st.subheader("💠広告数値")
 st.table(summary)
 
-# ---------- 4. 画像バナー（以前と同じ） ----------
+# ---------- 4. 画像バナー表示 ----------
 img = df[df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
 img["AdName"]     = img["AdName"].astype(str).str.strip()
 img["CampaignId"] = img["CampaignId"].astype(str).str.strip()
@@ -126,7 +138,7 @@ latest = latest.merge(
 latest["CPA_sort"] = latest.apply(lambda r: div(r["Cost_agg"], r["CV件数"]), axis=1)
 sum_map = agg.set_index(["CampaignId", "AdName"]).to_dict("index")
 
-st.markdown("<div style='margin-top: 3.5rem;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top:3.5rem;'></div>", unsafe_allow_html=True)
 st.subheader("💠配信バナー")
 
 opt = st.radio("並び替え基準",
@@ -138,35 +150,39 @@ elif opt == "CPAの低い順":
 else:
     latest = latest.sort_values("AdNum")
 
-def urls(raw): return [u for u in re.split(r"[,\s]+", str(raw or "")) if u.startswith("http")]
+def urls(raw): return [u for u in re.split(r"[,\\s]+", str(raw or "")) if u.startswith("http")]
 
 cols = st.columns(5, gap="small")
 for i, (_, r) in enumerate(latest.iterrows()):
-    key = (r["CampaignId"], r["AdName"])
-    s   = sum_map.get(key, {})
-    cost, imp, clk = s.get("Cost", 0), s.get("Impressions", 0), s.get("Clicks", 0)
+    key  = (r["CampaignId"], r["AdName"])
+    s    = sum_map.get(key, {})
+    cost = s.get("Cost", 0)
+    imp  = s.get("Impressions", 0)
+    clk  = s.get("Clicks", 0)
     cv   = int(r["CV件数"])
     cpa  = div(cost, cv)
     ctr  = div(clk, imp)
     text = r.get("Description1ByAdType", "")
 
-    lnk = urls(r.get("canvaURL", ""))
+    lnks = urls(r.get("canvaURL", ""))
     canva_html = (" ,".join(
-                    f'<a href="{u}" target="_blank">canvaURL{i+1 if len(lnk)>1 else ""}↗️</a>'
-                    for i, u in enumerate(lnk))
-                 if lnk else '<span class="gray-text">canvaURL：なし✖</span>')
+                    f'<a href="{u}" target="_blank">canvaURL{i+1 if len(lnks)>1 else ""}↗️</a>'
+                    for i, u in enumerate(lnks))
+                  if lnks else '<span class="gray-text">canvaURL：なし✖</span>')
 
     caption = [
         f"<b>広告名：</b>{r['AdName']}",
         f"<b>消化金額：</b>{cost:,.0f}円",
         f"<b>IMP：</b>{imp:,.0f}",
         f"<b>クリック：</b>{clk:,.0f}",
-        f"<b>CTR：</b>{int(round(ctr*100)):,}%" if pd.notna(ctr) else "<b>CTR：</b>-",
+        f"<b>CTR：</b>{ctr*100:.2f}%"
+            if pd.notna(ctr) else "<b>CTR：</b>-",
         f"<b>CV数：</b>{cv if cv else 'なし'}",
-        f"<b>CPA：</b>{int(round(cpa)):,}円" if pd.notna(cpa) else "<b>CPA：</b>-",
+        f"<b>CPA：</b>{cpa:.0f}円" if pd.notna(cpa) else "<b>CPA：</b>-",
         canva_html,
         f"<b>メインテキスト：</b>{text}"
     ]
+
     card_html = f"""
       <div class='banner-card'>
         <a href="{r['CloudStorageUrl']}" target="_blank" rel="noopener">
