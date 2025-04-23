@@ -59,7 +59,7 @@ unit_summary["CPA"] = unit_summary.apply(lambda row: row["消化金額"] / row["
 unit_summary = unit_summary.sort_values("所属")
 
 # --- Unit別色マップ（任意の3色） ---
-unit_colors = ["#f3e4d8", "#dfeae0", "#dfe8ec", "#f0f0f0", "#e6e8f2", "#f8f4ed"]
+unit_colors = ["#c0e4eb", "#cbebb5", "#ffdda6"]
 unit_color_map = {unit: unit_colors[i % len(unit_colors)] for i, unit in enumerate(unit_summary["所属"].unique())}
 
 # --- Unitカード ---
