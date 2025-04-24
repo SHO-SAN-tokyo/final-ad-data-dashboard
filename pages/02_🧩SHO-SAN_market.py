@@ -1,4 +1,4 @@
-# 02_🧩SHO-SAN_market.py   ★CVR 表示フォーマットを再調整
+# 02_🧩SHO-SAN_market.py   ★CVR 目標値 / ツールチップ再調整
 import streamlit as st
 import pandas as pd, numpy as np, plotly.express as px, re
 from google.cloud import bigquery
@@ -65,7 +65,7 @@ merged["CPA"] = merged["Cost"]   / merged["最新CV"].replace(0, np.nan)
 merged["CPC"] = merged["Cost"]   / merged["Clicks"].replace(0, np.nan)
 merged["CPM"] = merged["Cost"]*1000 / merged["Impressions"].replace(0, np.nan)
 
-# KPI 数値化
+# KPI  数値化
 goal_cols = [f"{m}_{l}" for m in ["CPA","CVR","CTR","CPC","CPM"] for l in ["best","good","min"]]
 kpi_df[goal_cols] = kpi_df[goal_cols].apply(pd.to_numeric, errors="coerce")
 merged = merged.merge(kpi_df, on=["カテゴリ","広告目的"], how="left")
@@ -94,8 +94,8 @@ if pref_sel!="すべて": merged = merged[merged["都道府県"] == pref_sel]
 # 5. CSS
 # ------------------------------------------------------------
 st.markdown("""<style>
-div[role="tab"] > p{padding:0 20px;}
-section[data-testid="stHorizontalBlock"] > div{padding:0 80px;justify-content:center!important;}
+div[role="tab"]>p{padding:0 20px;}
+section[data-testid="stHorizontalBlock"]>div{padding:0 80px;justify-content:center!important;}
 section[data-testid="stHorizontalBlock"] div[role="tab"]{
   min-width:180px!important;padding:.6rem 1.2rem;font-size:1.1rem;justify-content:center;}
 .summary-card{display:flex;gap:2rem;margin:1rem 0 2rem;}
@@ -109,32 +109,31 @@ section[data-testid="stHorizontalBlock"] div[role="tab"]{
 # ------------------------------------------------------------
 tabs = st.tabs(["💰 CPA","🔥 CVR","⚡ CTR","🧰 CPC","📱 CPM"])
 tab_map = {
-    "💰 CPA":("CPA","CPA_best","CPA_good","CPA_min","円", False, False),  # small-is-better
-    "🔥 CVR":("CVR","CVR_best","CVR_good","CVR_min","%",  True,  True ),  # big-is-better ★ 修正
+    "💰 CPA":("CPA","CPA_best","CPA_good","CPA_min","円", False, False),
+    "🔥 CVR":("CVR","CVR_best","CVR_good","CVR_min","%",  True,  True ),  # big-is-better
     "⚡ CTR":("CTR","CTR_best","CTR_good","CTR_min","%",  True,  True ),
     "🧰 CPC":("CPC","CPC_best","CPC_good","CPC_min","円", False, False),
     "📱 CPM":("CPM","CPM_best","CPM_good","CPM_min","円", False, False)
 }
-#                       ↑ sixth flag: big_is_better
-
 color_map = {"◎":"#88c999","○":"#d3dc74","△":"#f3b77d","×":"#e88c8c"}
 
 for lbl,(met,best,good,minv,unit,is_pct,big) in tab_map.items():
     with tabs[list(tab_map).index(lbl)]:
         st.markdown(f"### {lbl} 達成率グラフ")
 
-        # ★ 修正: 達成率の計算方法を big/small で切替
+        # 達成率 (big: 実績/目標 , small: 目標/実績)
         if big:
-            merged["達成率"] = merged[met].div(merged[best]) * 100
+            merged["達成率"] = merged[met].div(merged[best].replace(0,np.nan)) * 100
         else:
-            merged["達成率"] = merged[best].div(merged[met]) * 100
+            merged["達成率"] = merged[best].div(merged[met].replace(0,np.nan)) * 100
 
+        # 評価記号
         def judge(r):
-            v = r[met]
-            if pd.isna(v) or pd.isna(r[minv]): return None
-            if (big and v >= r[best]) or (not big and v <= r[best]): return "◎"
-            if (big and v >= r[good]) or (not big and v <= r[good]): return "○"
-            if (big and v >= r[minv]) or (not big and v <= r[minv]): return "△"
+            v=r[met]; b=r[best]; g=r[good]; m=r[minv]
+            if pd.isna(v) or pd.isna(b) or pd.isna(m): return None
+            if (big and v>=b) or (not big and v<=b): return "◎"
+            if (big and v>=g) or (not big and v<=g): return "○"
+            if (big and v>=m) or (not big and v<=m): return "△"
             return "×"
         merged["評価"] = merged.apply(judge, axis=1)
 
@@ -142,37 +141,50 @@ for lbl,(met,best,good,minv,unit,is_pct,big) in tab_map.items():
                           "CampaignName","達成率","評価"]].dropna()
         plot_df = plot_df[plot_df["都道府県"]!=""]
 
-        if plot_df.empty:
+        if plot_df.empty():
             st.warning("📭 データがありません"); continue
 
-        # --- 目標値・平均値（% の場合 0-1 → %）
-        goal_val = plot_df[best].mean()
+        # --- 目標値（% の場合 換算）
+        goal_vals = plot_df[best].unique()
+        goal_val  = goal_vals[0] if len(goal_vals)==1 else np.nanmean(goal_vals)
+
+        # ★ 修正: パーセント値の解釈 -----------------------------
+        def to_pct(v):
+            if pd.isna(v): return np.nan
+            # ケース1:  1 以上 ⇒ すでに % 値
+            # ケース2:  0.2 以上 ⇒ 0.8 (＝0.8%) などと仮定し、そのまま表示
+            # ケース3:  0.2 未満 ⇒ 0.006 (0.6%) のような小数 → ×100
+            if v >= 1:            return v
+            if 0.2 <= v < 1:      return v          # 0.8 → 0.8 %
+            return v*100          # 0.006 → 0.6 %
+        # --------------------------------------------------------
+
+        if is_pct:                goal_val_disp = to_pct(goal_val)
+        else:                     goal_val_disp = goal_val
+
         mean_val = plot_df[met].mean()
-        if is_pct and goal_val >= 1:  goal_val /= 100
-        if is_pct and mean_val >= 1:  mean_val /= 100
+        if is_pct:                mean_val_disp = to_pct(mean_val)
+        else:                     mean_val_disp = mean_val
 
         fmt_num = lambda v: f"{v:,.0f}{unit}"
-        fmt_pct = lambda v: f"{v*100:.2f}{unit}"
+        fmt_pct = lambda v: f"{v:.2f}{unit}"
         fmt     = fmt_pct if is_pct else fmt_num
 
         cnt = lambda s:(plot_df["評価"]==s).sum()
         st.markdown(f"""
         <div class="summary-card">
-          <div class="card">🎯 目標値<div class="value">{fmt(goal_val)}</div></div>
+          <div class="card">🎯 目標値<div class="value">{fmt(goal_val_disp)}</div></div>
           <div class="card">💎 ハイ達成<div class="value">{cnt('◎')}件</div></div>
           <div class="card">🟢 通常達成<div class="value">{cnt('○')}件</div></div>
           <div class="card">🟡 もう少し<div class="value">{cnt('△')}件</div></div>
           <div class="card">✖️ 未達成<div class="value">{cnt('×')}件</div></div>
-          <div class="card">📈 平均<div class="value">{fmt(mean_val)}</div></div>
+          <div class="card">📈 平均<div class="value">{fmt(mean_val_disp)}</div></div>
         </div>""", unsafe_allow_html=True)
 
-        # --- 実績値をツールチップ用に整形
-        tooltip_val = plot_df[met].copy()
-        if is_pct:
-            tooltip_val = tooltip_val.apply(lambda x: x*100 if x<1 else x)
-            tt_fmt = ":,.2f"
-        else:
-            tt_fmt = ":,.0f"
+        # --- ツールチップ実績値フォーマット
+        tool_val = plot_df[met].copy()
+        if is_pct: tool_val = tool_val.apply(to_pct)
+        tool_fmt = ":,.0f" if not is_pct else ":,.2f"
 
         plot_df["ラベル"] = plot_df["CampaignName"].fillna("無名")
         fig = px.bar(
@@ -180,14 +192,12 @@ for lbl,(met,best,good,minv,unit,is_pct,big) in tab_map.items():
             color="評価", orientation="h",
             color_discrete_map=color_map,
             text=plot_df["達成率"].map(lambda x:f"{x:.1f}%"),
-            custom_data=[tooltip_val]
+            custom_data=[tool_val.round(2)]
         )
         fig.update_traces(
             textposition="outside", marker_line_width=0, width=.25,
-            hovertemplate=(
-               "<b>%{y}</b><br>実績値: %{customdata[0]"+tt_fmt+"}"+unit+
-               "<br>達成率: %{x:.1f}%<extra></extra>"
-            ),
+            hovertemplate=("<b>%{y}</b><br>実績値: %{customdata[0]"+tool_fmt+"}"+unit+
+                           "<br>達成率: %{x:.1f}%<extra></extra>"),
             textfont_size=14
         )
         fig.update_layout(
