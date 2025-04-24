@@ -4,8 +4,8 @@ import plotly.express as px
 from google.cloud import bigquery
 
 st.set_page_config(page_title="カテゴリ×都道府県 達成率モニター", layout="wide")
-st.title("🪩SHO-SAN market")
-st.subheader("📊 カテゴリ × 都道府県  キャンペーン達成率モニター")
+st.title("🧩SHO-SAN market")
+st.subheader("📊 カテゴリ × 都道府県 キャンペーン達成率モニター")
 
 # BigQuery接続
 info_dict = dict(st.secrets["connections"]["bigquery"])
@@ -27,8 +27,8 @@ df["Clicks"] = pd.to_numeric(df["Clicks"], errors="coerce").fillna(0)
 df["Impressions"] = pd.to_numeric(df["Impressions"], errors="coerce").fillna(0)
 df["コンバージョン数"] = pd.to_numeric(df["コンバージョン数"], errors="coerce").fillna(0)
 
-# 🗓 日付フィルター
-st.markdown("<h5 style='margin-top: 2rem;'>🗓 日付フィルター</h5>", unsafe_allow_html=True)
+# 📅 日付フィルター
+st.markdown("<h5 style='margin-top: 2rem;'>📅 日付フィルター</h5>", unsafe_allow_html=True)
 min_date = df["Date"].min().date()
 max_date = df["Date"].max().date()
 selected_date = st.date_input("期間を選択", (min_date, max_date), min_value=min_date, max_value=max_date)
@@ -66,19 +66,55 @@ for col in goal_cols:
         kpi_df[col] = pd.to_numeric(kpi_df[col], errors="coerce")
 merged = pd.merge(merged, kpi_df, how="left", on=["カテゴリ", "広告目的"])
 
-# CVR用のフォーマット
-label = "🔥 CVR"
-metric, best_col, good_col, min_col, unit = "CVR", "CVR_best", "CVR_good", "CVR_min", "%"
+# 特にCVRのKPI列を%表示に合わせて100で割る
+for metric in ["CVR_best", "CVR_good", "CVR_min"]:
+    if metric in merged.columns:
+        merged[metric] = merged[metric] / 100
 
-st.markdown(f"### {label} 達成率グラフ")
+# 📂 条件フィルター
+st.markdown("<h5 style='margin-top: 2rem;'>📂 条件を絞り込む</h5>", unsafe_allow_html=True)
+col1, col2, col3, col4 = st.columns(4)
+category_options = ["すべて"] + sorted(merged["カテゴリ"].dropna().unique())
+目的_options = ["すべて"] + sorted(merged["広告目的"].dropna().unique())
+地方_options = ["すべて"] + sorted(merged["地方"].dropna().unique())
+
+with col1:
+    selected_category = st.selectbox("カテゴリ", category_options)
+with col2:
+    selected_objective = st.selectbox("広告目的", 目的_options)
+with col3:
+    selected_region = st.selectbox("地方", 地方_options)
+with col4:
+    都道府県候補 = merged[merged["地方"] == selected_region]["都道府県"].dropna().unique() if selected_region != "すべて" else merged["都道府県"].dropna().unique()
+    selected_pref = st.selectbox("都道府県", ["すべて"] + sorted(都道府県候補))
+
+if selected_category != "すべて":
+    merged = merged[merged["カテゴリ"] == selected_category]
+if selected_objective != "すべて":
+    merged = merged[merged["広告目的"] == selected_objective]
+if selected_region != "すべて":
+    merged = merged[merged["地方"] == selected_region]
+if selected_pref != "すべて":
+    merged = merged[merged["都道府県"] == selected_pref]
+
+# CVR 達成率グラフ
+metric = "CVR"
+best_col = "CVR_best"
+good_col = "CVR_good"
+min_col = "CVR_min"
+unit = "%"
+
 merged["達成率"] = (merged[best_col] / merged[metric]) * 100
 
-# 判定ロジック
-merged["評価"] = merged.apply(lambda row:
-    "◎" if row[metric] >= row[best_col] else
-    "○" if row[metric] >= row[good_col] else
-    "△" if row[metric] >= row[min_col] else
-    "×", axis=1)
+def judge(row):
+    val = row[metric]
+    if pd.isna(val) or pd.isna(row[min_col]): return None
+    if val <= row[best_col]: return "◎"
+    elif val <= row[good_col]: return "○"
+    elif val <= row[min_col]: return "△"
+    else: return "×"
+
+merged["評価"] = merged.apply(judge, axis=1)
 
 plot_df = merged[["都道府県", metric, best_col, good_col, min_col, "CampaignName", "達成率", "評価"]].dropna()
 plot_df = plot_df[plot_df["都道府県"] != ""]
@@ -87,17 +123,17 @@ count_high = (plot_df["評価"] == "◎").sum()
 count_good = (plot_df["評価"] == "○").sum()
 count_mid = (plot_df["評価"] == "△").sum()
 count_ng = (plot_df["評価"] == "×").sum()
-mean_val = plot_df[metric].mean()
-avg_goal = plot_df[best_col].mean()
+mean_val = plot_df[metric].mean() * 100
+avg_goal = plot_df[best_col].mean() * 100
 
 st.markdown(f"""
 <div class="summary-card">
-    <div class="card">🎯 目標値<br><div class="value">{avg_goal:.2%}</div></div>
-    <div class="card">💎 ハイ達成<br><div class="value">{count_high}件</div></div>
-    <div class="card">🟢 通常達成<br><div class="value">{count_good}件</div></div>
-    <div class="card">🟡 もう少し<br><div class="value">{count_mid}件</div></div>
-    <div class="card">✖️ 未達成<br><div class="value">{count_ng}件</div></div>
-    <div class="card">📈 実績値<br><div class="value">{mean_val:.2%}</div></div>
+    <div class="card">目標値<br><div class="value">{avg_goal:.1f}{unit}</div></div>
+    <div class="card">ハイ達成<br><div class="value">{count_high}件</div></div>
+    <div class="card">通常達成<br><div class="value">{count_good}件</div></div>
+    <div class="card">もう少し<br><div class="value">{count_mid}件</div></div>
+    <div class="card">未達成<br><div class="value">{count_ng}件</div></div>
+    <div class="card">平均<br><div class="value">{mean_val:.1f}{unit}</div></div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -108,7 +144,7 @@ fig = px.bar(
     x="達成率",
     color="評価",
     orientation="h",
-    color_discrete_map={"◎": "#88c999", "○": "#d3dc74", "△": "#f3b77d", "×": "#e88c8c"},
+    color_discrete_map=color_map,
     text=plot_df["達成率"].map(lambda x: f"{x:.1f}%" if pd.notna(x) else ""),
     custom_data=[plot_df[metric]]
 )
@@ -118,7 +154,7 @@ fig.update_traces(
     textfont_size=14
 )
 fig.update_layout(
-    xaxis_title="達成率 (‰)", yaxis_title="", showlegend=True,
+    xaxis_title="達成率（%）", yaxis_title="", showlegend=True,
     height=200 + len(plot_df) * 40, width=1000,
     margin=dict(t=40, l=60, r=20), modebar=dict(remove=True),
     font=dict(size=14)
