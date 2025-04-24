@@ -1,4 +1,4 @@
-# 02_🧩SHO-SAN_market.py   （全文）★今回の修正は “★ 修正” だけ
+# 02_🧩SHO-SAN_market.py   ★hovertemplate だけ修正した全文
 
 import streamlit as st
 import pandas as pd, numpy as np, plotly.express as px, re
@@ -82,17 +82,17 @@ merged = merged.merge(kpi_df, on=["カテゴリ","広告目的"], how="left")
 st.markdown("<h5 style='margin-top:2rem;'>📂 条件を絞り込む</h5>", unsafe_allow_html=True)
 c1,c2,c3,c4 = st.columns(4)
 with c1:
-    cat_sel   = st.selectbox("カテゴリ",    ["すべて"]+sorted(merged["カテゴリ"].dropna().unique()))
+    cat_sel = st.selectbox("カテゴリ", ["すべて"]+sorted(merged["カテゴリ"].dropna().unique()))
 with c2:
-    obj_sel   = st.selectbox("広告目的",    ["すべて"]+sorted(merged["広告目的"].dropna().unique()))
+    obj_sel = st.selectbox("広告目的", ["すべて"]+sorted(merged["広告目的"].dropna().unique()))
 with c3:
-    reg_sel   = st.selectbox("地方",        ["すべて"]+sorted(merged["地方"].dropna().unique()))
+    reg_sel = st.selectbox("地方", ["すべて"]+sorted(merged["地方"].dropna().unique()))
 with c4:
-    pref_opts = merged[merged["地方"]==reg_sel]["都道府県"].dropna().unique() \
-                if reg_sel!="すべて" else merged["都道府県"].dropna().unique()
+    pref_opts = (merged[merged["地方"]==reg_sel]["都道府県"].dropna().unique()
+                 if reg_sel!="すべて" else merged["都道府県"].dropna().unique())
     pref_sel  = st.selectbox("都道府県", ["すべて"]+sorted(pref_opts))
 
-if cat_sel  != "すべて": merged = merged[merged["カテゴリ"]   == cat_sel]
+if cat_sel  != "すべて": merged = merged[merged["カテゴリ"] == cat_sel]
 if obj_sel  != "すべて": merged = merged[merged["広告目的"] == obj_sel]
 if reg_sel  != "すべて": merged = merged[merged["地方"]     == reg_sel]
 if pref_sel != "すべて": merged = merged[merged["都道府県"] == pref_sel]
@@ -133,11 +133,11 @@ for tab_label, (met,best,good,minv,unit) in tab_map.items():
 
         def judge(row):
             val = row[met]
-            if pd.isna(val) or pd.isna(row[minv]):   return None
-            if val <= row[best]:                     return "◎"
-            elif val <= row[good]:                   return "○"
-            elif val <= row[minv]:                   return "△"
-            else:                                   return "×"
+            if pd.isna(val) or pd.isna(row[minv]): return None
+            if val <= row[best]:  return "◎"
+            elif val <= row[good]: return "○"
+            elif val <= row[minv]: return "△"
+            else:                 return "×"
 
         merged["評価"] = merged.apply(judge, axis=1)
 
@@ -145,20 +145,18 @@ for tab_label, (met,best,good,minv,unit) in tab_map.items():
                           "CampaignName","達成率","評価"]].dropna()
         plot_df = plot_df[plot_df["都道府県"]!=""]
 
-        # ★ 修正: empty 判定はプロパティで
         if plot_df.empty:
             st.warning("📭 データがありません")
             continue
 
-        # 件数・平均
-        cnt  = lambda s: (plot_df["評価"]==s).sum()
+        cnt = lambda s: (plot_df["評価"]==s).sum()
         mean_val = plot_df[met].mean()
         goal_val = plot_df[best].mean()
 
-        # ★ 修正: CVR / CTR は % 換算（0.006 → 0.60 など）
+        # % 指標は 0.006 → 0.60 に換算
         if unit == "%":
-            mean_val = mean_val * 100
-            goal_val = goal_val * 100
+            mean_val *= 100
+            goal_val *= 100
 
         st.markdown(f"""
         <div class="summary-card">
@@ -171,13 +169,11 @@ for tab_label, (met,best,good,minv,unit) in tab_map.items():
         </div>
         """, unsafe_allow_html=True)
 
-        # 実績値ツールチップ用
         tooltip_val = plot_df[met] * (100 if unit=="%" else 1)
 
         plot_df["ラベル"] = plot_df["CampaignName"].fillna("無名")
         fig = px.bar(
-            plot_df,
-            y="ラベル", x="達成率", color="評価", orientation="h",
+            plot_df, y="ラベル", x="達成率", color="評価", orientation="h",
             color_discrete_map=color_map,
             text=plot_df["達成率"].map(lambda x:f"{x:.1f}%"),
             custom_data=[tooltip_val]
@@ -185,7 +181,7 @@ for tab_label, (met,best,good,minv,unit) in tab_map.items():
         fig.update_traces(
             textposition="outside", marker_line_width=0, width=.25,
             hovertemplate=("<b>%{y}</b><br>実績値: %{customdata[0]:,.2f}"
-                           f"{unit}<br>達成率: %{x:.1f}%<extra></extra>"),
+                           f"{unit}<br>達成率: %{{x:.1f}}%<extra></extra>"),
             textfont_size=14
         )
         fig.update_layout(
