@@ -76,7 +76,7 @@ def generate_ai_comment(df: pd.DataFrame):
     簡潔に、やや親しみあるトーンで。
     """
     response = openai.ChatCompletion.create(
-        model="gpt-4",
+        model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content.strip()
