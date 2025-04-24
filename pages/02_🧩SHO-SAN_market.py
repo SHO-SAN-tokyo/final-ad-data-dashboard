@@ -65,35 +65,36 @@ for col in goal_cols:
         kpi_df[col] = pd.to_numeric(kpi_df[col], errors="coerce")
 merged = pd.merge(merged, kpi_df, how="left", on=["\u30ab\u30c6\u30b4\u30ea", "\u5e83\u544a\u76ee\u7684"])
 
-# --- ここでCVRタブのみ個別処理 ---
+# タブ設定
 tabs = st.tabs(["💰 CPA", "🔥 CVR", "⚡ CTR", "🧰 CPC", "📱 CPM"])
 tab_map = {
-    "💰 CPA": ("CPA", "CPA_best", "CPA_good", "CPA_min", "円"),
-    "🔥 CVR": ("CVR", "CVR_best", "CVR_good", "CVR_min", "%"),
-    "⚡ CTR": ("CTR", "CTR_best", "CTR_good", "CTR_min", "%"),
-    "🧰 CPC": ("CPC", "CPC_best", "CPC_good", "CPC_min", "円"),
-    "📱 CPM": ("CPM", "CPM_best", "CPM_good", "CPM_min", "円")
+    "💰 CPA": ("CPA", "CPA_best", "CPA_good", "CPA_min", "円", False),
+    "🔥 CVR": ("CVR", "CVR_best", "CVR_good", "CVR_min", "%", True),  # ✅ CVRだけ is_ratio = True
+    "⚡ CTR": ("CTR", "CTR_best", "CTR_good", "CTR_min", "%", False),
+    "🧰 CPC": ("CPC", "CPC_best", "CPC_good", "CPC_min", "円", False),
+    "📱 CPM": ("CPM", "CPM_best", "CPM_good", "CPM_min", "円", False)
 }
+
 color_map = {"◎": "#88c999", "○": "#d3dc74", "△": "#f3b77d", "×": "#e88c8c"}
 
-for label, (metric, best_col, good_col, min_col, unit) in tab_map.items():
+for label, (metric, best_col, good_col, min_col, unit, is_ratio) in tab_map.items():
     with tabs[list(tab_map.keys()).index(label)]:
         st.markdown(f"### {label} 達成率グラフ")
 
-        if label == "🔥 CVR":
+        if is_ratio:
             merged["達成率"] = (merged[metric] / merged[best_col]) * 100
-            def judge(row):
-                val = row[metric]
-                if pd.isna(val) or pd.isna(row[min_col]): return None
+        else:
+            merged["達成率"] = (merged[best_col] / merged[metric]) * 100
+
+        def judge(row):
+            val = row[metric]
+            if pd.isna(val) or pd.isna(row[min_col]): return None
+            if is_ratio:
                 if val >= row[best_col]: return "◎"
                 elif val >= row[good_col]: return "○"
                 elif val >= row[min_col]: return "△"
                 else: return "×"
-        else:
-            merged["達成率"] = (merged[best_col] / merged[metric]) * 100
-            def judge(row):
-                val = row[metric]
-                if pd.isna(val) or pd.isna(row[min_col]): return None
+            else:
                 if val <= row[best_col]: return "◎"
                 elif val <= row[good_col]: return "○"
                 elif val <= row[min_col]: return "△"
@@ -115,26 +116,26 @@ for label, (metric, best_col, good_col, min_col, unit) in tab_map.items():
         mean_val = plot_df[metric].mean()
         avg_goal = plot_df[best_col].mean()
 
-        # 目標値と平均を%で表示（CVRなど）
-        if unit == "%":
-            avg_goal_display = f"{avg_goal * 100:.2f}%"
-            mean_val_display = f"{mean_val * 100:.2f}%"
-        else:
-            avg_goal_display = f"{avg_goal:,.0f}{unit}"
-            mean_val_display = f"{mean_val:,.0f}{unit}"
+        def format_value(val):
+            if is_ratio:
+                return f"{val * 100:.2f}%"
+            else:
+                return f"{val:,.0f}{unit}"
 
         st.markdown(f"""
         <div class="summary-card">
-            <div class="card">🎯 目標値<br><div class="value">{avg_goal_display}</div></div>
+            <div class="card">🎯 目標値<br><div class="value">{format_value(avg_goal)}</div></div>
             <div class="card">💎 ハイ達成<br><div class="value">{count_high}件</div></div>
             <div class="card">🟢 通常達成<br><div class="value">{count_good}件</div></div>
             <div class="card">🟡 もう少し<br><div class="value">{count_mid}件</div></div>
             <div class="card">✖️ 未達成<br><div class="value">{count_ng}件</div></div>
-            <div class="card">📈 平均<br><div class="value">{mean_val_display}</div></div>
+            <div class="card">📈 平均<br><div class="value">{format_value(mean_val)}</div></div>
         </div>
         """, unsafe_allow_html=True)
 
         plot_df["ラベル"] = plot_df["CampaignName"].fillna("無名")
+        metric_display = plot_df[metric] * 100 if is_ratio else plot_df[metric]
+
         fig = px.bar(
             plot_df,
             y="ラベル",
@@ -143,13 +144,11 @@ for label, (metric, best_col, good_col, min_col, unit) in tab_map.items():
             orientation="h",
             color_discrete_map=color_map,
             text=plot_df["達成率"].map(lambda x: f"{x:.1f}%" if pd.notna(x) else ""),
-            custom_data=[plot_df[metric]]
+            custom_data=[metric_display]
         )
         fig.update_traces(
             textposition="outside", marker_line_width=0, width=0.25,
-            hovertemplate=(
-                "<b>%{y}</b><br>実績値: %{customdata[0]:.2%}" if unit == "%" else "<b>%{y}</b><br>実績値: %{customdata[0]:,.0f}" + unit
-            ) + "<br>達成率: %{x:.1f}%<extra></extra>",
+            hovertemplate="<b>%{y}</b><br>実績値: %{customdata[0]:.2f}" + unit + "<br>達成率: %{x:.1f}%<extra></extra>",
             textfont_size=14
         )
         fig.update_layout(
