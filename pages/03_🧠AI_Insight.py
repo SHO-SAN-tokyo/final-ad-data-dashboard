@@ -4,6 +4,7 @@ import pandas as pd, numpy as np, plotly.express as px
 from google.cloud import bigquery
 import openai
 
+# OpenAI APIキーの設定（v1.0形式）
 openai.api_key = st.secrets["openai"]["api_key"]
 
 st.set_page_config(page_title="広告AI分析室", layout="wide")
@@ -33,7 +34,7 @@ if isinstance(sel, (list, tuple)) and len(sel) == 2:
 df["Cost"] = pd.to_numeric(df["Cost"], errors="coerce").fillna(0)
 df["Clicks"] = pd.to_numeric(df["Clicks"], errors="coerce").fillna(0)
 df["Impressions"] = pd.to_numeric(df["Impressions"], errors="coerce").fillna(0)
-df["\u30b3\u30f3\u30d0\u30fc\u30b8\u30e7\u30f3\u6570"] = pd.to_numeric(df["\u30b3\u30f3\u30d0\u30fc\u30b8\u30e7\u30f3\u6570"], errors="coerce").fillna(0)
+df["コンバージョン数"] = pd.to_numeric(df["コンバージョン数"], errors="coerce").fillna(0)
 
 # 最新行を抽出
 latest_df = (
@@ -44,8 +45,8 @@ latest_df = (
 
 # 指標計算
 latest_df["CTR"] = latest_df["Clicks"] / latest_df["Impressions"].replace(0, np.nan)
-latest_df["CVR"] = latest_df["\u30b3\u30f3\u30d0\u30fc\u30b8\u30e7\u30f3\u6570"] / latest_df["Clicks"].replace(0, np.nan)
-latest_df["CPA"] = latest_df["Cost"] / latest_df["\u30b3\u30f3\u30d0\u30fc\u30b8\u30e7\u30f3\u6570"].replace(0, np.nan)
+latest_df["CVR"] = latest_df["コンバージョン数"] / latest_df["Clicks"].replace(0, np.nan)
+latest_df["CPA"] = latest_df["Cost"] / latest_df["コンバージョン数"].replace(0, np.nan)
 
 # 🔝 CVR上位/下位 表示
 st.markdown("<h5>📸 CVR 上位 / 下位 広告ギャラリー</h5>", unsafe_allow_html=True)
@@ -63,24 +64,25 @@ with tabs[1]:
         st.image(row["CloudStorageUrl"], caption=f"{row['AdName']}\nCVR: {row['CVR']*100:.2f}%")
 
 # 🤖 ChatGPTによる分析
-
 def generate_ai_comment(df: pd.DataFrame):
     summary = df.groupby("カテゴリ")["CVR"].mean().sort_values(ascending=False).to_string()
     prompt = f"""
     以下は広告のカテゴリ別CVR平均値です:\n{summary}
     このデータをもとに、以下を日本語で分析・出力してください:
-    - CVRが高いカテゴリの働向
+    - CVRが高いカテゴリの傾向
     - コピーや画像の特徴で成功パターンが見えるか？
     - 改善すべきカテゴリにはどんな工夫が必要か？
     - 広告戦略の提案
     簡潔に、やや親しみあるトーンで。
     """
-    response = openai.ChatCompletion.create(
+
+    response = openai.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content.strip()
 
+# 実行ボタン
 if st.button("🤖 AIに分析してもらう"):
     with st.spinner("AIが分析中..."):
         try:
@@ -88,4 +90,4 @@ if st.button("🤖 AIに分析してもらう"):
             st.info(generate_ai_comment(latest_df))
         except Exception as e:
             st.error("コメント生成中にエラーが発生しました")
-            st.exception(e)  # ← この1行を追加
+            st.exception(e)
