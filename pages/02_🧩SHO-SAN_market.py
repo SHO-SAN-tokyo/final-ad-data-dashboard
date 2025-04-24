@@ -5,7 +5,7 @@ from google.cloud import bigquery
 
 st.set_page_config(page_title="カテゴリ×都道府県 達成率モニター", layout="wide")
 st.title("🧩SHO-SAN market")
-st.subheader("📊 カテゴリ × 都道府県 キャンペーン達成率モニター")
+st.subheader("📊 カテゴリ × 都道府県  キャンペーン達成率モニター")
 
 # BigQuery接続
 info_dict = dict(st.secrets["connections"]["bigquery"])
@@ -14,8 +14,8 @@ client = bigquery.Client.from_service_account_info(info_dict)
 
 @st.cache_data
 def load_data():
-    df = client.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data`").to_dataframe()
-    kpi_df = client.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Target_Indicators_Meta`").to_dataframe()
+    df = client.query("SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data").to_dataframe()
+    kpi_df = client.query("SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Target_Indicators_Meta").to_dataframe()
     return df, kpi_df
 
 df, kpi_df = load_data()
@@ -27,8 +27,8 @@ df["Clicks"] = pd.to_numeric(df["Clicks"], errors="coerce").fillna(0)
 df["Impressions"] = pd.to_numeric(df["Impressions"], errors="coerce").fillna(0)
 df["コンバージョン数"] = pd.to_numeric(df["コンバージョン数"], errors="coerce").fillna(0)
 
-# 🗓️ 日付フィルター
-st.markdown("<h5 style='margin-top: 2rem;'>🗓️ 日付フィルター</h5>", unsafe_allow_html=True)
+# 📅 日付フィルター
+st.markdown("<h5 style='margin-top: 2rem;'>📅 日付フィルター</h5>", unsafe_allow_html=True)
 min_date = df["Date"].min().date()
 max_date = df["Date"].max().date()
 selected_date = st.date_input("期間を選択", (min_date, max_date), min_value=min_date, max_value=max_date)
@@ -133,9 +133,8 @@ color_map = {"◎": "#88c999", "○": "#d3dc74", "△": "#f3b77d", "×": "#e88c8
 for label, (metric, best_col, good_col, min_col, unit) in tab_map.items():
     with tabs[list(tab_map.keys()).index(label)]:
         st.markdown(f"### {label} 達成率グラフ")
-
-        # 達成率計算と評価
         merged["達成率"] = (merged[metric] / merged[best_col]) * 100
+
         def judge(row):
             val = row[metric]
             if pd.isna(val) or pd.isna(row[min_col]): return None
@@ -143,6 +142,7 @@ for label, (metric, best_col, good_col, min_col, unit) in tab_map.items():
             elif val >= row[good_col]: return "○"
             elif val >= row[min_col]: return "△"
             else: return "×"
+
         merged["評価"] = merged.apply(judge, axis=1)
 
         plot_df = merged[["都道府県", metric, best_col, good_col, min_col, "CampaignName", "達成率", "評価"]].dropna()
@@ -152,7 +152,6 @@ for label, (metric, best_col, good_col, min_col, unit) in tab_map.items():
             st.warning("📭 データがありません")
             continue
 
-        # スコアカード集計
         count_high = (plot_df["評価"] == "◎").sum()
         count_good = (plot_df["評価"] == "○").sum()
         count_mid = (plot_df["評価"] == "△").sum()
@@ -160,23 +159,22 @@ for label, (metric, best_col, good_col, min_col, unit) in tab_map.items():
         mean_val = plot_df[metric].mean()
         avg_goal = plot_df[best_col].mean()
 
-        # %系の表示形式
-        is_percent = unit == "%"
-        if is_percent:
-            avg_goal_disp = f"{avg_goal*100:.1f}%"
-            mean_val_disp = f"{mean_val*100:.1f}%"
+        # % 形式の場合は小数を変換
+        if unit == "%":
+            mean_val_str = f"{mean_val:.1%}"
+            avg_goal_str = f"{avg_goal:.1%}"
         else:
-            avg_goal_disp = f"{avg_goal:,.0f}{unit}"
-            mean_val_disp = f"{mean_val:,.0f}{unit}"
+            mean_val_str = f"{mean_val:,.0f}{unit}"
+            avg_goal_str = f"{avg_goal:,.0f}{unit}"
 
         st.markdown(f"""
         <div class="summary-card">
-            <div class="card">🎯 目標値<br><div class="value">{avg_goal_disp}</div></div>
+            <div class="card">🎯 目標値<br><div class="value">{avg_goal_str}</div></div>
             <div class="card">💎 ハイ達成<br><div class="value">{count_high}件</div></div>
             <div class="card">🟢 通常達成<br><div class="value">{count_good}件</div></div>
             <div class="card">🟡 もう少し<br><div class="value">{count_mid}件</div></div>
             <div class="card">✖️ 未達成<br><div class="value">{count_ng}件</div></div>
-            <div class="card">📈 平均<br><div class="value">{mean_val_disp}</div></div>
+            <div class="card">📈 平均<br><div class="value">{mean_val_str}</div></div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -193,8 +191,7 @@ for label, (metric, best_col, good_col, min_col, unit) in tab_map.items():
         )
         fig.update_traces(
             textposition="outside", marker_line_width=0, width=0.25,
-            hovertemplate="<b>%{y}</b><br>実績値: %{customdata[0]:.1%}<br>達成率: %{x:.1f}%<extra></extra>"
-            if is_percent else "<b>%{y}</b><br>実績値: %{customdata[0]:,.0f}" + unit + "<br>達成率: %{x:.1f}%<extra></extra>",
+            hovertemplate="<b>%{y}</b><br>実績値: %{customdata[0]:.1%}" if unit == "%" else "<b>%{y}</b><br>実績値: %{customdata[0]:,.0f}" + unit + "<br>達成率: %{x:.1f}%<extra></extra>",
             textfont_size=14
         )
         fig.update_layout(
