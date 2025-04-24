@@ -5,7 +5,7 @@ from google.cloud import bigquery
 
 st.set_page_config(page_title="カテゴリ×都道府県 達成率モニター", layout="wide")
 st.title("🧩SHO-SAN market")
-st.subheader("📊 カテゴリ × 都道府県  キャンペーン達成率モニター")
+st.subheader("📊 カテゴリ × 都道府県 キャンペーン達成率モニター")
 
 # BigQuery接続
 info_dict = dict(st.secrets["connections"]["bigquery"])
@@ -133,6 +133,7 @@ color_map = {"◎": "#88c999", "○": "#d3dc74", "△": "#f3b77d", "×": "#e88c8
 for label, (metric, best_col, good_col, min_col, unit) in tab_map.items():
     with tabs[list(tab_map.keys()).index(label)]:
         st.markdown(f"### {label} 達成率グラフ")
+
         merged["達成率"] = (merged[best_col] / merged[metric]) * 100
 
         def judge(row):
@@ -159,14 +160,20 @@ for label, (metric, best_col, good_col, min_col, unit) in tab_map.items():
         mean_val = plot_df[metric].mean()
         avg_goal = plot_df[best_col].mean()
 
+        # 実績の単位調整
+        if unit == "%":
+            val_display = lambda v: f"{v * 100:.1f}%"
+        else:
+            val_display = lambda v: f"{v:,.0f}{unit}"
+
         st.markdown(f"""
         <div class="summary-card">
-            <div class="card">🎯 目標値<br><div class="value">{avg_goal:,.0f}{unit}</div></div>
+            <div class="card">🎯 目標値<br><div class="value">{val_display(avg_goal)}</div></div>
             <div class="card">💎 ハイ達成<br><div class="value">{count_high}件</div></div>
             <div class="card">🟢 通常達成<br><div class="value">{count_good}件</div></div>
             <div class="card">🟡 もう少し<br><div class="value">{count_mid}件</div></div>
             <div class="card">✖️ 未達成<br><div class="value">{count_ng}件</div></div>
-            <div class="card">📈 平均<br><div class="value">{mean_val:,.0f}{unit}</div></div>
+            <div class="card">📈 平均<br><div class="value">{val_display(mean_val)}</div></div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -183,7 +190,7 @@ for label, (metric, best_col, good_col, min_col, unit) in tab_map.items():
         )
         fig.update_traces(
             textposition="outside", marker_line_width=0, width=0.25,
-            hovertemplate="<b>%{y}</b><br>実績値: %{customdata[0]:,.0f}" + unit + "<br>達成率: %{x:.1f}%<extra></extra>",
+            hovertemplate="<b>%{y}</b><br>実績値: %{customdata[0]:.2% if unit == '%' else ',.0f'}" + unit + "<br>達成率: %{x:.1f}%<extra></extra>",
             textfont_size=14
         )
         fig.update_layout(
