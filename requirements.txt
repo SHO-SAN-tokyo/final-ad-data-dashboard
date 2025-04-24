@@ -5,3 +5,4 @@ db-dtypes
 streamlit-option-menu
 pandas_gbq
 plotly
+openai
