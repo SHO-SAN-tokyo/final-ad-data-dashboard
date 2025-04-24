@@ -4,6 +4,8 @@ import pandas as pd, numpy as np, plotly.express as px
 from google.cloud import bigquery
 import openai
 
+openai.api_key = st.secrets["openai"]["api_key"]
+
 st.set_page_config(page_title="広告AI分析室", layout="wide")
 st.title("🧠 広告AI分析室")
 st.subheader("🔍 パフォーマンス × クリエイティブ × AIによるインサイト")
