@@ -88,3 +88,4 @@ if st.button("🤖 AIに分析してもらう"):
             st.info(generate_ai_comment(latest_df))
         except Exception as e:
             st.error("コメント生成中にエラーが発生しました")
+            st.exception(e)  # ← この1行を追加
