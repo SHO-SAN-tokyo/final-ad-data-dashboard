@@ -142,7 +142,7 @@ for label,(met,best,good,minv,unit,is_pct) in tab_map.items():
                           "CampaignName","達成率","評価"]].dropna()
         plot_df = plot_df[plot_df["都道府県"]!=""]
 
-        if plot_df.empty():
+        if plot_df.empty:
             st.warning("📭 データがありません")
             continue
 
