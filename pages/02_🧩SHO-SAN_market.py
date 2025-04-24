@@ -122,7 +122,7 @@ tab_map = {
     "🧰 CPC": ("CPC", "CPC_best", "CPC_good", "CPC_min", "円", False, False),
     "📱 CPM": ("CPM", "CPM_best", "CPM_good", "CPM_min", "円", False, False)
 }
-color_map = {"◎": "#57bb71", "○": "#88c999", "△": "#d3dc74", "×": "#e88c8c"}
+color_map = {"◎": "#57afbb", "○": "#88c999", "△": "#d3dc74", "×": "#e88c8c"}
 
 for lbl, (met, best, good, minv, unit, is_pct, big) in tab_map.items():
     with tabs[list(tab_map).index(lbl)]:
