@@ -186,12 +186,15 @@ for lbl,(met,best,good,minv,unit,is_pct,big) in tab_map.items():
         if is_pct: tool_val = tool_val.apply(to_pct)
         tool_fmt = ":,.0f" if not is_pct else ":,.2f"
 
+        # 「% 値」に換算した列を 1 本追加してそれを使う
+        plot_df["達成率_pct"] = plot_df["達成率"].apply(to_pct)     # ★追加
         plot_df["ラベル"] = plot_df["CampaignName"].fillna("無名")
         fig = px.bar(
-            plot_df, y="ラベル", x="達成率",
+            plot_df,
+            y="ラベル", x="達成率_pct",       # ★ここを達成率_pct に変更
             color="評価", orientation="h",
             color_discrete_map=color_map,
-            text=plot_df["達成率"].map(lambda x:f"{x:.1f}%"),
+            text=plot_df["達成率_pct"].map(lambda x:f"{x:.1f}%"),      # ★% 値でラベル
             custom_data=[tool_val.round(2)]
         )
         fig.update_traces(
@@ -202,6 +205,7 @@ for lbl,(met,best,good,minv,unit,is_pct,big) in tab_map.items():
         )
         fig.update_layout(
             xaxis_title="達成率（%）", yaxis_title="", showlegend=True,
+            xaxis_range=[0, max(plot_df["達成率_pct"].max()*1.2, 1)],  # ★軸スケール自動調整
             height=220+len(plot_df)*40, width=1000,
             margin=dict(t=40,l=60,r=20), modebar=dict(remove=True),
             font=dict(size=14)
