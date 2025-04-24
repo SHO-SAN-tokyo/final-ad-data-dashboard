@@ -54,7 +54,7 @@ latest_df["CPM"] = latest_df["Cost"] * 1000 / latest_df["Impressions"].replace(0
 # 分析対象の項目（カテゴリ別集計 + コピー列 + 数値列）
 copied_cols = [
     "HeadlineByAdType", "HeadlinePart1ByAdType", "HeadlinePart2ByAdType",
-    "Description1ByAdType", "DescriptionByAdType"
+    "Description1ByAdType", "Description2ByAdType"
 ]
 
 group_summary = latest_df.groupby("カテゴリ")[["CTR", "CVR", "CPA", "CPC", "CPM"]].mean().sort_values("CVR", ascending=False)
