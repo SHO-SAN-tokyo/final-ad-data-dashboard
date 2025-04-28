@@ -129,6 +129,6 @@ if settings_df.empty:
 else:
     link_df = settings_df[["client_name", "client_id"]].copy()
     link_df["リンク"] = link_df["client_id"].apply(
-        lambda cid: f"[ページを開く](https://{st.secrets['app_domain']}/1_Main_Dashboard?client_id={cid})"
+        lambda cid: f"[ページを開く](https://{st.secrets['app_domain']}/Ad_Drive?client_id={cid})"
     )
     st.dataframe(link_df, use_container_width=True)
