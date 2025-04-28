@@ -103,7 +103,7 @@ else:
     client_settings_df = client_settings_df.sort_values("client_name")
 
     client_settings_df["リンク"] = client_settings_df.apply(
-        lambda r: f"[🔗リンクを開く](https://your-app-url/1_Main_Dashboard?client_id={r['client_id']})",
+        lambda r: f"[🔗リンクを開く](https://shosan-ad-dashboard.streamlit.app/Ad_Drive?client_id={r['client_id']})",
         axis=1
     )
 
