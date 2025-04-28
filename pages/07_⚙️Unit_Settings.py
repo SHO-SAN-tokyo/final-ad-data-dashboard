@@ -20,10 +20,10 @@ full_table = f"{project_id}.{dataset}.{table}"
 @st.cache_data(ttl=60)
 def get_unique_tantousha():
     query = f"""
-    SELECT DISTINCT '担当者'
+    SELECT DISTINCT `担当者`
     FROM {project_id}.{dataset}.Final_Ad_Data
-    WHERE '担当者' IS NOT NULL AND '担当者' != ''
-    ORDER BY '担当者'
+    WHERE `担当者` IS NOT NULL AND `担当者` != ''
+    ORDER BY `担当者`
     """
     return client.query(query).to_dataframe()
 
