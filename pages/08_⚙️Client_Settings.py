@@ -18,8 +18,6 @@ dataset = "SHOSAN_Ad_Tokyo"
 table = "ClientSettings"
 full_table = f"{project_id}.{dataset}.{table}"
 
-st.write(st.secrets)
-
 # --- クライアント一覧取得 ---
 @st.cache_data(ttl=60)
 def load_clients():
