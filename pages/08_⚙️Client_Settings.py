@@ -1,139 +1,87 @@
-# 04_⚙️Client_Settings.py
+# 04_🛠️ClientSetting.py
 import streamlit as st
 import pandas as pd
 from google.cloud import bigquery
-from datetime import datetime
 
 # --- ページ設定 ---
 st.set_page_config(page_title="クライアント設定", layout="wide")
-st.title("⚙️ クライアント設定ページ")
+st.title("🛠️ クライアント設定ページ")
+st.subheader("クライアントごとにIDなどを登録・編集・削除")
 
-# --- BigQuery接続 ---
+# --- BigQuery 認証 ---
 info = dict(st.secrets["connections"]["bigquery"])
 info["private_key"] = info["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info)
 
-table_id = "careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings"
-
-# --- データ取得 ---
+# --- Final_Ad_Dataからクライアント名一覧を取得 ---
 @st.cache_data(show_spinner=False)
 def load_clients():
-    query = f"SELECT * FROM `{table_id}`"
-    return client.query(query).to_dataframe()
-
-def save_client(row):
-    query = f"""
-        INSERT INTO `{table_id}` (client_name, client_id, building_count, business_content, focus_level, created_at)
-        VALUES (@client_name, @client_id, @building_count, @business_content, @focus_level, @created_at)
-        ON DUPLICATE KEY UPDATE 
-            building_count = @building_count,
-            business_content = @business_content,
-            focus_level = @focus_level,
-            created_at = @created_at
+    query = """
+        SELECT DISTINCT クライアント名
+        FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data
+        WHERE クライアント名 IS NOT NULL AND クライアント名 != ''
     """
-    # BigQueryは "ON DUPLICATE KEY UPDATE" が使えないため、本当は MERGE文を使う。後で修正可。
-    pass  # 今回はシンプルなInsert/UpdateをStreamlit側で分岐して制御します
+    df = client.query(query).to_dataframe()
+    return sorted(df["クライアント名"].unique())
 
-def insert_client(data):
-    client.insert_rows_json(table_id, [data])
+clients = load_clients()
 
-def delete_client(client_id):
+# --- クライアント管理テーブル ---
+TABLE_ID = "careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSetting"
+
+# --- 登録ボタン用関数 ---
+def insert_client_setting(client_name, client_id, building_count, business_content, focus_level):
+    table = client.get_table(TABLE_ID)
+    rows = [{
+        "client_name": client_name,
+        "client_id": client_id,
+        "building_count": building_count,
+        "business_content": business_content,
+        "focus_level": focus_level
+    }]
+    errors = client.insert_rows_json(table, rows)
+    return errors
+
+# --- 削除ボタン用関数 ---
+def delete_client_setting(client_name):
     query = f"""
-        DELETE FROM `{table_id}`
-        WHERE client_id = @client_id
+        DELETE FROM `{TABLE_ID}`
+        WHERE client_name = @client_name
     """
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
-            bigquery.ScalarQueryParameter("client_id", "STRING", client_id)
+            bigquery.ScalarQueryParameter("client_name", "STRING", client_name)
         ]
     )
     client.query(query, job_config=job_config).result()
 
-# --- データロード ---
-clients_df = load_clients()
+# --- クライアント登録エリア ---
+st.markdown("<h5>🆕 クライアント新規登録</h5>", unsafe_allow_html=True)
 
-# --- 画面表示 ---
-st.markdown("<h5>📋 クライアント一覧</h5>", unsafe_allow_html=True)
-if clients_df.empty:
-    st.info("登録されたクライアントがありません")
+for cname in clients:
+    with st.expander(f"➕ {cname}"):
+        client_id = st.text_input(f"{cname} の Client ID", key=f"id_{cname}")
+        building_count = st.text_input(f"{cname} の棟数", key=f"building_{cname}")
+        business_content = st.text_input(f"{cname} の事業内容", key=f"business_{cname}")
+        focus_level = st.text_input(f"{cname} の注力度", key=f"focus_{cname}")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("登録する", key=f"register_{cname}"):
+                errors = insert_client_setting(cname, client_id, building_count, business_content, focus_level)
+                if not errors:
+                    st.success(f"{cname} を登録しました！")
+                else:
+                    st.error(f"登録エラー: {errors}")
+        with col2:
+            if st.button("登録解除 (削除)", key=f"delete_{cname}"):
+                delete_client_setting(cname)
+                st.warning(f"{cname} を削除しました")
+
+# --- 現在登録されているクライアント一覧表示 ---
+st.markdown("<h5>📋 現在登録されているクライアント</h5>", unsafe_allow_html=True)
+latest = client.query(f"SELECT * FROM `{TABLE_ID}` ORDER BY client_name").to_dataframe()
+if latest.empty:
+    st.info("現在登録されているクライアントがありません")
 else:
-    clients_df = clients_df.sort_values("client_name")
-
-    edited = st.data_editor(
-        clients_df,
-        column_config={
-            "client_name": "クライアント名",
-            "client_id": "クライアントID",
-            "building_count": "棟数",
-            "business_content": "事業内容",
-            "focus_level": "注力度",
-            "created_at": "登録日時"
-        },
-        num_rows="dynamic",
-        hide_index=True
-    )
-
-    # 保存ボタン
-    if st.button("💾 編集内容を保存"):
-        try:
-            for i, row in edited.iterrows():
-                data = {
-                    "client_name": row["client_name"],
-                    "client_id": row["client_id"],
-                    "building_count": row.get("building_count", ""),
-                    "business_content": row.get("business_content", ""),
-                    "focus_level": row.get("focus_level", ""),
-                    "created_at": datetime.utcnow().isoformat()
-                }
-                insert_client(data)
-            st.success("保存しました！")
-        except Exception as e:
-            st.error("保存中にエラーが発生しました")
-            st.exception(e)
-
-# --- 新規登録 ---
-st.divider()
-st.markdown("<h5>🆕 新規登録</h5>", unsafe_allow_html=True)
-
-new_client_name = st.text_input("クライアント名")
-new_client_id   = st.text_input("クライアントID")
-new_building_count = st.text_input("棟数")
-new_business_content = st.text_input("事業内容")
-new_focus_level = st.text_input("注力度")
-
-if st.button("➕ 新規追加"):
-    if new_client_name and new_client_id:
-        try:
-            insert_client({
-                "client_name": new_client_name,
-                "client_id": new_client_id,
-                "building_count": new_building_count,
-                "business_content": new_business_content,
-                "focus_level": new_focus_level,
-                "created_at": datetime.utcnow().isoformat()
-            })
-            st.success("追加しました！")
-            st.experimental_rerun()
-        except Exception as e:
-            st.error("追加中にエラーが発生しました")
-            st.exception(e)
-    else:
-        st.warning("クライアント名とIDは必須です")
-
-# --- 削除 ---
-st.divider()
-st.markdown("<h5>🗑️ クライアント削除</h5>", unsafe_allow_html=True)
-
-delete_id = st.selectbox("削除したいクライアントIDを選択", options=clients_df["client_id"] if not clients_df.empty else [])
-
-if st.button("🗑️ このクライアントを削除"):
-    if delete_id:
-        try:
-            delete_client(delete_id)
-            st.success("削除しました！")
-            st.experimental_rerun()
-        except Exception as e:
-            st.error("削除中にエラーが発生しました")
-            st.exception(e)
-    else:
-        st.warning("削除対象を選択してください")
+    st.dataframe(latest, use_container_width=True)
