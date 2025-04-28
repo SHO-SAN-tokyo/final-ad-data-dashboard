@@ -27,7 +27,7 @@ def load_clients():
 clients = load_clients()
 
 # --- クライアント管理テーブル ---
-TABLE_ID = "careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSetting"
+TABLE_ID = "careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings"
 
 # --- 登録ボタン用関数 ---
 def insert_client_setting(client_name, client_id, building_count, business_content, focus_level):
