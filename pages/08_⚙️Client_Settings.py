@@ -1,12 +1,13 @@
-# 08_⚙️Client_Settings.py
 import streamlit as st
 import pandas as pd
 from google.cloud import bigquery
+import urllib.parse
 
-st.set_page_config(page_title="Client設定", layout="wide")
-st.title("⚙️ Client設定")
+st.set_page_config(page_title="⚙️ Client Settings", layout="wide")
+st.title("⚙️ Client Settings")
+st.subheader("クライアントごとの設定管理")
 
-# BigQuery 認証
+# BigQuery認証
 info = dict(st.secrets["connections"]["bigquery"])
 info["private_key"] = info["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info)
@@ -14,12 +15,12 @@ client = bigquery.Client.from_service_account_info(info)
 # テーブル情報
 project_id = "careful-chess-406412"
 dataset = "SHOSAN_Ad_Tokyo"
-table = "ClientSettings"
-full_table = f"{project_id}.{dataset}.{table}"
+client_table = "ClientSettings"
+full_client_table = f"{project_id}.{dataset}.{client_table}"
 
-# クライアント一覧の取得
+# クライアント名をFinal_Ad_Dataから取得
 @st.cache_data(ttl=60)
-def get_unique_clients():
+def load_final_clients():
     query = f"""
     SELECT DISTINCT client_name
     FROM `{project_id}.{dataset}.Final_Ad_Data`
@@ -28,115 +29,92 @@ def get_unique_clients():
     """
     return client.query(query).to_dataframe()
 
-# Client Settings テーブル取得
+# ClientSettingsのデータを取得
 @st.cache_data(ttl=60)
 def load_client_settings():
-    query = f"SELECT * FROM `{full_table}`"
+    query = f"SELECT * FROM `{full_client_table}`"
     return client.query(query).to_dataframe()
 
-# クライアント追加 UI
-st.markdown("### ➕ クライアントを登録/更新")
+final_clients_df = load_final_clients()
+client_settings_df = load_client_settings()
 
-try:
-    all_clients_df = get_unique_clients()
-    current_df = load_client_settings()
-    already_registered = set(current_df["client_name"].dropna())
-    unregistered_df = all_clients_df[~all_clients_df["client_name"].isin(already_registered)]
+# 未登録クライアント一覧
+registered_clients = set(client_settings_df["クライアント名"].dropna())
+unregistered_df = final_clients_df[~final_clients_df["client_name"].isin(registered_clients)]
 
-    col1, col2 = st.columns([2, 3])
-    with col1:
-        st.markdown("#### 📋 既存クライアント一覧")
-        st.dataframe(all_clients_df, use_container_width=True)
-
-    with col2:
-        st.markdown("#### 🆕 新規登録エリア")
-        selected_client = st.selectbox("🆔 クライアント名を選択", unregistered_df["client_name"])
-        input_client_id = st.text_input("🔑 クライアントID (URLパラメータに使う)")
-        input_buildings = st.text_input("🏘️ 棟数")
-        input_business = st.text_input("💼 事業内容")
-        input_focus = st.text_input("🎯 注力度")
-
-        if st.button("＋ このクライアントを登録"):
-            if selected_client and input_client_id:
-                new_row = pd.DataFrame([{
-                    "client_name": selected_client,
-                    "client_id": input_client_id,
-                    "buildings": input_buildings,
-                    "business": input_business,
-                    "focus": input_focus
-                }])
-                updated_df = pd.concat([current_df, new_row], ignore_index=True)
-
-                try:
-                    with st.spinner("保存中です..."):
-                        job_config = bigquery.LoadJobConfig(
-                            write_disposition="WRITE_TRUNCATE",
-                            schema=[
-                                bigquery.SchemaField("client_name", "STRING"),
-                                bigquery.SchemaField("client_id", "STRING"),
-                                bigquery.SchemaField("buildings", "STRING"),
-                                bigquery.SchemaField("business", "STRING"),
-                                bigquery.SchemaField("focus", "STRING")
-                            ]
-                        )
-                        job = client.load_table_from_dataframe(updated_df, full_table, job_config=job_config)
-                        job.result()
-                        st.success(f"✅ {selected_client} を登録しました！")
-                        st.cache_data.clear()
-                except Exception as e:
-                    st.error(f"❌ 保存に失敗しました: {e}")
-            else:
-                st.warning("⚠️ クライアントIDを入力してください。")
-
-except Exception as e:
-    st.error(f"❌ クライアント一覧の取得に失敗しました: {e}")
-
-# 編集可能なClient Settings一覧
+# 新規登録エリア
 st.markdown("---")
-st.markdown("### 📝 登録済みクライアント設定を編集")
+st.markdown("### ➕ 新規クライアント登録")
 
-editable_df = st.data_editor(
-    load_client_settings().sort_values("client_name"),
-    use_container_width=True,
-    num_rows="dynamic",
-    key="editable_client_table"
-)
+for _, row in unregistered_df.iterrows():
+    with st.expander(f"{row['client_name']}"):
+        new_id = st.text_input(f"クライアントID（{row['client_name']}）", key=f"new_id_{row['client_name']}")
+        new_units = st.text_input(f"棟数（{row['client_name']}）", key=f"new_units_{row['client_name']}")
+        new_business = st.text_input(f"事業内容（{row['client_name']}）", key=f"new_business_{row['client_name']}")
+        new_focus = st.text_input(f"注力度（{row['client_name']}）", key=f"new_focus_{row['client_name']}")
+        
+        if st.button(f"保存（{row['client_name']}）", key=f"save_{row['client_name']}"):
+            try:
+                new_row = pd.DataFrame([{ 
+                    "クライアント名": row['client_name'],
+                    "クライアントID": new_id,
+                    "棟数": new_units,
+                    "事業内容": new_business,
+                    "注力度": new_focus
+                }])
+                updated_df = pd.concat([client_settings_df, new_row], ignore_index=True)
+                job_config = bigquery.LoadJobConfig(
+                    write_disposition="WRITE_TRUNCATE",
+                    schema=[
+                        bigquery.SchemaField("クライアント名", "STRING"),
+                        bigquery.SchemaField("クライアントID", "STRING"),
+                        bigquery.SchemaField("棟数", "STRING"),
+                        bigquery.SchemaField("事業内容", "STRING"),
+                        bigquery.SchemaField("注力度", "STRING")
+                    ]
+                )
+                client.load_table_from_dataframe(updated_df, full_client_table, job_config=job_config).result()
+                st.success(f"✅ {row['client_name']} を登録しました！")
+                st.cache_data.clear()
+                st.experimental_rerun()
+            except Exception as e:
+                st.error(f"❌ 登録失敗: {e}")
 
-if st.button("💾 編集内容を保存する"):
-    with st.spinner("保存中です..."):
-        try:
-            job_config = bigquery.LoadJobConfig(
-                write_disposition="WRITE_TRUNCATE",
-                schema=[
-                    bigquery.SchemaField("client_name", "STRING"),
-                    bigquery.SchemaField("client_id", "STRING"),
-                    bigquery.SchemaField("buildings", "STRING"),
-                    bigquery.SchemaField("business", "STRING"),
-                    bigquery.SchemaField("focus", "STRING")
-                ]
-            )
-            job = client.load_table_from_dataframe(editable_df, full_table, job_config=job_config)
-            job.result()
-            st.success("✅ 編集した内容を保存しました！")
-            st.cache_data.clear()
-        except Exception as e:
-            st.error(f"❌ 保存に失敗しました: {e}")
+# 登録済みクライアント一覧
+st.markdown("---")
+st.markdown("### 📝 登録済みクライアント一覧")
 
-# --- ボタンの色をカスタマイズ（CSS適用） ---
-st.markdown("""
-    <style>
-    div.stButton > button:first-child {
-        background-color: #4a84da;
-        color: white;
-        border: 1px solid #4a84da;
-        border-radius: 0.5rem;
-        padding: 0.6em 1.2em;
-        font-weight: 600;
-        transition: 0.3s ease;
-    }
-    div.stButton > button:first-child:hover {
-        background-color: #3f77cc;
-        border-color: #3f77cc;
-    }
-    </style>
-""", unsafe_allow_html=True)
+if client_settings_df.empty:
+    st.info("登録されたクライアントがありません。")
+else:
+    for idx, row in client_settings_df.sort_values("クライアント名").iterrows():
+        client_name = row["クライアント名"]
+        client_id = row["クライアントID"]
+        base_url = st.secrets["app"]["base_url"]
+        page_url = f"{base_url}?client_id={urllib.parse.quote(client_id)}"
+        
+        col1, col2, col3 = st.columns([4, 1, 1])
+        with col1:
+            st.markdown(f"**{client_name}**")
+        with col2:
+            st.link_button("ページ発行", page_url)
+        with col3:
+            if st.button(f"🗑️ 削除", key=f"delete_{idx}"):
+                try:
+                    new_df = client_settings_df.drop(idx).reset_index(drop=True)
+                    job_config = bigquery.LoadJobConfig(
+                        write_disposition="WRITE_TRUNCATE",
+                        schema=[
+                            bigquery.SchemaField("クライアント名", "STRING"),
+                            bigquery.SchemaField("クライアントID", "STRING"),
+                            bigquery.SchemaField("棟数", "STRING"),
+                            bigquery.SchemaField("事業内容", "STRING"),
+                            bigquery.SchemaField("注力度", "STRING")
+                        ]
+                    )
+                    client.load_table_from_dataframe(new_df, full_client_table, job_config=job_config).result()
+                    st.success(f"✅ {client_name} を削除しました！")
+                    st.cache_data.clear()
+                    st.experimental_rerun()
+                except Exception as e:
+                    st.error(f"❌ 削除失敗: {e}")
