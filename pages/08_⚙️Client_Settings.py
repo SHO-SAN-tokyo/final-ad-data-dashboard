@@ -1,95 +1,97 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 from google.cloud import bigquery
 
-# --- ページ設定 ---
 st.set_page_config(page_title="クライアント設定", layout="wide")
 st.title("⚙️ クライアント設定ページ")
-st.subheader("クライアントフィルタ用のID管理・編集")
+st.subheader("クライアント情報の管理")
 
-# --- BigQuery 認証 ---
+# BigQuery 接続
 info = dict(st.secrets["connections"]["bigquery"])
 info["private_key"] = info["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info)
 
-# --- データ取得 ---
+# テーブル設定
+table_name = "careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings"
+
+# Final_Ad_Dataからクライアント名取得
 @st.cache_data(show_spinner=False)
-def load_clients():
-    query = """
+def load_client_names():
+    df = client.query("""
         SELECT DISTINCT client_name
         FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data`
         WHERE client_name IS NOT NULL AND client_name != ""
-        ORDER BY client_name
-    """
-    return client.query(query).to_dataframe()
+    """).to_dataframe()
+    return sorted(df["client_name"].dropna().unique().tolist())
 
+# 登録済みクライアント一覧取得
 @st.cache_data(show_spinner=False)
-def load_settings():
-    query = """
-        SELECT *
-        FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`
-        ORDER BY client_name
-    """
-    return client.query(query).to_dataframe()
+def load_registered_clients():
+    df = client.query(f"""
+        SELECT * FROM `{table_name}`
+    """).to_dataframe()
+    return df
 
-clients_df = load_clients()
-settings_df = load_settings()
+client_names = load_client_names()
+registered_clients = load_registered_clients()
 
-# --- 登録・編集エリア ---
-st.markdown("### 📝 新規登録・編集")
+# --- クライアント一覧表示と登録エリア ---
+st.markdown("<h4>📋 登録・編集エリア</h4>", unsafe_allow_html=True)
 
-for _, row in clients_df.iterrows():
-    client_name = row["client_name"]
+for name in client_names:
+    with st.expander(f"{name}", expanded=False):
+        # 既存データを探す
+        existing = registered_clients[registered_clients["クライアント名"] == name]
+        default_id = existing["クライアントID"].values[0] if not existing.empty else ""
+        default_building = existing["棟数"].values[0] if not existing.empty else ""
+        default_business = existing["事業内容"].values[0] if not existing.empty else ""
+        default_focus = existing["注力度"].values[0] if not existing.empty else ""
 
-    existing = settings_df[settings_df["client_name"] == client_name]
-    if not existing.empty:
-        default_id = existing.iloc[0]["client_id"]
-        default_building = existing.iloc[0]["building_count"]
-        default_business = existing.iloc[0]["business_type"]
-        default_focus = existing.iloc[0]["focus_level"]
-    else:
-        default_id = ""
-        default_building = ""
-        default_business = ""
-        default_focus = ""
+        # 入力フォーム
+        client_id = st.text_input(f"クライアントID ({name})", value=default_id, key=f"id_{name}")
+        building = st.text_input("棟数", value=default_building, key=f"building_{name}")
+        business = st.text_input("事業内容", value=default_business, key=f"business_{name}")
+        focus = st.text_input("注力度", value=default_focus, key=f"focus_{name}")
 
-    with st.expander(f"{client_name}", expanded=False):
-        col1, col2 = st.columns(2)
-        with col1:
-            new_id = st.text_input(f"固有ID（{client_name}）", value=default_id, key=f"id_{client_name}")
-            building = st.text_input(f"棟数（{client_name}）", value=default_building, key=f"building_{client_name}")
-        with col2:
-            business = st.text_input(f"事業内容（{client_name}）", value=default_business, key=f"business_{client_name}")
-            focus = st.text_input(f"注力度（{client_name}）", value=default_focus, key=f"focus_{client_name}")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("💾 保存・更新", key=f"save_{name}"):
+                # INSERTまたはUPDATE
+                query = f"""
+                    MERGE `{table_name}` AS T
+                    USING (SELECT @クライアント名 AS クライアント名) AS S
+                    ON T.クライアント名 = S.クライアント名
+                    WHEN MATCHED THEN
+                      UPDATE SET クライアントID = @クライアントID, 棟数 = @棟数, 事業内容 = @事業内容, 注力度 = @注力度
+                    WHEN NOT MATCHED THEN
+                      INSERT (クライアント名, クライアントID, 棟数, 事業内容, 注力度)
+                      VALUES(@クライアント名, @クライアントID, @棟数, @事業内容, @注力度)
+                """
+                job_config = bigquery.QueryJobConfig(
+                    query_parameters=[
+                        bigquery.ScalarQueryParameter("クライアント名", "STRING", name),
+                        bigquery.ScalarQueryParameter("クライアントID", "STRING", client_id),
+                        bigquery.ScalarQueryParameter("棟数", "STRING", building),
+                        bigquery.ScalarQueryParameter("事業内容", "STRING", business),
+                        bigquery.ScalarQueryParameter("注力度", "STRING", focus),
+                    ]
+                )
+                client.query(query, job_config=job_config).result()
+                st.success(f"{name} を保存・更新しました。ページを再読み込みしてください。")
 
-        save_btn = st.button("💾 保存/更新", key=f"save_{client_name}")
-        delete_btn = st.button("🗑️ 削除", key=f"delete_{client_name}")
+        with c2:
+            if not existing.empty:
+                if st.button("🗑️ 削除", key=f"delete_{name}"):
+                    del_query = f"""
+                        DELETE FROM `{table_name}`
+                        WHERE クライアント名 = @クライアント名
+                    """
+                    job_config = bigquery.QueryJobConfig(
+                        query_parameters=[
+                            bigquery.ScalarQueryParameter("クライアント名", "STRING", name)
+                        ]
+                    )
+                    client.query(del_query, job_config=job_config).result()
+                    st.success(f"{name} を削除しました。ページを再読み込みしてください。")
 
-        if save_btn:
-            query = f"""
-                MERGE `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings` T
-                USING (SELECT '{client_name}' AS client_name) S
-                ON T.client_name = S.client_name
-                WHEN MATCHED THEN
-                  UPDATE SET client_id = '{new_id}', building_count = '{building}', business_type = '{business}', focus_level = '{focus}'
-                WHEN NOT MATCHED THEN
-                  INSERT (client_name, client_id, building_count, business_type, focus_level)
-                  VALUES ('{client_name}', '{new_id}', '{building}', '{business}', '{focus}')
-            """
-            client.query(query).result()
-            st.success(f"{client_name} を保存しました！")
-            st.rerun()
-
-        if delete_btn:
-            query = f"""
-                DELETE FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`
-                WHERE client_name = '{client_name}'
-            """
-            client.query(query).result()
-            st.success(f"{client_name} を削除しました！")
-            st.rerun()
-
-# --- 既存データ一覧 ---
-st.markdown("### 📋 登録済みクライアント一覧")
-st.dataframe(settings_df, use_container_width=True)
+st.caption("※ 保存・更新・削除後はページを手動でリロードしてください 🚀")
