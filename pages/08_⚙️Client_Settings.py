@@ -143,9 +143,6 @@ else:
     st.data_editor(
         display_df,
         use_container_width=True,
-        column_config={
-            "ページリンク": st.column_config.MarkdownColumn("リンクボタン"),
-        },
         hide_index=True,
         disabled=["ページリンク"],  # リンク列は編集禁止
     )
