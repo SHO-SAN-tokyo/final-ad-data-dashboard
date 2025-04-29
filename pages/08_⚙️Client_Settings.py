@@ -5,7 +5,7 @@ from datetime import datetime
 
 # --- ページ設定 ---
 st.set_page_config(page_title="クライアント設定", layout="wide")
-st.title("⚙️ Client Settings")
+st.title("⚙️ クライアント設定")
 
 # --- BigQuery 認証 ---
 info = dict(st.secrets["connections"]["bigquery"])
