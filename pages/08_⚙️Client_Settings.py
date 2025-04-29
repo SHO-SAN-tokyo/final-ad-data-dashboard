@@ -125,34 +125,47 @@ else:
         except Exception as e:
             st.error(f"❌ 保存エラー: {e}")
 
-# --- クライアント別リンク一覧 ---
+# --- クライアント別リンク一覧（横並び） ---
 st.markdown("---")
-st.markdown("### 🔗 クライアント別ページリンク（ボタン式）")
+st.markdown("### 🔗 クライアント別ページリンク（横並びレイアウト）")
 
 if settings_df.empty:
     st.info("❗登録されたクライアントがありません")
 else:
-    link_df = settings_df[["client_name", "client_id"]].copy()
+    link_df = settings_df[["client_name", "client_id", "building_count", "buisiness_content", "focus_level"]].copy()
     link_df["リンクURL"] = link_df["client_id"].apply(
         lambda cid: f"https://{st.secrets['app_domain']}/Ad_Drive?client_id={cid}"
     )
 
-    for idx, row in link_df.iterrows():
-        url = row["リンクURL"]
-        label = row["client_name"]
+    # ヘッダー行
+    header_cols = st.columns([2, 1, 2, 1, 2])
+    header_cols[0].markdown("**クライアント名**")
+    header_cols[1].markdown("**棟数**")
+    header_cols[2].markdown("**事業内容**")
+    header_cols[3].markdown("**注力度**")
+    header_cols[4].markdown("**リンク**")
 
-        button_html = f"""
-        <a href="{url}" target="_blank" style="
-            text-decoration: none;
-            display: inline-block;
-            padding: 0.5em 1em;
-            margin: 0.3em 0;
-            border-radius: 8px;
-            background-color: #4CAF50;
-            color: white;
-            font-weight: bold;
-        ">
-            ▶ {label} ページを開く
-        </a>
-        """
-        st.markdown(button_html, unsafe_allow_html=True)
+    st.divider()
+
+    for idx, row in link_df.iterrows():
+        cols = st.columns([2, 1, 2, 1, 2])  # 幅を微調整
+        cols[0].write(row["client_name"])
+        cols[1].write(row["building_count"])
+        cols[2].write(row["buisiness_content"])
+        cols[3].write(row["focus_level"])
+        cols[4].markdown(
+            f"""
+            <a href="{row['リンクURL']}" target="_blank" style="
+                text-decoration: none;
+                display: inline-block;
+                padding: 0.3em 0.8em;
+                border-radius: 6px;
+                background-color: #4CAF50;
+                color: white;
+                font-weight: bold;
+            ">
+                ▶ ページを開く
+            </a>
+            """,
+            unsafe_allow_html=True
+        )
