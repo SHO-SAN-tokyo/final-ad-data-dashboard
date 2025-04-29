@@ -127,18 +127,32 @@ else:
 
 # --- クライアント別リンク一覧 ---
 st.markdown("---")
-st.markdown("### 🔗 クライアント別ページリンク")
+st.markdown("### 🔗 クライアント別ページリンク（ボタン式）")
 
 if settings_df.empty:
     st.info("❗登録されたクライアントがありません")
 else:
     link_df = settings_df[["client_name", "client_id"]].copy()
-    link_df["リンク"] = link_df["client_id"].apply(
+    link_df["リンクURL"] = link_df["client_id"].apply(
         lambda cid: f"https://{st.secrets['app_domain']}/Ad_Drive?client_id={cid}"
     )
 
     for idx, row in link_df.iterrows():
-        st.markdown(
-            f"🔗 [{row['client_name']}ページを開く]({row['リンク']})",
-            unsafe_allow_html=True
-        )
+        url = row["リンクURL"]
+        label = row["client_name"]
+
+        button_html = f"""
+        <a href="{url}" target="_blank" style="
+            text-decoration: none;
+            display: inline-block;
+            padding: 0.5em 1em;
+            margin: 0.3em 0;
+            border-radius: 8px;
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        ">
+            ▶ {label} ページを開く
+        </a>
+        """
+        st.markdown(button_html, unsafe_allow_html=True)
