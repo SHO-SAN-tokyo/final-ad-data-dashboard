@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime
 
 st.set_page_config(page_title="Unit Drive", layout="wide")
-st.title("🔶 Unit Drive")
+st.title("🔷 Unit Drive")
 
 st.subheader("📊 広告TM パフォーマンス")
 
