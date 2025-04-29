@@ -5,7 +5,6 @@ import pandas as pd, numpy as np, re
 # --- ページ設定 & CSS ---
 st.set_page_config(page_title="Ad_Drive", layout="wide")
 st.title("🫧 Ad Drive")
-st.subheader("📊 すべての広告数値・配信バナー")
 
 st.markdown("""
     <style>
@@ -40,7 +39,7 @@ client_name_map = dict(zip(client_settings_df["client_id"], client_settings_df["
 # --- パラメータによるフィルター適用 ---
 if preselected_client_id and preselected_client_id in client_name_map:
     preselected_client_name = client_name_map[preselected_client_id]
-    st.markdown(f"<h2 style='color:#4CAF50;margin-top:1rem;'>🎯 {preselected_client_name}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='color:#000;margin-top:1rem;'>🔶 {preselected_client_name}</h2>", unsafe_allow_html=True)
     df = df[df["client_name"] == preselected_client_name]
 
 # --- 前処理 ---
