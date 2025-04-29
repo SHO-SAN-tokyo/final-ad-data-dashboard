@@ -4,7 +4,7 @@ from google.cloud import bigquery
 from datetime import datetime
 
 # --- ページ設定 ---
-st.set_page_config(page_title="Client設定", layout="wide")
+st.set_page_config(page_title="クライアント設定", layout="wide")
 st.title("⚙️ Client Settings")
 
 # --- BigQuery 認証 ---
