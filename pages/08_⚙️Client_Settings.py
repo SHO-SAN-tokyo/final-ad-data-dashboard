@@ -125,47 +125,27 @@ else:
         except Exception as e:
             st.error(f"❌ 保存エラー: {e}")
 
-# --- クライアント別リンク一覧（横並び） ---
+# --- クライアント別リンク一覧（表形式・リンクボタン付き） ---
 st.markdown("---")
-st.markdown("### 🔗 クライアント別ページリンク（横並びレイアウト）")
+st.markdown("### 🔗 クライアント別ページリンク（表形式・リンクボタン）")
 
 if settings_df.empty:
     st.info("❗登録されたクライアントがありません")
 else:
-    link_df = settings_df[["client_name", "client_id", "building_count", "buisiness_content", "focus_level"]].copy()
-    link_df["リンクURL"] = link_df["client_id"].apply(
-        lambda cid: f"https://{st.secrets['app_domain']}/Ad_Drive?client_id={cid}"
+    link_df = settings_df[["client_name", "building_count", "buisiness_content", "focus_level", "client_id"]].copy()
+    link_df["ページリンク"] = link_df["client_id"].apply(
+        lambda cid: f'<a href="https://{st.secrets["app_domain"]}/Ad_Drive?client_id={cid}" target="_blank">▶ ページを開く</a>'
     )
 
-    # ヘッダー行
-    header_cols = st.columns([2, 1, 2, 1, 2])
-    header_cols[0].markdown("**クライアント名**")
-    header_cols[1].markdown("**棟数**")
-    header_cols[2].markdown("**事業内容**")
-    header_cols[3].markdown("**注力度**")
-    header_cols[4].markdown("**リンク**")
+    # 表示する列順
+    display_df = link_df[["client_name", "building_count", "buisiness_content", "focus_level", "ページリンク"]]
 
-    st.divider()
-
-    for idx, row in link_df.iterrows():
-        cols = st.columns([2, 1, 2, 1, 2])  # 幅を微調整
-        cols[0].write(row["client_name"])
-        cols[1].write(row["building_count"])
-        cols[2].write(row["buisiness_content"])
-        cols[3].write(row["focus_level"])
-        cols[4].markdown(
-            f"""
-            <a href="{row['リンクURL']}" target="_blank" style="
-                text-decoration: none;
-                display: inline-block;
-                padding: 0.3em 0.8em;
-                border-radius: 6px;
-                background-color: #4CAF50;
-                color: white;
-                font-weight: bold;
-            ">
-                ▶ ページを開く
-            </a>
-            """,
-            unsafe_allow_html=True
-        )
+    st.data_editor(
+        display_df,
+        use_container_width=True,
+        column_config={
+            "ページリンク": st.column_config.MarkdownColumn("リンクボタン"),
+        },
+        hide_index=True,
+        disabled=["ページリンク"],  # リンク列は編集禁止
+    )
