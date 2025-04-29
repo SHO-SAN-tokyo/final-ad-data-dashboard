@@ -21,7 +21,12 @@ full_table = f"{project_id}.{dataset}.{table}"
 # --- クライアント一覧取得 ---
 @st.cache_data(ttl=60)
 def load_clients():
-    query = f"SELECT DISTINCT client_name FROM `{project_id}.{dataset}.Final_Ad_Data` WHERE client_name IS NOT NULL AND client_name != '' ORDER BY client_name"
+    query = f"""
+    SELECT DISTINCT client_name 
+    FROM `{project_id}.{dataset}.Final_Ad_Data`
+    WHERE client_name IS NOT NULL AND client_name != ''
+    ORDER BY client_name
+    """
     return client.query(query).to_dataframe()
 
 # --- 登録済み設定取得 ---
@@ -129,6 +134,11 @@ if settings_df.empty:
 else:
     link_df = settings_df[["client_name", "client_id"]].copy()
     link_df["リンク"] = link_df["client_id"].apply(
-        lambda cid: f"[ページを開く](https://{st.secrets['app_domain']}/Ad_Drive?client_id={cid})"
+        lambda cid: f"https://{st.secrets['app_domain']}/Ad_Drive?client_id={cid}"
     )
-    st.dataframe(link_df, use_container_width=True)
+
+    for idx, row in link_df.iterrows():
+        st.markdown(
+            f"🔗 [{row['client_name']}ページを開く]({row['リンク']})",
+            unsafe_allow_html=True
+        )
