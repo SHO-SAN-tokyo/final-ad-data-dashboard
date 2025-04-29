@@ -125,24 +125,61 @@ else:
         except Exception as e:
             st.error(f"❌ 保存エラー: {e}")
 
-# --- クライアント別リンク一覧（表形式・リンクボタン付き） ---
+# --- クライアント別リンク一覧（生きたリンク・ページネーション） ---
 st.markdown("---")
-st.markdown("### 🔗 クライアント別ページリンク（表形式・リンクボタン）")
+st.markdown("### 🔗 クライアント別ページリンク（ページネーション付き）")
 
 if settings_df.empty:
     st.info("❗登録されたクライアントがありません")
 else:
     link_df = settings_df[["client_name", "building_count", "buisiness_content", "focus_level", "client_id"]].copy()
-    link_df["ページリンク"] = link_df["client_id"].apply(
-        lambda cid: f'<a href="https://{st.secrets["app_domain"]}/Ad_Drive?client_id={cid}" target="_blank">▶ ページを開く</a>'
+    link_df["リンクURL"] = link_df["client_id"].apply(
+        lambda cid: f"https://{st.secrets['app_domain']}/Ad_Drive?client_id={cid}"
     )
 
-    # 表示する列順
-    display_df = link_df[["client_name", "building_count", "buisiness_content", "focus_level", "ページリンク"]]
+    # --- ページネーション設定 ---
+    items_per_page = 20
+    total_items = len(link_df)
+    total_pages = (total_items - 1) // items_per_page + 1
 
-    st.data_editor(
-        display_df,
-        use_container_width=True,
-        hide_index=True,
-        disabled=["ページリンク"],  # リンク列は編集禁止
-    )
+    page = st.number_input("ページ番号", min_value=1, max_value=total_pages, value=1, step=1)
+    start_idx = (page - 1) * items_per_page
+    end_idx = start_idx + items_per_page
+
+    page_df = link_df.iloc[start_idx:end_idx]
+
+    st.divider()
+
+    # --- ヘッダー
+    header_cols = st.columns([2, 1, 2, 1, 2])
+    header_cols[0].markdown("**クライアント名**")
+    header_cols[1].markdown("**棟数**")
+    header_cols[2].markdown("**事業内容**")
+    header_cols[3].markdown("**注力度**")
+    header_cols[4].markdown("**リンク**")
+
+    st.divider()
+
+    # --- データ表示
+    for idx, row in page_df.iterrows():
+        cols = st.columns([2, 1, 2, 1, 2])
+        cols[0].write(row["client_name"])
+        cols[1].write(row["building_count"])
+        cols[2].write(row["buisiness_content"])
+        cols[3].write(row["focus_level"])
+        cols[4].markdown(
+            f"""
+            <a href=\"{row['リンクURL']}\" target=\"_blank\" style=\"
+                text-decoration: none;
+                display: inline-block;
+                padding: 0.3em 0.8em;
+                border-radius: 6px;
+                background-color: #4CAF50;
+                color: white;
+                font-weight: bold;
+            \">
+                ▶ ページを開く
+            </a>
+            """,
+            unsafe_allow_html=True
+        )
