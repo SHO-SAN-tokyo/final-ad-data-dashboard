@@ -114,6 +114,29 @@ summary = pd.DataFrame({
     ]
 })
 
+# --- 選択中フィルターの表示（キャンペーン名含む） ---
+selected_filters = []
+
+# 日付範囲（文字列で整形）
+if isinstance(sel_date, (list, tuple)) and len(sel_date) == 2:
+    date_range = f"{sel_date[0]} 〜 {sel_date[1]}"
+else:
+    date_range = str(sel_date)
+selected_filters.append(f"<b>📅 日付：</b>{date_range}")
+
+selected_filters.append(f"<b>👤 クライアント：</b>{sel_client}")
+selected_filters.append(f"<b>🗂️ カテゴリ：</b>{sel_cat}")
+selected_filters.append(f"<b>📢 キャンペーン名：</b>{sel_campaign}")
+
+# 表示する
+st.markdown(
+    "<div style='margin-bottom: 1rem; font-size: 16px; color: #555;'>" +
+    "｜".join(selected_filters) +
+    "</div>",
+    unsafe_allow_html=True
+)
+
+
 st.subheader("💠広告数値")
 # --- カード表示レイアウトに変更 ---
 st.markdown("""
