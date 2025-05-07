@@ -15,6 +15,10 @@ bq = bigquery.Client.from_service_account_info(cred)
 query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data"
 df = bq.query(query).to_dataframe()
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+with st.spinner("🔄 データを取得中..."):
+    df = bq.query(query).to_dataframe()
+if df.empty:
+    st.warning("⚠️ データがありません"); st.stop()
 
 # --- 前処理 ---
 df["カテゴリ"] = df["カテゴリ"].astype(str).fillna("未設定")
