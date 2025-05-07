@@ -65,7 +65,7 @@ agg["CPC"] = agg["Cost"] / agg["Clicks"].replace(0, np.nan)
 agg["CPM"] = (agg["Cost"] / agg["Impressions"].replace(0, np.nan)) * 1000
 
 # --- 評価指標取得 ---
-target_query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Target_Indicators"
+target_query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Target_Indicators_Meta"
 target_df = bq.query(target_query).to_dataframe()
 target_df = target_df.rename(columns={
     "CPA_best": "best", "CPA_good": "good", "CPA_min": "min"
