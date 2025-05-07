@@ -115,7 +115,64 @@ summary = pd.DataFrame({
 })
 
 st.subheader("💠広告数値")
-st.table(summary)
+# --- カード表示レイアウトに変更 ---
+st.markdown("""
+<style>
+.metric-card {
+    background-color: #2c2f36;
+    color: #fcefc7;
+    padding: 20px 25px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+.metric-big {
+    font-size: 40px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+.metric-small {
+    font-size: 28px;
+    font-weight: bold;
+    margin-top: 8px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+cpa = disp(div(tot_cost, tot_conv), "円")
+cv = disp(tot_conv)
+cvr = disp_percent(div(tot_conv, tot_clk_all) * 100)
+cost = disp(tot_cost, "円")
+imp = disp(tot_imp)
+ctr = disp_percent(div(tot_clk_all, tot_imp) * 100)
+cpc = disp(div(tot_cost, tot_clk_all), "円")
+clk = disp(tot_clk_all)
+cpm = disp(div(tot_cost * 1000, tot_imp), "円")
+
+# 1段目（大きなカード）
+c1, c2, c3 = st.columns(3)
+with c1:
+    st.markdown(f"<div class='metric-card'>CPA - 獲得単価<div class='metric-big'>{cpa}</div></div>", unsafe_allow_html=True)
+with c2:
+    st.markdown(f"<div class='metric-card'>コンバージョン数<div class='metric-big'>{cv}</div></div>", unsafe_allow_html=True)
+with c3:
+    st.markdown(f"<div class='metric-card'>CVR - コンバージョン率<div class='metric-big'>{cvr}</div></div>", unsafe_allow_html=True)
+
+# 2段目（小さめのカード）
+c4, c5, c6, c7, c8 = st.columns(5)
+with c4:
+    st.markdown(f"<div class='metric-card'>消化金額<div class='metric-small'>{cost}</div></div>", unsafe_allow_html=True)
+with c5:
+    st.markdown(f"<div class='metric-card'>インプレッション<div class='metric-small'>{imp}</div></div>", unsafe_allow_html=True)
+with c6:
+    st.markdown(f"<div class='metric-card'>CTR - クリック率<div class='metric-small'>{ctr}</div></div>", unsafe_allow_html=True)
+with c7:
+    st.markdown(f"<div class='metric-card'>CPM<div class='metric-small'>{cpm}</div></div>", unsafe_allow_html=True)
+with c8:
+    st.markdown(f"<div class='metric-card'>クリック<div class='metric-small'>{clk}</div></div>", unsafe_allow_html=True)
+
 
 # --- バナー表示（いつもの方式） ---
 img = df[df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
