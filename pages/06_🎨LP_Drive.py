@@ -107,16 +107,24 @@ def eval_row(row):
 # --- 評価列追加 ---
 agg = agg.merge(df_latest[["CreativeDestinationUrl", "カテゴリ", "広告目的"]].drop_duplicates(), on="CreativeDestinationUrl", how="left")
 agg[["CPA評価", "CVR評価"]] = agg.apply(eval_row, axis=1)
-agg["LPリンク"] = agg["CreativeDestinationUrl"].apply(lambda u: f"[リンク↗️]({u})")
+
+# --- 書式整形 ---
+agg["消化金額"] = agg["Cost"].apply(lambda x: f"{x:,.0f}円")
+agg["CV数"] = agg["コンバージョン数"].astype(int)
+agg["CPA"] = agg["CPA"].apply(lambda x: f"{x:,.0f}円" if pd.notna(x) else "-")
+agg["CTR"] = agg["CTR"].apply(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "-")
+agg["CVR"] = agg["CVR"].apply(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "-")
+agg["CPC"] = agg["CPC"].apply(lambda x: f"{x:,.0f}円" if pd.notna(x) else "-")
+agg["CPM"] = agg["CPM"].apply(lambda x: f"{x:,.0f}円" if pd.notna(x) else "-")
 
 # --- 表示 ---
 st.markdown("<h4 style='margin-top:2rem;'>📊 LPごとの集計</h4>", unsafe_allow_html=True)
-st.dataframe(
-    agg[["LPリンク", "カテゴリ", "広告目的", "Cost", "コンバージョン数", "CPA", "CTR", "CVR", "CPC", "CPM", "CPA評価", "CVR評価"]]
-    .sort_values("Cost", ascending=False)
-    .rename(columns={
-        "LPリンク": "LP URL", "Cost": "消化金額", "コンバージョン数": "CV数"
-    }),
-    use_container_width=True,
-    hide_index=True
-)
+
+for _, row in agg.sort_values("Cost", ascending=False).iterrows():
+    st.markdown(f"""
+    <div style='margin-bottom:1.5rem;'>
+      <a href="{row['CreativeDestinationUrl']}" target="_blank">🔗 {row['CreativeDestinationUrl']}</a><br>
+      <b>カテゴリ：</b>{row['カテゴリ']}　<b>広告目的：</b>{row['広告目的']}　<b>CPA評価：</b>{row['CPA評価']}　<b>CVR評価：</b>{row['CVR評価']}<br>
+      <b>消化金額：</b>{row['消化金額']}　<b>CV数：</b>{row['CV数']}　<b>CPA：</b>{row['CPA']}　<b>CTR：</b>{row['CTR']}　<b>CVR：</b>{row['CVR']}　<b>CPC：</b>{row['CPC']}　<b>CPM：</b>{row['CPM']}
+    </div>
+    """, unsafe_allow_html=True)
