@@ -40,7 +40,7 @@ with col4:
     obj_opts = ["すべて"] + sorted(df["広告目的"].dropna().unique())
     sel_obj = st.selectbox("🎯 広告目的", obj_opts)
 with col5:
-    pass  # 予備用スペース
+    pass
 
 if isinstance(sel_date, tuple):
     s, e = pd.to_datetime(sel_date[0]), pd.to_datetime(sel_date[1])
@@ -106,7 +106,11 @@ def eval_row(row):
 
 # --- 評価列追加 ---
 agg = agg.merge(df_latest[["CreativeDestinationUrl", "カテゴリ", "広告目的"]].drop_duplicates(), on="CreativeDestinationUrl", how="left")
-agg[["CPA評価", "CVR評価"]] = agg.apply(eval_row, axis=1)
+if not agg.empty:
+    agg[["CPA評価", "CVR評価"]] = agg.apply(eval_row, axis=1)
+else:
+    agg["CPA評価"] = []
+    agg["CVR評価"] = []
 
 # --- 書式整形 ---
 agg["消化金額"] = agg["Cost"].apply(lambda x: f"{x:,.0f}円")
