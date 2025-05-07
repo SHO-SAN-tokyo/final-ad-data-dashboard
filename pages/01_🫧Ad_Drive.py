@@ -47,12 +47,9 @@ df["カテゴリ"] = df.get("カテゴリ", "").astype(str).str.strip().replace(
 df["Date"] = pd.to_datetime(df.get("Date"), errors="coerce")
 
 # --- セッションステートの初期化 ---
-if "select_all_clients" not in st.session_state:
-    st.session_state["select_all_clients"] = False
-if "select_all_categories" not in st.session_state:
-    st.session_state["select_all_categories"] = False
-if "select_all_campaigns" not in st.session_state:
-    st.session_state["select_all_campaigns"] = False
+for key in ["select_all_clients", "select_all_categories", "select_all_campaigns"]:
+    if key not in st.session_state:
+        st.session_state[key] = False
 
 # --- ドリルダウン対応マルチセレクトフィルター ---
 dmin, dmax = df["Date"].min().date(), df["Date"].max().date()
@@ -79,15 +76,15 @@ df_client = df[df["PromotionName"].isin(sel_client)] if sel_client else df.copy(
 with col3:
     cat_all = sorted(df_client["カテゴリ"].dropna().unique())
     if st.button("✅ カテゴリをすべて選択"):
-        st.session_state["select_all_cats"] = True
+        st.session_state["select_all_categories"] = True
     sel_cat = st.multiselect(
         "カテゴリ",
         options=cat_all,
-        default=cat_all if st.session_state["select_all_cats"] else [],
+        default=cat_all if st.session_state["select_all_categories"] else [],
         key="cat_selector"
     )
-    if st.session_state["select_all_cats"]:
-        st.session_state["select_all_cats"] = False
+    if st.session_state["select_all_categories"]:
+        st.session_state["select_all_categories"] = False
 
 df_cat = df_client[df_client["カテゴリ"].isin(sel_cat)] if sel_cat else df_client.copy()
 
