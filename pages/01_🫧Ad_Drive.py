@@ -70,32 +70,44 @@ for key in ["select_all_clients", "select_all_categories", "select_all_campaigns
     if key not in st.session_state:
         st.session_state[key] = False
 
-# --- 上段：日付フィルター ---
+# --- フィルターエリア（分割配置） ---
 dmin, dmax = df["Date"].min().date(), df["Date"].max().date()
-sel_date = st.date_input("🔍 日付フィルター", (dmin, dmax), min_value=dmin, max_value=dmax)
+st.markdown("### 🔍 日付フィルター")
+sel_date = st.date_input("", (dmin, dmax), min_value=dmin, max_value=dmax)
 
-# --- 下段：フィルター（横並び） ---
-col1, col2, col3 = st.columns([1, 1, 2])  # キャンペーン列を広めに
+col1, col2, col3 = st.columns([1, 1, 2])
 
 with col1:
     client_all = sorted(df["PromotionName"].dropna().unique())
-    sel_client = st.multiselect("クライアント", client_all, default=client_all if st.session_state["select_all_clients"] else [], key="client_selector")
-    st.session_state["select_all_clients"] = st.checkbox("すべてのクライアント", value=st.session_state["select_all_clients"])
-
-df_client = df[df["PromotionName"].isin(sel_client)] if sel_client else df.copy()
+    st.session_state["select_all_clients"] = st.checkbox("✅ すべてのクライアント", value=st.session_state["select_all_clients"])
+    sel_client = st.multiselect(
+        "クライアント",
+        options=client_all,
+        default=client_all if st.session_state["select_all_clients"] else [],
+        key="client_selector"
+    )
 
 with col2:
+    df_client = df[df["PromotionName"].isin(sel_client)] if sel_client else df.copy()
     cat_all = sorted(df_client["カテゴリ"].dropna().unique())
-    sel_cat = st.multiselect("カテゴリ", cat_all, default=cat_all if st.session_state["select_all_categories"] else [], key="cat_selector")
-    st.session_state["select_all_categories"] = st.checkbox("すべてのカテゴリ", value=st.session_state["select_all_categories"])
-
-df_cat = df_client[df_client["カテゴリ"].isin(sel_cat)] if sel_cat else df_client.copy()
+    st.session_state["select_all_categories"] = st.checkbox("✅ すべてのカテゴリ", value=st.session_state["select_all_categories"])
+    sel_cat = st.multiselect(
+        "カテゴリ",
+        options=cat_all,
+        default=cat_all if st.session_state["select_all_categories"] else [],
+        key="cat_selector"
+    )
 
 with col3:
+    df_cat = df_client[df_client["カテゴリ"].isin(sel_cat)] if sel_cat else df_client.copy()
     camp_all = sorted(df_cat["CampaignName"].dropna().unique())
-    sel_campaign = st.multiselect("キャンペーン名", camp_all, default=camp_all if st.session_state["select_all_campaigns"] else [], key="camp_selector")
-    st.session_state["select_all_campaigns"] = st.checkbox("すべてのキャンペーン", value=st.session_state["select_all_campaigns"])
-
+    st.session_state["select_all_campaigns"] = st.checkbox("✅ すべてのキャンペーン", value=st.session_state["select_all_campaigns"])
+    sel_campaign = st.multiselect(
+        "キャンペーン名",
+        options=camp_all,
+        default=camp_all if st.session_state["select_all_campaigns"] else [],
+        key="camp_selector"
+    )
 
 
 
