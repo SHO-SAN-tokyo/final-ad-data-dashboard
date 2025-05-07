@@ -80,21 +80,21 @@ col1, col2, col3 = st.columns([1, 1, 2])  # キャンペーン列を広めに
 with col1:
     client_all = sorted(df["PromotionName"].dropna().unique())
     sel_client = st.multiselect("クライアント", client_all, default=client_all if st.session_state["select_all_clients"] else [], key="client_selector")
-    st.session_state["select_all_clients"] = st.checkbox("✅ クライアントをすべて選択", value=st.session_state["select_all_clients"])
+    st.session_state["select_all_clients"] = st.checkbox("すべてのクライアント", value=st.session_state["select_all_clients"])
 
 df_client = df[df["PromotionName"].isin(sel_client)] if sel_client else df.copy()
 
 with col2:
     cat_all = sorted(df_client["カテゴリ"].dropna().unique())
     sel_cat = st.multiselect("カテゴリ", cat_all, default=cat_all if st.session_state["select_all_categories"] else [], key="cat_selector")
-    st.session_state["select_all_categories"] = st.checkbox("✅ カテゴリをすべて選択", value=st.session_state["select_all_categories"])
+    st.session_state["select_all_categories"] = st.checkbox("すべてのカテゴリ", value=st.session_state["select_all_categories"])
 
 df_cat = df_client[df_client["カテゴリ"].isin(sel_cat)] if sel_cat else df_client.copy()
 
 with col3:
     camp_all = sorted(df_cat["CampaignName"].dropna().unique())
     sel_campaign = st.multiselect("キャンペーン名", camp_all, default=camp_all if st.session_state["select_all_campaigns"] else [], key="camp_selector")
-    st.session_state["select_all_campaigns"] = st.checkbox("✅ キャンペーン名をすべて選択", value=st.session_state["select_all_campaigns"])
+    st.session_state["select_all_campaigns"] = st.checkbox("すべてのキャンペーン", value=st.session_state["select_all_campaigns"])
 
 
 
