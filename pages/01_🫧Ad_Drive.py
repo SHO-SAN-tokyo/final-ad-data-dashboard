@@ -28,12 +28,25 @@ preselected_client_id = query_params.get("client_id", None)
 query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data"
 msg_slot = st.empty()
 
-with msg_slot:
-    with st.spinner("🔄 データを取得中..."):
-        df = bq.query(query).to_dataframe()
+# データ取得中に表示（緑枠のようなHTML）
+msg_slot.markdown("""
+    <div style='background-color:#e6f4ea;padding:10px 20px;border-radius:8px;color:#10733f;
+                border:1px solid #b2e2c4;font-size:16px;margin-bottom:10px;'>
+        🔄️ データ取得中...
+    </div>
+""", unsafe_allow_html=True)
 
-# 取得後に固定メッセージを表示（高さを一定に保つ）
-msg_slot.success("✅ データ取得完了")
+# データ取得処理
+query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data"
+df = bq.query(query).to_dataframe()
+
+# データ取得後にメッセージを変更
+msg_slot.markdown("""
+    <div style='background-color:#e6f4ea;padding:10px 20px;border-radius:8px;color:#10733f;
+                border:1px solid #b2e2c4;font-size:16px;margin-bottom:10px;'>
+        ✅ データ取得完了
+    </div>
+""", unsafe_allow_html=True)
 if df.empty:
     st.warning("⚠️ データがありません"); st.stop()
 
