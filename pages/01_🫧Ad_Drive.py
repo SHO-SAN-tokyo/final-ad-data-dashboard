@@ -47,29 +47,28 @@ df["カテゴリ"] = df.get("カテゴリ", "").astype(str).str.strip().replace(
 df["Date"] = pd.to_datetime(df.get("Date"), errors="coerce")
 
 # --- ドリルダウン対応のマルチセレクトフィルター ---
-dmin, dmax = df["Date"].min().date(), df["Date"].max().date()
-col1, col2, col3, col4 = st.columns(4)
+with st.expander("🔎 フィルター選択", expanded=True):
+    dmin, dmax = df["Date"].min().date(), df["Date"].max().date()
+    sel_date = st.date_input("📅 日付フィルター", (dmin, dmax), min_value=dmin, max_value=dmax)
 
-with col1:
-    sel_date = st.date_input("日付フィルター", (dmin, dmax), min_value=dmin, max_value=dmax)
+    col1, col2, col3 = st.columns(3)
 
-with col2:
-    client_all = sorted(df["PromotionName"].dropna().unique())
-    sel_client = st.multiselect("クライアント", options=client_all, default=client_all)
+    with col1:
+        client_all = sorted(df["PromotionName"].dropna().unique())
+        sel_client = st.multiselect("👤 クライアント", client_all, default=[])
 
-# PromotionNameで絞る
-df_client = df[df["PromotionName"].isin(sel_client)] if sel_client else df.copy()
+    df_client = df[df["PromotionName"].isin(sel_client)] if sel_client else df.copy()
 
-with col3:
-    cat_all = sorted(df_client["カテゴリ"].dropna().unique())
-    sel_cat = st.multiselect("カテゴリ", options=cat_all, default=cat_all)
+    with col2:
+        cat_all = sorted(df_client["カテゴリ"].dropna().unique())
+        sel_cat = st.multiselect("📂 カテゴリ", cat_all, default=[])
 
-# カテゴリでさらに絞る
-df_cat = df_client[df_client["カテゴリ"].isin(sel_cat)] if sel_cat else df_client.copy()
+    df_cat = df_client[df_client["カテゴリ"].isin(sel_cat)] if sel_cat else df_client.copy()
 
-with col4:
-    camp_all = sorted(df_cat["CampaignName"].dropna().unique())
-    sel_campaign = st.multiselect("キャンペーン名", options=camp_all, default=camp_all)
+    with col3:
+        camp_all = sorted(df_cat["CampaignName"].dropna().unique())
+        sel_campaign = st.multiselect("📢 キャンペーン名", camp_all, default=[])
+
 
 
 
