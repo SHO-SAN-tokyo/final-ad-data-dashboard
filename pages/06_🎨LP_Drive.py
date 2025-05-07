@@ -125,10 +125,11 @@ agg["CPM"] = agg["CPM"].apply(lambda x: f"{x:,.0f}円" if pd.notna(x) else "-")
 st.markdown("<h4 style='margin-top:2rem;'>📊 LPごとの集計</h4>", unsafe_allow_html=True)
 
 for _, row in agg.sort_values("Cost", ascending=False).iterrows():
-    st.markdown(f"""
-    <div style='margin-bottom:1.5rem;'>
+    card_html = f"""
+    <div style='border:1px solid #ddd; border-radius:10px; padding:16px; margin-bottom:16px; background:#fdfdfd;'>
       <a href="{row['CreativeDestinationUrl']}" target="_blank">🔗 {row['CreativeDestinationUrl']}</a><br>
       <b>カテゴリ：</b>{row['カテゴリ']}　<b>広告目的：</b>{row['広告目的']}　<b>CPA評価：</b>{row['CPA評価']}　<b>CVR評価：</b>{row['CVR評価']}<br>
       <b>消化金額：</b>{row['消化金額']}　<b>CV数：</b>{row['CV数']}　<b>CPA：</b>{row['CPA']}　<b>CTR：</b>{row['CTR']}　<b>CVR：</b>{row['CVR']}　<b>CPC：</b>{row['CPC']}　<b>CPM：</b>{row['CPM']}
     </div>
-    """, unsafe_allow_html=True)
+    """
+    st.markdown(card_html, unsafe_allow_html=True)
