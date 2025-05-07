@@ -46,7 +46,7 @@ if preselected_client_id and preselected_client_id in client_name_map:
 df["カテゴリ"] = df.get("カテゴリ", "").astype(str).str.strip().replace("", "未設定").fillna("未設定")
 df["Date"] = pd.to_datetime(df.get("Date"), errors="coerce")
 
-# --- ドリルダウン対応フィルター ---
+# --- ドリルダウン対応のマルチセレクトフィルター ---
 dmin, dmax = df["Date"].min().date(), df["Date"].max().date()
 col1, col2, col3, col4 = st.columns(4)
 
@@ -54,25 +54,26 @@ with col1:
     sel_date = st.date_input("日付フィルター", (dmin, dmax), min_value=dmin, max_value=dmax)
 
 with col2:
-    client_opts = ["すべて"] + sorted(df["PromotionName"].dropna().unique())
-    sel_client = st.selectbox("クライアント", client_opts)
+    client_all = sorted(df["PromotionName"].dropna().unique())
+    sel_client = st.multiselect("クライアント", options=client_all, default=client_all)
 
-# クライアントで絞り込んだDataFrame
-df_client = df if sel_client == "すべて" else df[df["PromotionName"] == sel_client]
+# PromotionNameで絞る
+df_client = df[df["PromotionName"].isin(sel_client)] if sel_client else df.copy()
 
 with col3:
-    cat_opts = ["すべて"] + sorted(df_client["カテゴリ"].dropna().unique())
-    sel_cat = st.selectbox("カテゴリ", cat_opts)
+    cat_all = sorted(df_client["カテゴリ"].dropna().unique())
+    sel_cat = st.multiselect("カテゴリ", options=cat_all, default=cat_all)
 
-# クライアント＋カテゴリで絞り込んだDataFrame
-df_cat = df_client if sel_cat == "すべて" else df_client[df_client["カテゴリ"] == sel_cat]
+# カテゴリでさらに絞る
+df_cat = df_client[df_client["カテゴリ"].isin(sel_cat)] if sel_cat else df_client.copy()
 
 with col4:
-    campaign_opts = ["すべて"] + sorted(df_cat["CampaignName"].dropna().unique())
-    sel_campaign = st.selectbox("キャンペーン名", campaign_opts)
+    camp_all = sorted(df_cat["CampaignName"].dropna().unique())
+    sel_campaign = st.multiselect("キャンペーン名", options=camp_all, default=camp_all)
 
 
-# フィルター適用
+
+# --- フィルター適用 ---
 if isinstance(sel_date, (list, tuple)) and len(sel_date) == 2:
     s, e = map(pd.to_datetime, sel_date)
     df = df[(df["Date"].dt.date >= s.date()) & (df["Date"].dt.date <= e.date())]
@@ -80,12 +81,13 @@ else:
     d = pd.to_datetime(sel_date).date()
     df = df[df["Date"].dt.date == d]
 
-if sel_client != "すべて":
-    df = df[df["PromotionName"] == sel_client]
-if sel_cat != "すべて":
-    df = df[df["カテゴリ"] == sel_cat]
-if sel_campaign != "すべて":
-    df = df[df["CampaignName"] == sel_campaign]
+if sel_client:
+    df = df[df["PromotionName"].isin(sel_client)]
+if sel_cat:
+    df = df[df["カテゴリ"].isin(sel_cat)]
+if sel_campaign:
+    df = df[df["CampaignName"].isin(sel_campaign)]
+
 
 for i in range(1, 61):
     c = str(i)
