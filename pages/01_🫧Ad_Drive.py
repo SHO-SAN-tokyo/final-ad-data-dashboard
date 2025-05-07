@@ -10,7 +10,7 @@ st.markdown("""
     <style>
       .banner-card{padding:12px 12px 20px;border:1px solid #e6e6e6;border-radius:12px;
                    background:#fafafa;height:100%;margin-bottom:14px;}
-      .banner-card img{width:100%;height:180px;object-fit:cover;border-radius:8px;cursor:pointer;}
+      .banner-card img{width:100%;height:203px;object-fit:cover;border-radius:8px;cursor:pointer;}
       .banner-caption{margin-top:8px;font-size:14px;line-height:1.6;text-align:left;}
       .gray-text{color:#888;}
     </style>
