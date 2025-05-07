@@ -46,21 +46,31 @@ if preselected_client_id and preselected_client_id in client_name_map:
 df["カテゴリ"] = df.get("カテゴリ", "").astype(str).str.strip().replace("", "未設定").fillna("未設定")
 df["Date"] = pd.to_datetime(df.get("Date"), errors="coerce")
 
-# --- フィルターエリア（ページ上部） ---
+# --- ドリルダウン対応フィルター ---
 dmin, dmax = df["Date"].min().date(), df["Date"].max().date()
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     sel_date = st.date_input("日付フィルター", (dmin, dmax), min_value=dmin, max_value=dmax)
+
 with col2:
-    opts = ["すべて"] + sorted(df["PromotionName"].dropna().unique())
-    sel_client = st.selectbox("クライアント", opts)
+    client_opts = ["すべて"] + sorted(df["PromotionName"].dropna().unique())
+    sel_client = st.selectbox("クライアント", client_opts)
+
+# クライアントで絞り込んだDataFrame
+df_client = df if sel_client == "すべて" else df[df["PromotionName"] == sel_client]
+
 with col3:
-    opts = ["すべて"] + sorted(df["カテゴリ"].dropna().unique())
-    sel_cat = st.selectbox("カテゴリ", opts)
+    cat_opts = ["すべて"] + sorted(df_client["カテゴリ"].dropna().unique())
+    sel_cat = st.selectbox("カテゴリ", cat_opts)
+
+# クライアント＋カテゴリで絞り込んだDataFrame
+df_cat = df_client if sel_cat == "すべて" else df_client[df_client["カテゴリ"] == sel_cat]
+
 with col4:
-    opts = ["すべて"] + sorted(df["CampaignName"].dropna().unique())
-    sel_campaign = st.selectbox("キャンペーン名", opts)
+    campaign_opts = ["すべて"] + sorted(df_cat["CampaignName"].dropna().unique())
+    sel_campaign = st.selectbox("キャンペーン名", campaign_opts)
+
 
 # フィルター適用
 if isinstance(sel_date, (list, tuple)) and len(sel_date) == 2:
