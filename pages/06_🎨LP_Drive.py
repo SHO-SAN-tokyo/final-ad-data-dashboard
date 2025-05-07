@@ -4,7 +4,7 @@ import pandas as pd, numpy as np
 
 # --- ページ設定 ---
 st.set_page_config(page_title="LP_Drive", layout="wide")
-st.title("🎨 LP別の広告成果（URLごと）")
+st.title("🎨 LP別の広告成果")
 
 # --- 認証 & 接続 ---
 cred = dict(st.secrets["connections"]["bigquery"])
@@ -122,7 +122,7 @@ agg["CPC"] = agg["CPC"].apply(lambda x: f"{x:,.0f}円" if pd.notna(x) else "-")
 agg["CPM"] = agg["CPM"].apply(lambda x: f"{x:,.0f}円" if pd.notna(x) else "-")
 
 # --- 表示 ---
-st.markdown("<h4 style='margin-top:2rem;'>📊 LPごとの集計</h4>", unsafe_allow_html=True)
+st.markdown("<h4 style='margin-top:2rem;'>📊 LP（URL）ごとの集計</h4>", unsafe_allow_html=True)
 
 for _, row in agg.sort_values("Cost", ascending=False).iterrows():
     card_html = f"""
