@@ -46,28 +46,56 @@ if preselected_client_id and preselected_client_id in client_name_map:
 df["カテゴリ"] = df.get("カテゴリ", "").astype(str).str.strip().replace("", "未設定").fillna("未設定")
 df["Date"] = pd.to_datetime(df.get("Date"), errors="coerce")
 
-# --- ドリルダウン対応のマルチセレクトフィルター ---
-with st.expander("🔎 フィルター選択", expanded=True):
-    dmin, dmax = df["Date"].min().date(), df["Date"].max().date()
-    sel_date = st.date_input("📅 日付フィルター", (dmin, dmax), min_value=dmin, max_value=dmax)
+# --- ドリルダウン対応マルチセレクトフィルター ---
+dmin, dmax = df["Date"].min().date(), df["Date"].max().date()
+col1, col2, col3, col4 = st.columns(4)
 
-    col1, col2, col3 = st.columns(3)
+with col1:
+    sel_date = st.date_input("🔍日付フィルター", (dmin, dmax), min_value=dmin, max_value=dmax)
 
-    with col1:
-        client_all = sorted(df["PromotionName"].dropna().unique())
-        sel_client = st.multiselect("👤 クライアント", client_all, default=[])
+with col2:
+    client_all = sorted(df["PromotionName"].dropna().unique())
+    if st.button("✅ クライアントをすべて選択"):
+        st.session_state["select_all_clients"] = True
+    sel_client = st.multiselect(
+        "クライアント",
+        options=client_all,
+        default=client_all if st.session_state["select_all_clients"] else [],
+        key="client_selector"
+    )
+    if st.session_state["select_all_clients"]:
+        st.session_state["select_all_clients"] = False
 
-    df_client = df[df["PromotionName"].isin(sel_client)] if sel_client else df.copy()
+df_client = df[df["PromotionName"].isin(sel_client)] if sel_client else df.copy()
 
-    with col2:
-        cat_all = sorted(df_client["カテゴリ"].dropna().unique())
-        sel_cat = st.multiselect("📂 カテゴリ", cat_all, default=[])
+with col3:
+    cat_all = sorted(df_client["カテゴリ"].dropna().unique())
+    if st.button("✅ カテゴリをすべて選択"):
+        st.session_state["select_all_cats"] = True
+    sel_cat = st.multiselect(
+        "カテゴリ",
+        options=cat_all,
+        default=cat_all if st.session_state["select_all_cats"] else [],
+        key="cat_selector"
+    )
+    if st.session_state["select_all_cats"]:
+        st.session_state["select_all_cats"] = False
 
-    df_cat = df_client[df_client["カテゴリ"].isin(sel_cat)] if sel_cat else df_client.copy()
+df_cat = df_client[df_client["カテゴリ"].isin(sel_cat)] if sel_cat else df_client.copy()
 
-    with col3:
-        camp_all = sorted(df_cat["CampaignName"].dropna().unique())
-        sel_campaign = st.multiselect("📢 キャンペーン名", camp_all, default=[])
+with col4:
+    camp_all = sorted(df_cat["CampaignName"].dropna().unique())
+    if st.button("✅ キャンペーン名をすべて選択"):
+        st.session_state["select_all_campaigns"] = True
+    sel_campaign = st.multiselect(
+        "キャンペーン名",
+        options=camp_all,
+        default=camp_all if st.session_state["select_all_campaigns"] else [],
+        key="camp_selector"
+    )
+    if st.session_state["select_all_campaigns"]:
+        st.session_state["select_all_campaigns"] = False
+
 
 
 
