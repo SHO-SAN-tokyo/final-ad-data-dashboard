@@ -26,11 +26,14 @@ preselected_client_id = query_params.get("client_id", None)
 
 # --- データ取得 ---
 query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data"
-with st.container():
-    st.markdown("<div style='height:30px'></div>", unsafe_allow_html=True)  # 高さ確保
+msg_slot = st.empty()
 
+with msg_slot:
     with st.spinner("🔄 データを取得中..."):
         df = bq.query(query).to_dataframe()
+
+# 取得後に固定メッセージを表示（高さを一定に保つ）
+msg_slot.success("✅ データ取得完了")
 if df.empty:
     st.warning("⚠️ データがありません"); st.stop()
 
