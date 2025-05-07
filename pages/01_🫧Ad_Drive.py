@@ -46,6 +46,14 @@ if preselected_client_id and preselected_client_id in client_name_map:
 df["カテゴリ"] = df.get("カテゴリ", "").astype(str).str.strip().replace("", "未設定").fillna("未設定")
 df["Date"] = pd.to_datetime(df.get("Date"), errors="coerce")
 
+# --- セッションステートの初期化 ---
+if "select_all_clients" not in st.session_state:
+    st.session_state["select_all_clients"] = False
+if "select_all_categories" not in st.session_state:
+    st.session_state["select_all_categories"] = False
+if "select_all_campaigns" not in st.session_state:
+    st.session_state["select_all_campaigns"] = False
+
 # --- ドリルダウン対応マルチセレクトフィルター ---
 dmin, dmax = df["Date"].min().date(), df["Date"].max().date()
 col1, col2, col3, col4 = st.columns(4)
@@ -95,9 +103,6 @@ with col4:
     )
     if st.session_state["select_all_campaigns"]:
         st.session_state["select_all_campaigns"] = False
-
-
-
 
 
 # --- フィルター適用 ---
