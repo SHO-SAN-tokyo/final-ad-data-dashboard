@@ -26,8 +26,9 @@ preselected_client_id = query_params.get("client_id", None)
 
 # --- データ取得 ---
 query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data"
-spinner_area = st.empty()  # ← ここで領域だけ先に確保する
-with spinner_area.container():
+with st.container():
+    st.markdown("<div style='height:30px'></div>", unsafe_allow_html=True)  # 高さ確保
+
     with st.spinner("🔄 データを取得中..."):
         df = bq.query(query).to_dataframe()
 if df.empty:
