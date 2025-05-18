@@ -28,7 +28,7 @@ preselected_client_id = query_params.get("client_id", None)
 query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data"
 msg_slot = st.empty()
 
-# データ取得中に表示（緑枠のようなHTML）
+# データ取得中に表示（緑枠のようなHTML） 
 msg_slot.markdown("""
     <div style='background-color:#e6f4ea;padding:10px 20px;border-radius:8px;color:#10733f;
                 border:1px solid #b2e2c4;font-size:16px;margin-bottom:10px;'>
