@@ -247,7 +247,13 @@ with c8:
     st.markdown(f"<div class='metric-card'>クリック<div class='metric-small'>{clk}</div></div>", unsafe_allow_html=True)
 
 
-# --- バナー表示（いつもの方式） ---
+# --- バナー表示（100件制限・クラッシュ防止済） ---
+st.markdown("<div style='margin-top:3.5rem;'></div>", unsafe_allow_html=True)
+st.subheader("💠配信バナー")
+
+# 最大100件まで表示
+img_display_limit = 100
+
 img = df[df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
 img["AdName"] = img["AdName"].astype(str).str.strip()
 img["CampaignId"] = img["CampaignId"].astype(str).str.strip()
@@ -280,9 +286,6 @@ latest = latest.merge(
 latest["CPA_sort"] = latest.apply(lambda r: div(r["Cost_agg"], r["CV件数"]), axis=1)
 sum_map = agg.set_index(["CampaignId", "AdName"]).to_dict("index")
 
-st.markdown("<div style='margin-top:3.5rem;'></div>", unsafe_allow_html=True)
-st.subheader("💠配信バナー")
-
 opt = st.radio("並び替え基準",
                ["広告番号順", "コンバージョン数の多い順", "CPAの低い順"])
 if opt == "コンバージョン数の多い順":
@@ -291,6 +294,9 @@ elif opt == "CPAの低い順":
     latest = latest[latest["CPA_sort"].notna()].sort_values("CPA_sort")
 else:
     latest = latest.sort_values("AdNum")
+
+# ✅ 表示件数を制限
+latest = latest.head(img_display_limit)
 
 def urls(raw): return [u for u in re.split(r"[,\\s]+", str(raw or "")) if u.startswith("http")]
 
@@ -334,3 +340,4 @@ for i, (_, r) in enumerate(latest.iterrows()):
     """
     with cols[i % 5]:
         st.markdown(card_html, unsafe_allow_html=True)
+
