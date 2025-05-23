@@ -24,6 +24,7 @@ if df.empty:
 # --- 前処理 ---
 df["配信月"] = df["配信月"].astype(str)
 df["カテゴリ"] = df["カテゴリ"].fillna("未設定")
+df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
 
 # --- フィルター ---
 col1, col2, col3, col4 = st.columns(4)
@@ -49,26 +50,42 @@ if sel_goal:
 if sel_campaign:
     df = df[df["キャンペーン名"].isin(sel_campaign)]
 
+# --- 最新行だけ残す（画像用） ---
+latest_df = df.sort_values("配信月_dt").drop_duplicates(subset=["CampaignId", "AdName", "配信月"], keep="last")
+
+# --- 数値は集計してからマージ ---
+agg_df = (
+    df.groupby(["CampaignId", "AdName", "配信月"])
+      .agg({"Cost": "sum", "Impressions": "sum", "Clicks": "sum"})
+      .reset_index()
+)
+latest_df = latest_df.merge(
+    agg_df,
+    on=["CampaignId", "AdName", "配信月"],
+    how="left",
+    suffixes=("", "_agg")
+)
+
 # --- 並び順選択 ---
 st.markdown("<div style='margin-top:3.5rem;'></div>", unsafe_allow_html=True)
 st.subheader("💠配信バナー")
 opt = st.radio("並び替え基準", ["広告番号順", "CV数の多い順", "CPAの低い順"])
 
 if opt == "CV数の多い順":
-    df = df[df["CV数"] > 0].sort_values("CV数", ascending=False)
+    latest_df = latest_df[latest_df["CV数"] > 0].sort_values("CV数", ascending=False)
 elif opt == "CPAの低い順":
-    df = df[df["CPA"].notna()].sort_values("CPA")
+    latest_df = latest_df[latest_df["CPA"].notna()].sort_values("CPA")
 else:
-    df = df.sort_values("banner_number")
+    latest_df = latest_df.sort_values("banner_number")
 
 # --- 表示上限 ---
-df = df.head(100)
+latest_df = latest_df.head(100)
 
 def urls(raw):
     return [u for u in re.split(r"[,\\s]+", str(raw or "")) if u.startswith("http")]
 
 cols = st.columns(5, gap="small")
-for i, (_, r) in enumerate(df.iterrows()):
+for i, (_, r) in enumerate(latest_df.iterrows()):
     cost = r.get("Cost", 0)
     imp = r.get("Impressions", 0)
     clk = r.get("Clicks", 0)
