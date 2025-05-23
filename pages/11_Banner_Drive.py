@@ -36,6 +36,8 @@ with col3:
 with col4:
     sel_goal = st.multiselect("広告目的", sorted(df["広告目的"].dropna().unique()))
 
+sel_campaign = st.multiselect("キャンペーン名", sorted(df["キャンペーン名"].dropna().unique()))
+
 if sel_client:
     df = df[df["client_name"].isin(sel_client)]
 if sel_month:
@@ -44,6 +46,8 @@ if sel_cat:
     df = df[df["カテゴリ"].isin(sel_cat)]
 if sel_goal:
     df = df[df["広告目的"].isin(sel_goal)]
+if sel_campaign:
+    df = df[df["キャンペーン名"].isin(sel_campaign)]
 
 # --- 並び順選択 ---
 st.markdown("<div style='margin-top:3.5rem;'></div>", unsafe_allow_html=True)
