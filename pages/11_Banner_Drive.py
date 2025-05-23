@@ -14,7 +14,7 @@ client = bigquery.Client.from_service_account_info(cred)
 
 # --- データ取得 ---
 query = """
-SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Banner_Drive_Ready`
+SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Banner_Ready_Combined`
 """
 df = client.query(query).to_dataframe()
 if df.empty:
@@ -56,7 +56,7 @@ st.subheader("💠配信バナー")
 opt = st.radio("並び替え基準", ["広告番号順", "CV数の多い順", "CPAの低い順"])
 
 if opt == "CV数の多い順":
-    df = df[df["CV数"] > 0].sort_values("CV数", ascending=False)
+    df = df[df["cv_value"] > 0].sort_values("cv_value", ascending=False)
 elif opt == "CPAの低い順":
     df = df[df["CPA"].notna()].sort_values("CPA")
 else:
@@ -73,7 +73,7 @@ for i, (_, r) in enumerate(df.iterrows()):
     cost = r.get("Cost", 0)
     imp = r.get("Impressions", 0)
     clk = r.get("Clicks", 0)
-    cv = int(r["CV数"]) if pd.notna(r["CV数"]) else 0
+    cv = int(r["cv_value"]) if pd.notna(r["cv_value"]) else 0
     cpa = r.get("CPA")
     ctr = r.get("CTR")
     text = r.get("Description1ByAdType", "")
