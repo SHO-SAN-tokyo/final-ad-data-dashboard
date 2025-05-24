@@ -161,19 +161,19 @@ for i, (_, r) in enumerate(df_display.iterrows()):
     with cols[i % 5]:
         st.markdown(card_html, unsafe_allow_html=True)
 
-# --- CSS ---
+# --- CSS --- 末尾に貼り付け
 st.markdown("""
     <style>
       .scorecard {
-        background-color: #f5f5f5;
-        color: #333;
-        font-weight: bold;
-        font-size: 28px;
-        padding: 10px 20px;
-        border-radius: 12px;
-        text-align: center;
-        margin-bottom: 10px;
-        box-shadow: 1px 1px 5px rgba(0,0,0,0.05);
+        background-color: #f8f8f8;
+        color: #222;
+        font-weight: 600;
+        font-size: 24px;
+        padding: 10px 16px;
+        border-radius: 8px;
+        text-align: left;
+        margin-bottom: 6px;
+        border: 1px solid #ddd;
       }
       .banner-card {
         padding:12px 12px 20px;
@@ -199,3 +199,4 @@ st.markdown("""
       .gray-text { color:#888; }
     </style>
 """, unsafe_allow_html=True)
+
