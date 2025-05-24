@@ -57,10 +57,10 @@ df_display = df[df["CloudStorageUrl"].notnull()].head(100)
 # --- 絞り込み条件の表示 ---
 st.markdown("### 🔎 選択中の絞り込み条件")
 st.markdown(
-    f"📅 配信月：{df_filtered['配信月'].min()} 〜 {df_filtered['配信月'].max()}　"
-    f"👤 クライアント：{sel_client if sel_client else 'すべて'}　"
-    f"📁 カテゴリ：{sel_cat if sel_cat else 'すべて'}　"
-    f"📣 キャンペーン名：{sel_campaign if sel_campaign else 'すべて'}"
+    f"📅 日付：{df_filtered['配信月'].min()} 〜 {df_filtered['配信月'].max()}　"
+    f"👤 クライアント：{sel_client if sel_client else '未選択'}　"
+    f"📁 カテゴリ：{sel_cat if sel_cat else '未選択'}　"
+    f"📣 キャンペーン名：{sel_campaign if sel_campaign else '未選択'}"
 )
 
 # --- スコアカード集計 ---
@@ -75,7 +75,7 @@ ctr = total_clicks / total_impressions if total_impressions else None
 cpm = (total_cost * 1000 / total_impressions) if total_impressions else None
 
 # --- スコアカード表示 ---
-st.markdown("### 📊 この絞り込み条件での広告パフォーマンス")
+st.markdown("### 🛀 広告数値")
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -135,7 +135,7 @@ for i, (_, r) in enumerate(df_display.iterrows()):
     canva_html = (" ,".join(
         f'<a href="{u}" target="_blank">canvaURL{i+1 if len(lnks)>1 else ""}↗️</a>'
         for i, u in enumerate(lnks))
-        if lnks else '<span class="gray-text">canvaURL：なし</span>'
+        if lnks else '<span class="gray-text">canvaURL：なし❌</span>'
     )
 
     caption = [
@@ -180,13 +180,13 @@ st.markdown("""
         border:1px solid #e6e6e6;
         border-radius:12px;
         background:#fafafa;
-        height:100%;
+        height:auto;
         margin-bottom:14px;
       }
       .banner-card img {
         width:100%;
-        height:203px;
-        object-fit:cover;
+        height:auto;
+        object-fit:contain;
         border-radius:8px;
         cursor:pointer;
       }
