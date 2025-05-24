@@ -12,7 +12,7 @@ cred = dict(st.secrets["connections"]["bigquery"])
 cred["private_key"] = cred["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(cred)
 
-# --- データ取得 ---
+# --- データ取得  ---
 query = """
 SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Banner_Ready_Combined`
 """
