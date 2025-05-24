@@ -50,26 +50,49 @@ if sel_goal:
 if sel_campaign:
     df = df[df["キャンペーン名"].isin(sel_campaign)]
 
+# --- フィルター後のDataFrameを2分割 ---
+df_filtered = df.copy()  # 集計用（CloudStorageUrl有無問わず）
+df_display = df[df["CloudStorageUrl"].notnull()].head(100)  # 表示用（画像あり100件）
+
+# --- 統計スコアカード ---
+total_cost = df_filtered["Cost"].sum()
+total_clicks = df_filtered["Clicks"].sum()
+total_cv = df_filtered["cv_value"].sum()
+avg_cpa = total_cost / total_cv if total_cv else None
+avg_ctr = total_clicks / df_filtered["Impressions"].sum() if df_filtered["Impressions"].sum() else None
+
+st.markdown("### 📊 この絞り込み条件での広告パフォーマンス")
+
+score1, score2, score3, score4, score5 = st.columns(5)
+with score1:
+    st.metric("消化金額 (Cost)", f"{total_cost:,.0f} 円")
+with score2:
+    st.metric("クリック数", f"{total_clicks:,.0f}")
+with score3:
+    st.metric("CV数", f"{int(total_cv):,}")
+with score4:
+    st.metric("平均CPA", f"{avg_cpa:,.0f} 円" if avg_cpa else "-")
+with score5:
+    st.metric("平均CTR", f"{avg_ctr * 100:.2f} %" if avg_ctr else "-")
+
 # --- 並び順選択 ---
 st.markdown("<div style='margin-top:3.5rem;'></div>", unsafe_allow_html=True)
 st.subheader("💠配信バナー")
 opt = st.radio("並び替え基準", ["広告番号順", "CV数の多い順", "CPAの低い順"])
 
 if opt == "CV数の多い順":
-    df = df[df["cv_value"] > 0].sort_values("cv_value", ascending=False)
+    df_display = df_display[df_display["cv_value"] > 0].sort_values("cv_value", ascending=False)
 elif opt == "CPAの低い順":
-    df = df[df["CPA"].notna()].sort_values("CPA")
+    df_display = df_display[df_display["CPA"].notna()].sort_values("CPA")
 else:
-    df = df.sort_values("banner_number")
+    df_display = df_display.sort_values("banner_number")
 
-# --- 表示上限 ---
-df = df.head(100)
-
+# --- 表示 ---
 def urls(raw):
     return [u for u in re.split(r"[,\\s]+", str(raw or "")) if u.startswith("http")]
 
 cols = st.columns(5, gap="small")
-for i, (_, r) in enumerate(df.iterrows()):
+for i, (_, r) in enumerate(df_display.iterrows()):
     cost = r.get("Cost", 0)
     imp = r.get("Impressions", 0)
     clk = r.get("Clicks", 0)
