@@ -77,33 +77,36 @@ cpm = (total_cost * 1000 / total_impressions) if total_impressions else None
 # --- スコアカード表示 ---
 st.markdown("### 🛀 広告数値")
 
+# 1段目
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.markdown("#### CPA - 獲得単価")
-    st.markdown(f"<div class='scorecard'>{cpa:,.0f}円</div>" if cpa else "<div class='scorecard'>-</div>", unsafe_allow_html=True)
+    st.markdown("<div class='scorecard-label'>CPA - 獲得単価</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{cpa:,.0f}円</div>" if cpa else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
 with col2:
-    st.markdown("#### コンバージョン数")
-    st.markdown(f"<div class='scorecard'>{int(total_cv):,}</div>", unsafe_allow_html=True)
+    st.markdown("<div class='scorecard-label'>コンバージョン数</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{int(total_cv):,}</div>", unsafe_allow_html=True)
 with col3:
-    st.markdown("#### CVR - コンバージョン率")
-    st.markdown(f"<div class='scorecard'>{cvr * 100:.2f}%</div>" if cvr else "<div class='scorecard'>-</div>", unsafe_allow_html=True)
+    st.markdown("<div class='scorecard-label'>CVR - コンバージョン率</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{cvr * 100:.2f}%</div>" if cvr else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
 
+# 2段目
 col4, col5, col6, col7, col8 = st.columns(5)
 with col4:
-    st.markdown("#### 消化金額")
-    st.markdown(f"<div class='scorecard'>{total_cost:,.0f}円</div>", unsafe_allow_html=True)
+    st.markdown("<div class='scorecard-label'>消化金額</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{total_cost:,.0f}円</div>", unsafe_allow_html=True)
 with col5:
-    st.markdown("#### インプレッション")
-    st.markdown(f"<div class='scorecard'>{int(total_impressions):,}</div>", unsafe_allow_html=True)
+    st.markdown("<div class='scorecard-label'>インプレッション</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{int(total_impressions):,}</div>", unsafe_allow_html=True)
 with col6:
-    st.markdown("#### CTR - クリック率")
-    st.markdown(f"<div class='scorecard'>{ctr * 100:.2f}%</div>" if ctr else "<div class='scorecard'>-</div>", unsafe_allow_html=True)
+    st.markdown("<div class='scorecard-label'>CTR - クリック率</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{ctr * 100:.2f}%</div>" if ctr else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
 with col7:
-    st.markdown("#### CPM")
-    st.markdown(f"<div class='scorecard'>{cpm:,.0f}円</div>" if cpm else "<div class='scorecard'>-</div>", unsafe_allow_html=True)
+    st.markdown("<div class='scorecard-label'>CPM</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{cpm:,.0f}円</div>" if cpm else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
 with col8:
-    st.markdown("#### クリック")
-    st.markdown(f"<div class='scorecard'>{int(total_clicks):,}</div>", unsafe_allow_html=True)
+    st.markdown("<div class='scorecard-label'>クリック</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{int(total_clicks):,}</div>", unsafe_allow_html=True)
+
 
 # --- 並び順選択 ---
 st.markdown("<div style='margin-top:3.5rem;'></div>", unsafe_allow_html=True)
@@ -164,16 +167,20 @@ for i, (_, r) in enumerate(df_display.iterrows()):
 # --- CSS --- 末尾に貼り付け
 st.markdown("""
     <style>
-      .scorecard {
-        background-color: #f8f8f8;
-        color: #222;
-        font-weight: 600;
-        font-size: 24px;
-        padding: 10px 16px;
-        border-radius: 8px;
+      .scorecard-label {
+        font-size: 14px;
+        color: #555;
+        margin-bottom: 4px;
+        font-weight: 500;
         text-align: left;
-        margin-bottom: 6px;
-        border: 1px solid #ddd;
+      }
+      .scorecard-value {
+        font-size: 30px;
+        font-weight: bold;
+        color: #111;
+        text-align: left;
+        line-height: 1.2;
+        margin-bottom: 12px;
       }
       .banner-card {
         padding:12px 12px 20px;
