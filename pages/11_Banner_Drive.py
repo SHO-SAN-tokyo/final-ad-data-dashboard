@@ -216,7 +216,7 @@ st.markdown("""
   /* 🌙 ダークモード用スタイル */
   @media (prefers-color-scheme: dark) {
     .scorecard-label {
-      color: #ccc;
+      color: #ccc !important;
     }
     .scorecard-value {
       color: #fff !important;
