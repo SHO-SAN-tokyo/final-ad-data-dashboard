@@ -57,7 +57,7 @@ df_display = df[df["CloudStorageUrl"].notnull()].head(100)
 # --- 絞り込み条件の表示 ---
 st.markdown("### 🔎 選択中の絞り込み条件")
 st.markdown(
-    f"📅 日付：{df_filtered['配信月'].min()} 〜 {df_filtered['配信月'].max()}　"
+    f"📅 配信月：{df_filtered['配信月'].min()} 〜 {df_filtered['配信月'].max()}　"
     f"👤 クライアント：{sel_client if sel_client else '未選択'}　"
     f"📁 カテゴリ：{sel_cat if sel_cat else '未選択'}　"
     f"📣 キャンペーン名：{sel_campaign if sel_campaign else '未選択'}"
@@ -75,7 +75,7 @@ ctr = total_clicks / total_impressions if total_impressions else None
 cpm = (total_cost * 1000 / total_impressions) if total_impressions else None
 
 # --- スコアカード表示 ---
-st.markdown("### 🛀 広告数値")
+st.markdown("### 📊 この絞り込み条件での広告パフォーマンス")
 
 # 🧭 上段：5等分して 3つだけ使用（左寄せ＆幅揃え）
 col1, col2, col3, _, _ = st.columns(5)
