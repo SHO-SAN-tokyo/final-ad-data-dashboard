@@ -1,322 +1,138 @@
 import streamlit as st
+import pandas as pd
 from google.cloud import bigquery
-import pandas as pd, numpy as np, re
+import re
 
-# --- ページ設定 & CSS ---
-st.set_page_config(page_title="Ad_Drive", layout="wide")
-st.title("🫧 Ad Drive")
+# --- ページ設定 ---
+st.set_page_config(page_title="🔸 Banner Drive", layout="wide")
+st.title("🔸 Banner Drive")
 
-st.markdown("""
-    <style>
-      .banner-card{padding:12px 12px 20px;border:1px solid #e6e6e6;border-radius:12px;
-                   background:#fafafa;height:100%;margin-bottom:14px;}
-      .banner-card img{width:100%;height:203px;object-fit:cover;border-radius:8px;cursor:pointer;}
-      .banner-caption{margin-top:8px;font-size:14px;line-height:1.6;text-align:left;}
-      .gray-text{color:#888;}
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- BigQuery認証 & パラメータ取得 ---
+# --- BigQuery 認証 ---
 cred = dict(st.secrets["connections"]["bigquery"])
 cred["private_key"] = cred["private_key"].replace("\\n", "\n")
-bq = bigquery.Client.from_service_account_info(cred)
-
-query_params = st.query_params
-preselected_client_id = query_params.get("client_id", None)
+client = bigquery.Client.from_service_account_info(cred)
 
 # --- データ取得 ---
-query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data"
-msg_slot = st.empty()
-
-# データ取得中に表示（緑枠のようなHTML） 
-msg_slot.markdown("""
-    <div style='background-color:#e6f4ea;padding:10px 20px;border-radius:8px;color:#10733f;
-                border:1px solid #b2e2c4;font-size:16px;margin-bottom:10px;'>
-        🔄️ データ取得中...
-    </div>
-""", unsafe_allow_html=True)
-
-# データ取得処理
-query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data"
-df = bq.query(query).to_dataframe()
-
-# データ取得後にメッセージを変更
-msg_slot.markdown("""
-    <div style='background-color:#e6f4ea;padding:10px 20px;border-radius:8px;color:#10733f;
-                border:1px solid #b2e2c4;font-size:16px;margin-bottom:10px;'>
-        ✅ データ取得完了
-    </div>
-""", unsafe_allow_html=True)
+query = """
+SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Banner_Ready_Combined`
+"""
+df = client.query(query).to_dataframe()
 if df.empty:
-    st.warning("⚠️ データがありません"); st.stop()
-
-# ClientSettingsも取得
-client_settings_query = "SELECT client_id, client_name FROM careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings"
-client_settings_df = bq.query(client_settings_query).to_dataframe()
-client_name_map = dict(zip(client_settings_df["client_id"], client_settings_df["client_name"]))
-
-# --- パラメータによるフィルター適用 ---
-if preselected_client_id and preselected_client_id in client_name_map:
-    preselected_client_name = client_name_map[preselected_client_id]
-    st.markdown(f"<h2 style='color:#000;margin-top:1rem;'>🔶 {preselected_client_name}</h2>", unsafe_allow_html=True)
-    df = df[df["client_name"] == preselected_client_name]
+    st.warning("データが存在しません")
+    st.stop()
 
 # --- 前処理 ---
-df["カテゴリ"] = df.get("カテゴリ", "").astype(str).str.strip().replace("", "未設定").fillna("未設定")
-df["Date"] = pd.to_datetime(df.get("Date"), errors="coerce")
+df["配信月"] = df["配信月"].astype(str)
+df["カテゴリ"] = df["カテゴリ"].fillna("未設定")
+df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
 
-# --- セッションステートの初期化 ---
-for key in ["select_all_clients", "select_all_categories", "select_all_campaigns"]:
-    if key not in st.session_state:
-        st.session_state[key] = False
-
-# --- フィルターエリア（分割配置） ---
-dmin, dmax = df["Date"].min().date(), df["Date"].max().date()
-st.markdown("### 🔍 絞り込み検索")
-sel_date = st.date_input("", (dmin, dmax), min_value=dmin, max_value=dmax)
-
-col1, col2, col3 = st.columns([1, 1, 2])
-
+# --- フィルター ---
+col1, col2, col3, col4 = st.columns(4)
 with col1:
-    client_all = sorted(df["PromotionName"].dropna().unique())
-    st.session_state["select_all_clients"] = st.checkbox("すべてのクライアント", value=st.session_state["select_all_clients"])
-    sel_client = st.multiselect(
-        "クライアント",
-        options=client_all,
-        default=client_all if st.session_state["select_all_clients"] else [],
-        key="client_selector"
-    )
-
+    sel_client = st.multiselect("クライアント名", sorted(df["client_name"].dropna().unique()))
 with col2:
-    df_client = df[df["PromotionName"].isin(sel_client)] if sel_client else df.copy()
-    cat_all = sorted(df_client["カテゴリ"].dropna().unique())
-    st.session_state["select_all_categories"] = st.checkbox("すべてのカテゴリ", value=st.session_state["select_all_categories"])
-    sel_cat = st.multiselect(
-        "カテゴリ",
-        options=cat_all,
-        default=cat_all if st.session_state["select_all_categories"] else [],
-        key="cat_selector"
-    )
-
+    sel_month = st.multiselect("配信月", sorted(df["配信月"].dropna().unique()))
 with col3:
-    df_cat = df_client[df_client["カテゴリ"].isin(sel_cat)] if sel_cat else df_client.copy()
-    camp_all = sorted(df_cat["CampaignName"].dropna().unique())
-    st.session_state["select_all_campaigns"] = st.checkbox("すべてのキャンペーン", value=st.session_state["select_all_campaigns"])
-    sel_campaign = st.multiselect(
-        "キャンペーン名",
-        options=camp_all,
-        default=camp_all if st.session_state["select_all_campaigns"] else [],
-        key="camp_selector"
-    )
+    sel_cat = st.multiselect("カテゴリ", sorted(df["カテゴリ"].dropna().unique()))
+with col4:
+    sel_goal = st.multiselect("広告目的", sorted(df["広告目的"].dropna().unique()))
 
-
-
-# --- フィルター適用 ---
-if isinstance(sel_date, (list, tuple)) and len(sel_date) == 2:
-    s, e = map(pd.to_datetime, sel_date)
-    df = df[(df["Date"].dt.date >= s.date()) & (df["Date"].dt.date <= e.date())]
-else:
-    d = pd.to_datetime(sel_date).date()
-    df = df[df["Date"].dt.date == d]
+sel_campaign = st.multiselect("キャンペーン名", sorted(df["キャンペーン名"].dropna().unique()))
 
 if sel_client:
-    df = df[df["PromotionName"].isin(sel_client)]
+    df = df[df["client_name"].isin(sel_client)]
+if sel_month:
+    df = df[df["配信月"].isin(sel_month)]
 if sel_cat:
     df = df[df["カテゴリ"].isin(sel_cat)]
+if sel_goal:
+    df = df[df["広告目的"].isin(sel_goal)]
 if sel_campaign:
-    df = df[df["CampaignName"].isin(sel_campaign)]
+    df = df[df["キャンペーン名"].isin(sel_campaign)]
 
+# --- フィルター後のDataFrameを2分割 ---
+df_filtered = df.copy()
+df_display = df[df["CloudStorageUrl"].notnull()].head(100)
 
-for i in range(1, 61):
-    c = str(i)
-    df[c] = pd.to_numeric(df.get(c, 0), errors="coerce").fillna(0)
-
-for c in ["Cost", "Impressions", "Clicks", "コンバージョン数", "Reach"]:
-    df[c] = pd.to_numeric(df.get(c), errors="coerce")
-
-# --- サマリー表 ---
-tot_cost = df["Cost"].sum()
-tot_imp  = df["Impressions"].sum()
-
-latest_idx = (df.dropna(subset=["Date"]).sort_values("Date").groupby("CampaignId")["Date"].idxmax())
-latest_df = df.loc[latest_idx].copy()
-
-tot_conv = latest_df["コンバージョン数"].fillna(0).sum()
-tot_clk_all = df["Clicks"].sum()
-
-div = lambda n, d: np.nan if (d == 0 or pd.isna(d)) else n / d
-disp = lambda v, u="": "-" if pd.isna(v) else f"{int(round(v)):,}{u}"
-disp_percent = lambda v: "-" if pd.isna(v) else f"{v:.2f}%"
-
-summary = pd.DataFrame({
-    "指標": ["CPA", "コンバージョン数", "CVR", "消化金額",
-           "インプレッション", "CTR", "CPC", "クリック数", "CPM"],
-    "値": [
-        disp(div(tot_cost, tot_conv), "円"),
-        disp(tot_conv),
-        disp_percent(div(tot_conv, tot_clk_all) * 100),
-        disp(tot_cost, "円"),
-        disp(tot_imp),
-        disp_percent(div(tot_clk_all, tot_imp) * 100),
-        disp(div(tot_cost, tot_clk_all), "円"),
-        disp(tot_clk_all),
-        disp(div(tot_cost * 1000, tot_imp), "円"),
-    ]
-})
-
-# --- 選択中フィルターの表示（キャンペーン名含む） ---
-selected_filters = []
-
-# 日付範囲（文字列で整形）
-if isinstance(sel_date, (list, tuple)) and len(sel_date) == 2:
-    date_range = f"{sel_date[0]} 〜 {sel_date[1]}"
-else:
-    date_range = str(sel_date)
-selected_filters.append(f"<b>📅 日付：</b>{date_range}")
-
-selected_filters.append(f"<b>👤 クライアント：</b>{sel_client}")
-selected_filters.append(f"<b>🗂️ カテゴリ：</b>{sel_cat}")
-selected_filters.append(f"<b>📢 キャンペーン名：</b>{sel_campaign}")
-
-# 表示する
+# --- 絞り込み条件の表示 ---
+st.markdown("### 🔎 選択中の絞り込み条件")
 st.markdown(
-    "<div style='margin-bottom: 1rem; font-size: 16px; color: #555;'>" +
-    "｜".join(selected_filters) +
-    "</div>",
-    unsafe_allow_html=True
+    f"📅 日付：{df_filtered['配信月'].min()} 〜 {df_filtered['配信月'].max()}　"
+    f"👤 クライアント：{sel_client if sel_client else '未選択'}　"
+    f"📁 カテゴリ：{sel_cat if sel_cat else '未選択'}　"
+    f"📣 キャンペーン名：{sel_campaign if sel_campaign else '未選択'}"
 )
 
+# --- スコアカード集計 ---
+total_cost = df_filtered["Cost"].sum()
+total_clicks = df_filtered["Clicks"].sum()
+total_cv = df_filtered["cv_value"].sum()
+total_impressions = df_filtered["Impressions"].sum()
 
-st.subheader("💠広告数値")
-# --- カード表示レイアウトに変更 ---
-st.markdown("""
-<style>
-.metric-card {
-    background-color: #2c2f36;
-    color: #fcefc7;
-    padding: 20px 25px;
-    border-radius: 12px;
-    text-align: center;
-    font-size: 16px;
-    margin-bottom: 10px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-}
-.metric-big {
-    font-size: 40px;
-    font-weight: bold;
-    margin-top: 10px;
-}
-.metric-small {
-    font-size: 28px;
-    font-weight: bold;
-    margin-top: 8px;
-}
-</style>
-""", unsafe_allow_html=True)
+cpa = total_cost / total_cv if total_cv else None
+cvr = total_cv / total_clicks if total_clicks else None
+ctr = total_clicks / total_impressions if total_impressions else None
+cpm = (total_cost * 1000 / total_impressions) if total_impressions else None
 
-cpa = disp(div(tot_cost, tot_conv), "円")
-cv = disp(tot_conv)
-cvr = disp_percent(div(tot_conv, tot_clk_all) * 100)
-cost = disp(tot_cost, "円")
-imp = disp(tot_imp)
-ctr = disp_percent(div(tot_clk_all, tot_imp) * 100)
-cpc = disp(div(tot_cost, tot_clk_all), "円")
-clk = disp(tot_clk_all)
-cpm = disp(div(tot_cost * 1000, tot_imp), "円")
+# --- スコアカード表示（フラットデザイン＋アイコン） ---
+st.markdown("### 🛀 広告数値")
 
-# 1段目（大きなカード）
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.markdown(f"<div class='metric-card'>CPA - 獲得単価<div class='metric-big'>{cpa}</div></div>", unsafe_allow_html=True)
-with c2:
-    st.markdown(f"<div class='metric-card'>コンバージョン数<div class='metric-big'>{cv}</div></div>", unsafe_allow_html=True)
-with c3:
-    st.markdown(f"<div class='metric-card'>CVR - コンバージョン率<div class='metric-big'>{cvr}</div></div>", unsafe_allow_html=True)
+card_data = [
+    ("💰 CPA - 獲得単価", f"{cpa:,.0f}円" if cpa else "-"),
+    ("🎯 コンバージョン数", f"{int(total_cv):,}"),
+    ("📈 CVR - コンバージョン率", f"{cvr * 100:.2f}%" if cvr else "-"),
+    ("💸 消化金額", f"{total_cost:,.0f}円"),
+    ("👀 インプレッション", f"{int(total_impressions):,}"),
+    ("🖱️ CTR - クリック率", f"{ctr * 100:.2f}%" if ctr else "-"),
+    ("📊 CPM", f"{cpm:,.0f}円" if cpm else "-"),
+    ("🔽 クリック", f"{int(total_clicks):,}")
+]
 
-# 2段目（小さめのカード）
-c4, c5, c6, c7, c8 = st.columns(5)
-with c4:
-    st.markdown(f"<div class='metric-card'>消化金額<div class='metric-small'>{cost}</div></div>", unsafe_allow_html=True)
-with c5:
-    st.markdown(f"<div class='metric-card'>インプレッション<div class='metric-small'>{imp}</div></div>", unsafe_allow_html=True)
-with c6:
-    st.markdown(f"<div class='metric-card'>CTR - クリック率<div class='metric-small'>{ctr}</div></div>", unsafe_allow_html=True)
-with c7:
-    st.markdown(f"<div class='metric-card'>CPM<div class='metric-small'>{cpm}</div></div>", unsafe_allow_html=True)
-with c8:
-    st.markdown(f"<div class='metric-card'>クリック<div class='metric-small'>{clk}</div></div>", unsafe_allow_html=True)
+for i in range(0, len(card_data), 4):
+    cols = st.columns(4)
+    for j in range(4):
+        if i + j < len(card_data):
+            label, value = card_data[i + j]
+            with cols[j]:
+                st.markdown(f"""
+                    <div class='flat-card'>
+                      <div class='flat-label'>{label}</div>
+                      <div class='flat-value'>{value}</div>
+                    </div>
+                """, unsafe_allow_html=True)
 
-
-# --- バナー表示（100件制限・クラッシュ防止済） ---
+# --- 並び順選択 ---
 st.markdown("<div style='margin-top:3.5rem;'></div>", unsafe_allow_html=True)
 st.subheader("💠配信バナー")
+opt = st.radio("並び替え基準", ["広告番号順", "CV数の多い順", "CPAの低い順"])
 
-# 最大100件まで表示
-img_display_limit = 100
-
-img = df[df["CloudStorageUrl"].astype(str).str.startswith("http")].copy()
-img["AdName"] = img["AdName"].astype(str).str.strip()
-img["CampaignId"] = img["CampaignId"].astype(str).str.strip()
-img["AdNum"] = pd.to_numeric(img["AdName"], errors="coerce")
-
-latest = (img.dropna(subset=["Date"])
-          .sort_values("Date")
-          .loc[lambda d: d.groupby(["CampaignId", "AdName"])["Date"].idxmax()]
-          .copy())
-
-def row_cv(r):
-    n = r["AdNum"]
-    col = str(int(n)) if pd.notna(n) else None
-    return r[col] if col and col in r and isinstance(r[col], (int, float)) else 0
-
-latest["CV件数"] = latest.apply(row_cv, axis=1)
-
-agg = (df.assign(AdName=lambda d: d["AdName"].astype(str).str.strip(),
-                 CampaignId=lambda d: d["CampaignId"].astype(str).str.strip())
-          .groupby(["CampaignId", "AdName"])
-          .agg({"Cost": "sum", "Impressions": "sum", "Clicks": "sum"})
-          .reset_index())
-
-latest = latest.merge(
-    agg[["CampaignId", "AdName", "Cost"]],
-    on=["CampaignId", "AdName"],
-    how="left",
-    suffixes=("", "_agg")
-)
-latest["CPA_sort"] = latest.apply(lambda r: div(r["Cost_agg"], r["CV件数"]), axis=1)
-sum_map = agg.set_index(["CampaignId", "AdName"]).to_dict("index")
-
-opt = st.radio("並び替え基準",
-               ["広告番号順", "コンバージョン数の多い順", "CPAの低い順"])
-if opt == "コンバージョン数の多い順":
-    latest = latest[latest["CV件数"] > 0].sort_values("CV件数", ascending=False)
+if opt == "CV数の多い順":
+    df_display = df_display[df_display["cv_value"] > 0].sort_values("cv_value", ascending=False)
 elif opt == "CPAの低い順":
-    latest = latest[latest["CPA_sort"].notna()].sort_values("CPA_sort")
+    df_display = df_display[df_display["CPA"].notna()].sort_values("CPA")
 else:
-    latest = latest.sort_values("AdNum")
+    df_display = df_display.sort_values("banner_number")
 
-# ✅ 表示件数を制限
-latest = latest.head(img_display_limit)
-
-def urls(raw): return [u for u in re.split(r"[,\\s]+", str(raw or "")) if u.startswith("http")]
+# --- バナー表示 ---
+def urls(raw):
+    return [u for u in re.split(r"[,\s]+", str(raw or "")) if u.startswith("http")]
 
 cols = st.columns(5, gap="small")
-for i, (_, r) in enumerate(latest.iterrows()):
-    key = (r["CampaignId"], r["AdName"])
-    s = sum_map.get(key, {})
-    cost = s.get("Cost", 0)
-    imp = s.get("Impressions", 0)
-    clk = s.get("Clicks", 0)
-    cv = int(r["CV件数"])
-    cpa = div(cost, cv)
-    ctr = div(clk, imp)
+for i, (_, r) in enumerate(df_display.iterrows()):
+    cost = r.get("Cost", 0)
+    imp = r.get("Impressions", 0)
+    clk = r.get("Clicks", 0)
+    cv = int(r["cv_value"]) if pd.notna(r["cv_value"]) else 0
+    cpa = r.get("CPA")
+    ctr = r.get("CTR")
     text = r.get("Description1ByAdType", "")
 
     lnks = urls(r.get("canvaURL", ""))
     canva_html = (" ,".join(
-                    f'<a href="{u}" target="_blank">canvaURL{i+1 if len(lnks)>1 else ""}↗️</a>'
-                    for i, u in enumerate(lnks))
-                  if lnks else '<span class="gray-text">canvaURL：なし✖</span>')
+        f'<a href="{u}" target="_blank">canvaURL{i+1 if len(lnks)>1 else ""}↗️</a>'
+        for i, u in enumerate(lnks))
+        if lnks else '<span class="gray-text">canvaURL：なし❌</span>'
+    )
 
     caption = [
         f"<b>広告名：</b>{r['AdName']}",
@@ -341,3 +157,47 @@ for i, (_, r) in enumerate(latest.iterrows()):
     with cols[i % 5]:
         st.markdown(card_html, unsafe_allow_html=True)
 
+# --- CSS ---
+st.markdown("""
+    <style>
+      .flat-card {
+        background-color: #f6f6f6;
+        padding: 10px;
+        border-radius: 12px;
+        text-align: center;
+        margin-bottom: 12px;
+      }
+      .flat-label {
+        font-size: 13px;
+        color: #666;
+      }
+      .flat-value {
+        font-size: 24px;
+        font-weight: bold;
+        margin-top: 4px;
+        color: #222;
+      }
+      .banner-card {
+        padding:12px 12px 20px;
+        border:1px solid #e6e6e6;
+        border-radius:12px;
+        background:#fafafa;
+        height:auto;
+        margin-bottom:14px;
+      }
+      .banner-card img {
+        width:100%;
+        height:auto;
+        object-fit:contain;
+        border-radius:8px;
+        cursor:pointer;
+      }
+      .banner-caption {
+        margin-top:8px;
+        font-size:14px;
+        line-height:1.6;
+        text-align:left;
+      }
+      .gray-text { color:#888; }
+    </style>
+""", unsafe_allow_html=True)
