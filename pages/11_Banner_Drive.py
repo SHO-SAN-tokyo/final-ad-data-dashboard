@@ -153,7 +153,7 @@ for i, (_, r) in enumerate(df_display.iterrows()):
     card_html = f"""
       <div class='banner-card'>
         <a href="{r['CloudStorageUrl']}" target="_blank" rel="noopener">
-          <img src="{r['CloudStorageUrl']}">
+          <img src="{r['CloudStorageUrl']}" style="width:100%; height:auto;">
         </a>
         <div class='banner-caption'>{"<br>".join(caption)}</div>
       </div>
@@ -182,13 +182,6 @@ st.markdown("""
         background:#fafafa;
         height:auto;
         margin-bottom:14px;
-      }
-      .banner-card img {
-        width:100%;
-        height:auto;
-        object-fit:contain;
-        border-radius:8px;
-        cursor:pointer;
       }
       .banner-caption {
         margin-top:8px;
