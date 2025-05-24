@@ -77,8 +77,8 @@ cpm = (total_cost * 1000 / total_impressions) if total_impressions else None
 # --- スコアカード表示 ---
 st.markdown("### 🛀 広告数値")
 
-# 1段目
-col1, col2, col3 = st.columns(3)
+# 1段目（左寄せ）
+col1, col2, col3 = st.columns([1.2, 1.2, 6.6])  # 左寄せになる比率に変更
 with col1:
     st.markdown("<div class='scorecard-label'>CPA - 獲得単価</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='scorecard-value'>{cpa:,.0f}円</div>" if cpa else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
@@ -88,6 +88,7 @@ with col2:
 with col3:
     st.markdown("<div class='scorecard-label'>CVR - コンバージョン率</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='scorecard-value'>{cvr * 100:.2f}%</div>" if cvr else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
+
 
 # 2段目
 col4, col5, col6, col7, col8 = st.columns(5)
