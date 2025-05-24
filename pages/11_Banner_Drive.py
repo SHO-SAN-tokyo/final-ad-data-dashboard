@@ -9,7 +9,7 @@ st.title("🔸 Banner Drive")
 
 # --- BigQuery 認証 ---
 cred = dict(st.secrets["connections"]["bigquery"])
-cred["private_key"] = cred["private_key"].replace("\\n", "\n")
+cred["private_key"] = cred["private_key"].replace("\n", "\n")
 client = bigquery.Client.from_service_account_info(cred)
 
 # --- データ取得 ---
@@ -54,6 +54,16 @@ if sel_campaign:
 df_filtered = df.copy()
 df_display = df[df["CloudStorageUrl"].notnull()].head(100)
 
+# --- 集計 ---
+total_cost = df_filtered["Cost"].sum()
+total_clicks = df_filtered["Clicks"].sum()
+total_cv = df_filtered["cv_value"].sum()
+total_impressions = df_filtered["Impressions"].sum()
+cpa = total_cost / total_cv if total_cv else None
+cvr = total_cv / total_clicks if total_clicks else None
+ctr = total_clicks / total_impressions if total_impressions else None
+cpm = (total_cost * 1000 / total_impressions) if total_impressions else None
+
 # --- 絞り込み条件の表示 ---
 st.markdown("### 🔎 選択中の絞り込み条件")
 st.markdown(
@@ -63,53 +73,27 @@ st.markdown(
     f"📣 キャンペーン名：{sel_campaign if sel_campaign else '未選択'}"
 )
 
-# --- スコアカード集計 ---
-total_cost = df_filtered["Cost"].sum()
-total_clicks = df_filtered["Clicks"].sum()
-total_cv = df_filtered["cv_value"].sum()
-total_impressions = df_filtered["Impressions"].sum()
+# --- スコアカード表示（アイコン＋フラットデザイン） ---
+def show(val, unit=""):
+    return f"{val:,.0f}{unit}" if val not in [None, 0] else "-"
 
-cpa = total_cost / total_cv if total_cv else None
-cvr = total_cv / total_clicks if total_clicks else None
-ctr = total_clicks / total_impressions if total_impressions else None
-cpm = (total_cost * 1000 / total_impressions) if total_impressions else None
-
-# --- スコアカード表示 ---
 st.markdown("### 🛀 広告数値")
-
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.markdown("#### CPA - 獲得単価")
-    st.markdown(f"<div class='scorecard'>{cpa:,.0f}円</div>" if cpa else "<div class='scorecard'>-</div>", unsafe_allow_html=True)
-with col2:
-    st.markdown("#### コンバージョン数")
-    st.markdown(f"<div class='scorecard'>{int(total_cv):,}</div>", unsafe_allow_html=True)
-with col3:
-    st.markdown("#### CVR - コンバージョン率")
-    st.markdown(f"<div class='scorecard'>{cvr * 100:.2f}%</div>" if cvr else "<div class='scorecard'>-</div>", unsafe_allow_html=True)
-
-col4, col5, col6, col7, col8 = st.columns(5)
-with col4:
-    st.markdown("#### 消化金額")
-    st.markdown(f"<div class='scorecard'>{total_cost:,.0f}円</div>", unsafe_allow_html=True)
-with col5:
-    st.markdown("#### インプレッション")
-    st.markdown(f"<div class='scorecard'>{int(total_impressions):,}</div>", unsafe_allow_html=True)
-with col6:
-    st.markdown("#### CTR - クリック率")
-    st.markdown(f"<div class='scorecard'>{ctr * 100:.2f}%</div>" if ctr else "<div class='scorecard'>-</div>", unsafe_allow_html=True)
-with col7:
-    st.markdown("#### CPM")
-    st.markdown(f"<div class='scorecard'>{cpm:,.0f}円</div>" if cpm else "<div class='scorecard'>-</div>", unsafe_allow_html=True)
-with col8:
-    st.markdown("#### クリック")
-    st.markdown(f"<div class='scorecard'>{int(total_clicks):,}</div>", unsafe_allow_html=True)
+st.markdown("""
+<div class="metric-grid">
+  <div class="metric-card"><div class="metric-icon">💰</div><div class="metric-label">CPA - 獲得単価</div><div class="metric-value">""" + show(cpa, "円") + """</div></div>
+  <div class="metric-card"><div class="metric-icon">🎯</div><div class="metric-label">コンバージョン数</div><div class="metric-value">""" + show(total_cv) + """</div></div>
+  <div class="metric-card"><div class="metric-icon">📈</div><div class="metric-label">CVR - コンバージョン率</div><div class="metric-value">""" + (f"{cvr * 100:.2f}%" if cvr else "-") + """</div></div>
+  <div class="metric-card"><div class="metric-icon">💸</div><div class="metric-label">消化金額</div><div class="metric-value">""" + show(total_cost, "円") + """</div></div>
+  <div class="metric-card"><div class="metric-icon">👀</div><div class="metric-label">インプレッション</div><div class="metric-value">""" + show(total_impressions) + """</div></div>
+  <div class="metric-card"><div class="metric-icon">🖱️</div><div class="metric-label">CTR - クリック率</div><div class="metric-value">""" + (f"{ctr * 100:.2f}%" if ctr else "-") + """</div></div>
+  <div class="metric-card"><div class="metric-icon">📊</div><div class="metric-label">CPM</div><div class="metric-value">""" + show(cpm, "円") + """</div></div>
+  <div class="metric-card"><div class="metric-icon">🔽</div><div class="metric-label">クリック</div><div class="metric-value">""" + show(total_clicks) + """</div></div>
+</div>
+"""", unsafe_allow_html=True)
 
 # --- 並び順選択 ---
-st.markdown("<div style='margin-top:3.5rem;'></div>", unsafe_allow_html=True)
 st.subheader("💠配信バナー")
 opt = st.radio("並び替え基準", ["広告番号順", "CV数の多い順", "CPAの低い順"])
-
 if opt == "CV数の多い順":
     df_display = df_display[df_display["cv_value"] > 0].sort_values("cv_value", ascending=False)
 elif opt == "CPAの低い順":
@@ -119,7 +103,7 @@ else:
 
 # --- バナー表示 ---
 def urls(raw):
-    return [u for u in re.split(r"[,\\s]+", str(raw or "")) if u.startswith("http")]
+    return [u for u in re.split(r"[,\s]+", str(raw or "")) if u.startswith("http")]
 
 cols = st.columns(5, gap="small")
 for i, (_, r) in enumerate(df_display.iterrows()):
@@ -164,16 +148,31 @@ for i, (_, r) in enumerate(df_display.iterrows()):
 # --- CSS ---
 st.markdown("""
     <style>
-      .scorecard {
-        background-color: #f5f5f5;
-        color: #333;
-        font-weight: bold;
-        font-size: 28px;
-        padding: 10px 20px;
+      .metric-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .metric-card {
+        flex: 1 1 180px;
+        background-color: #f9f9f9;
+        padding: 12px;
         border-radius: 12px;
         text-align: center;
-        margin-bottom: 10px;
-        box-shadow: 1px 1px 5px rgba(0,0,0,0.05);
+      }
+      .metric-icon {
+        font-size: 20px;
+        margin-bottom: 4px;
+      }
+      .metric-label {
+        font-size: 13px;
+        color: #555;
+      }
+      .metric-value {
+        font-size: 22px;
+        font-weight: 600;
+        color: #222;
       }
       .banner-card {
         padding:12px 12px 20px;
@@ -185,7 +184,7 @@ st.markdown("""
       }
       .banner-card img {
         width:100%;
-        height:auto;
+        height:203px;
         object-fit:contain;
         border-radius:8px;
         cursor:pointer;
@@ -198,4 +197,4 @@ st.markdown("""
       }
       .gray-text { color:#888; }
     </style>
-""", unsafe_allow_html=True)
+"""", unsafe_allow_html=True)
