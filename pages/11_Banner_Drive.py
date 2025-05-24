@@ -70,7 +70,7 @@ ctr = total_clicks / total_impressions if total_impressions else None
 cpm = (total_cost * 1000 / total_impressions) if total_impressions else None
 
 # --- スコアカード表示 ---
-st.markdown("### 📊 この絞り込み条件での広告パフォーマンス")
+st.markdown("### 📊 広告パフォーマンス")
 
 # --- 絞り込み条件の表示 ---
 st.markdown(
