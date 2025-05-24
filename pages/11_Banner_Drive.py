@@ -135,7 +135,7 @@ for i, (_, r) in enumerate(df_display.iterrows()):
     canva_html = (" ,".join(
         f'<a href="{u}" target="_blank">canvaURL{i+1 if len(lnks)>1 else ""}↗️</a>'
         for i, u in enumerate(lnks))
-        if lnks else '<span class="gray-text">canvaURL：なし✕</span>'
+        if lnks else '<span class="gray-text">canvaURL：なし</span>'
     )
 
     caption = [
