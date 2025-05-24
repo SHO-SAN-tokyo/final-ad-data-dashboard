@@ -4,8 +4,8 @@ from google.cloud import bigquery
 import re
 
 # --- ページ設定 ---
-st.set_page_config(page_title="🖼️ Banner Drive", layout="wide")
-st.title("🖼️ Banner Drive")
+st.set_page_config(page_title="🔸 Banner Drive", layout="wide")
+st.title("🔸 Banner Drive")
 
 # --- BigQuery 認証 ---
 cred = dict(st.secrets["connections"]["bigquery"])
@@ -57,7 +57,7 @@ df_display = df[df["CloudStorageUrl"].notnull()].head(100)
 # --- 絞り込み条件の表示 ---
 st.markdown("### 🔎 選択中の絞り込み条件")
 st.markdown(
-    f"📅 日付：{df_filtered['配信月'].min()} ～ {df_filtered['配信月'].max()}　"
+    f"📅 日付：{df_filtered['配信月'].min()} 〜 {df_filtered['配信月'].max()}　"
     f"👤 クライアント：{sel_client if sel_client else '未選択'}　"
     f"📁 カテゴリ：{sel_cat if sel_cat else '未選択'}　"
     f"📣 キャンペーン名：{sel_campaign if sel_campaign else '未選択'}"
@@ -75,7 +75,7 @@ ctr = total_clicks / total_impressions if total_impressions else None
 cpm = (total_cost * 1000 / total_impressions) if total_impressions else None
 
 # --- スコアカード表示 ---
-st.markdown("### 💠 広告数値")
+st.markdown("### 🛀 広告数値")
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -119,7 +119,7 @@ else:
 
 # --- バナー表示 ---
 def urls(raw):
-    return [u for u in re.split(r"[,\s]+", str(raw or "")) if u.startswith("http")]
+    return [u for u in re.split(r"[,\\s]+", str(raw or "")) if u.startswith("http")]
 
 cols = st.columns(5, gap="small")
 for i, (_, r) in enumerate(df_display.iterrows()):
@@ -135,7 +135,7 @@ for i, (_, r) in enumerate(df_display.iterrows()):
     canva_html = (" ,".join(
         f'<a href="{u}" target="_blank">canvaURL{i+1 if len(lnks)>1 else ""}↗️</a>'
         for i, u in enumerate(lnks))
-        if lnks else '<span class="gray-text">canvaURL：なし✖</span>'
+        if lnks else '<span class="gray-text">canvaURL：なし❌</span>'
     )
 
     caption = [
@@ -153,7 +153,7 @@ for i, (_, r) in enumerate(df_display.iterrows()):
     card_html = f"""
       <div class='banner-card'>
         <a href="{r['CloudStorageUrl']}" target="_blank" rel="noopener">
-          <img src="{r['CloudStorageUrl']}" style="max-width:100%; height:auto;">
+          <img src="{r['CloudStorageUrl']}">
         </a>
         <div class='banner-caption'>{"<br>".join(caption)}</div>
       </div>
@@ -180,8 +180,15 @@ st.markdown("""
         border:1px solid #e6e6e6;
         border-radius:12px;
         background:#fafafa;
+        height:auto;
         margin-bottom:14px;
-        display: inline-block;
+      }
+      .banner-card img {
+        width:100%;
+        height:auto;
+        object-fit:contain;
+        border-radius:8px;
+        cursor:pointer;
       }
       .banner-caption {
         margin-top:8px;
