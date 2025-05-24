@@ -170,43 +170,68 @@ for i, (_, r) in enumerate(df_display.iterrows()):
 
 # --- CSS --- 末尾に貼り付け
 st.markdown("""
-    <style>
-      .scorecard-label {
-        font-size: 14px;
-        color: #555;
-        margin-bottom: 4px;
-        font-weight: 500;
-        text-align: left;
-      }
-      .scorecard-value {
-        font-size: 30px;
-        font-weight: bold;
-        color: #111;
-        text-align: left;
-        line-height: 1.2;
-        margin-bottom: 12px;
-      }
-      .banner-card {
-        padding:12px 12px 20px;
-        border:1px solid #e6e6e6;
-        border-radius:12px;
-        background:#fafafa;
-        height:auto;
-        margin-bottom:14px;
-      }
-      .banner-card img {
-        width:100%;
-        height:auto;
-        object-fit:contain;
-        border-radius:8px;
-        cursor:pointer;
-      }
-      .banner-caption {
-        margin-top:8px;
-        font-size:14px;
-        line-height:1.6;
-        text-align:left;
-      }
-      .gray-text { color:#888; }
-    </style>
+<style>
+  /* 共通スタイル（明るめ） */
+  .scorecard-label {
+    font-size: 14px;
+    margin-bottom: 4px;
+    font-weight: 500;
+    text-align: left;
+    color: #555;
+  }
+  .scorecard-value {
+    font-size: 30px;
+    font-weight: bold;
+    text-align: left;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    color: #111;
+  }
+  .banner-card {
+    padding: 12px 12px 20px;
+    border: 1px solid #e6e6e6;
+    border-radius: 12px;
+    background: #fafafa;
+    height: auto;
+    margin-bottom: 14px;
+  }
+  .banner-card img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .banner-caption {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    text-align: left;
+    color: #111;
+  }
+  .gray-text {
+    color: #888;
+  }
+
+  /* 🌙 ダークモード用スタイル */
+  @media (prefers-color-scheme: dark) {
+    .scorecard-label {
+      color: #ccc;
+    }
+    .scorecard-value {
+      color: #fff;
+    }
+    .banner-card {
+      background: #222;
+      border: 1px solid #444;
+    }
+    .banner-caption {
+      color: #eee;
+    }
+    .gray-text {
+      color: #aaa;
+    }
+  }
+</style>
 """, unsafe_allow_html=True)
+
