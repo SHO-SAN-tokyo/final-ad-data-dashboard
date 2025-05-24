@@ -219,7 +219,7 @@ st.markdown("""
       color: #ccc;
     }
     .scorecard-value {
-      color: #fff !important;;
+      color: #fff !important;
     }
     .banner-card {
       background: #222;
