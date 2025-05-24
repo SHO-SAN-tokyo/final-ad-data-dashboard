@@ -4,8 +4,8 @@ from google.cloud import bigquery
 import re
 
 # --- ページ設定 ---
-st.set_page_config(page_title="🖼️ Banner Drive", layout="wide")
-st.title("🖼️ Banner Drive")
+st.set_page_config(page_title="🔸 Banner Drive", layout="wide")
+st.title("🔸 Banner Drive")
 
 # --- BigQuery 認証 ---
 cred = dict(st.secrets["connections"]["bigquery"])
@@ -51,29 +51,59 @@ if sel_campaign:
     df = df[df["キャンペーン名"].isin(sel_campaign)]
 
 # --- フィルター後のDataFrameを2分割 ---
-df_filtered = df.copy()  # 集計用（CloudStorageUrl有無問わず）
-df_display = df[df["CloudStorageUrl"].notnull()].head(100)  # 表示用（画像あり100件）
+df_filtered = df.copy()
+df_display = df[df["CloudStorageUrl"].notnull()].head(100)
 
-# --- 統計スコアカード ---
+# --- 絞り込み条件の表示 ---
+st.markdown("### 🔎 選択中の絞り込み条件")
+st.markdown(
+    f"📅 日付：{df_filtered['配信月'].min()} 〜 {df_filtered['配信月'].max()}　"
+    f"👤 クライアント：{sel_client if sel_client else '未選択'}　"
+    f"📁 カテゴリ：{sel_cat if sel_cat else '未選択'}　"
+    f"📣 キャンペーン名：{sel_campaign if sel_campaign else '未選択'}"
+)
+
+# --- スコアカード集計 ---
 total_cost = df_filtered["Cost"].sum()
 total_clicks = df_filtered["Clicks"].sum()
 total_cv = df_filtered["cv_value"].sum()
-avg_cpa = total_cost / total_cv if total_cv else None
-avg_ctr = total_clicks / df_filtered["Impressions"].sum() if df_filtered["Impressions"].sum() else None
+total_impressions = df_filtered["Impressions"].sum()
 
-st.markdown("### 📊 この絞り込み条件での広告パフォーマンス")
+cpa = total_cost / total_cv if total_cv else None
+cvr = total_cv / total_clicks if total_clicks else None
+ctr = total_clicks / total_impressions if total_impressions else None
+cpm = (total_cost * 1000 / total_impressions) if total_impressions else None
 
-score1, score2, score3, score4, score5 = st.columns(5)
-with score1:
-    st.metric("消化金額 (Cost)", f"{total_cost:,.0f} 円")
-with score2:
-    st.metric("クリック数", f"{total_clicks:,.0f}")
-with score3:
-    st.metric("CV数", f"{int(total_cv):,}")
-with score4:
-    st.metric("平均CPA", f"{avg_cpa:,.0f} 円" if avg_cpa else "-")
-with score5:
-    st.metric("平均CTR", f"{avg_ctr * 100:.2f} %" if avg_ctr else "-")
+# --- スコアカード表示 ---
+st.markdown("### 🛀 広告数値")
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.markdown("#### CPA - 獲得単価")
+    st.markdown(f"<div class='scorecard'>{cpa:,.0f}円</div>" if cpa else "<div class='scorecard'>-</div>", unsafe_allow_html=True)
+with col2:
+    st.markdown("#### コンバージョン数")
+    st.markdown(f"<div class='scorecard'>{int(total_cv):,}</div>", unsafe_allow_html=True)
+with col3:
+    st.markdown("#### CVR - コンバージョン率")
+    st.markdown(f"<div class='scorecard'>{cvr * 100:.2f}%</div>" if cvr else "<div class='scorecard'>-</div>", unsafe_allow_html=True)
+
+col4, col5, col6, col7, col8 = st.columns(5)
+with col4:
+    st.markdown("#### 消化金額")
+    st.markdown(f"<div class='scorecard'>{total_cost:,.0f}円</div>", unsafe_allow_html=True)
+with col5:
+    st.markdown("#### インプレッション")
+    st.markdown(f"<div class='scorecard'>{int(total_impressions):,}</div>", unsafe_allow_html=True)
+with col6:
+    st.markdown("#### CTR - クリック率")
+    st.markdown(f"<div class='scorecard'>{ctr * 100:.2f}%</div>" if ctr else "<div class='scorecard'>-</div>", unsafe_allow_html=True)
+with col7:
+    st.markdown("#### CPM")
+    st.markdown(f"<div class='scorecard'>{cpm:,.0f}円</div>" if cpm else "<div class='scorecard'>-</div>", unsafe_allow_html=True)
+with col8:
+    st.markdown("#### クリック")
+    st.markdown(f"<div class='scorecard'>{int(total_clicks):,}</div>", unsafe_allow_html=True)
 
 # --- 並び順選択 ---
 st.markdown("<div style='margin-top:3.5rem;'></div>", unsafe_allow_html=True)
@@ -87,7 +117,7 @@ elif opt == "CPAの低い順":
 else:
     df_display = df_display.sort_values("banner_number")
 
-# --- 表示 ---
+# --- バナー表示 ---
 def urls(raw):
     return [u for u in re.split(r"[,\\s]+", str(raw or "")) if u.startswith("http")]
 
@@ -105,7 +135,7 @@ for i, (_, r) in enumerate(df_display.iterrows()):
     canva_html = (" ,".join(
         f'<a href="{u}" target="_blank">canvaURL{i+1 if len(lnks)>1 else ""}↗️</a>'
         for i, u in enumerate(lnks))
-        if lnks else '<span class="gray-text">canvaURL：なし✖</span>'
+        if lnks else '<span class="gray-text">canvaURL：なし❌</span>'
     )
 
     caption = [
@@ -115,7 +145,7 @@ for i, (_, r) in enumerate(df_display.iterrows()):
         f"<b>クリック：</b>{clk:,.0f}",
         f"<b>CTR：</b>{ctr*100:.2f}%" if pd.notna(ctr) else "<b>CTR：</b>-",
         f"<b>CV数：</b>{cv if cv else 'なし'}",
-        f"<b>CPA：</b>{cpa:,.0f}円" if pd.notna(cpa) else "<b>CPA：</b>-",
+        f"<b>CPA：</b>{cpa:.0f}円" if pd.notna(cpa) else "<b>CPA：</b>-",
         canva_html,
         f"<b>メインテキスト：</b>{text}"
     ]
@@ -134,10 +164,38 @@ for i, (_, r) in enumerate(df_display.iterrows()):
 # --- CSS ---
 st.markdown("""
     <style>
-      .banner-card{padding:12px 12px 20px;border:1px solid #e6e6e6;border-radius:12px;
-                   background:#fafafa;height:100%;margin-bottom:14px;}
-      .banner-card img{width:100%;height:203px;object-fit:cover;border-radius:8px;cursor:pointer;}
-      .banner-caption{margin-top:8px;font-size:14px;line-height:1.6;text-align:left;}
-      .gray-text{color:#888;}
+      .scorecard {
+        background-color: #f5f5f5;
+        color: #333;
+        font-weight: bold;
+        font-size: 28px;
+        padding: 10px 20px;
+        border-radius: 12px;
+        text-align: center;
+        margin-bottom: 10px;
+        box-shadow: 1px 1px 5px rgba(0,0,0,0.05);
+      }
+      .banner-card {
+        padding:12px 12px 20px;
+        border:1px solid #e6e6e6;
+        border-radius:12px;
+        background:#fafafa;
+        height:100%;
+        margin-bottom:14px;
+      }
+      .banner-card img {
+        width:100%;
+        height:203px;
+        object-fit:cover;
+        border-radius:8px;
+        cursor:pointer;
+      }
+      .banner-caption {
+        margin-top:8px;
+        font-size:14px;
+        line-height:1.6;
+        text-align:left;
+      }
+      .gray-text { color:#888; }
     </style>
 """, unsafe_allow_html=True)
