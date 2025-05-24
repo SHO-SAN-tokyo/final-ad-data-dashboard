@@ -26,7 +26,9 @@ df["配信月"] = df["配信月"].astype(str)
 df["カテゴリ"] = df["カテゴリ"].fillna("未設定")
 df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
 
+
 # --- フィルター ---
+st.markdown("### 🔎 広告を絞り込む")
 col1, col2, col3, col4 = st.columns(4)
 with col1:
     sel_client = st.multiselect("クライアント名", sorted(df["client_name"].dropna().unique()))
