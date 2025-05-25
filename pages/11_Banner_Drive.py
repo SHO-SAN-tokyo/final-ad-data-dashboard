@@ -80,39 +80,36 @@ st.markdown(
     f"📣 キャンペーン名：{sel_campaign if sel_campaign else '未選択'}"
 )
 
-# --- ライトモードorダークモード切り替え ---
-theme = st.get_option("theme.base")
-color = "#fff" if theme == "dark" else "#111"
 
 # 🧭 上段：5等分して 3つだけ使用（左寄せ＆幅揃え）
 col1, col2, col3, _, _ = st.columns(5)
 with col1:
     st.markdown("<div class='scorecard-label'>CPA - 獲得単価</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='scorecard-value' style='color:{color}'>{cpa:,.0f}円</div>" if cpa else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{cpa:,.0f}円</div>" if cpa else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
 with col2:
     st.markdown("<div class='scorecard-label'>コンバージョン数</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='scorecard-value' style='color:{color}'>{int(total_cv):,}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{int(total_cv):,}</div>", unsafe_allow_html=True)
 with col3:
     st.markdown("<div class='scorecard-label'>CVR - コンバージョン率</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='scorecard-value' style='color:{color}'>{cvr * 100:.2f}%</div>" if cvr else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{cvr * 100:.2f}%</div>" if cvr else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
 
 # 🧭 下段：5等分すべて使用
 col4, col5, col6, col7, col8 = st.columns(5)
 with col4:
     st.markdown("<div class='scorecard-label'>消化金額</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='scorecard-value' style='color:{color}'>{total_cost:,.0f}円</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{total_cost:,.0f}円</div>", unsafe_allow_html=True)
 with col5:
     st.markdown("<div class='scorecard-label'>インプレッション</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='scorecard-value' style='color:{color}'>{int(total_impressions):,}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{int(total_impressions):,}</div>", unsafe_allow_html=True)
 with col6:
     st.markdown("<div class='scorecard-label'>CTR - クリック率</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='scorecard-value' style='color:{color}'>{ctr * 100:.2f}%</div>" if ctr else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{ctr * 100:.2f}%</div>" if ctr else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
 with col7:
     st.markdown("<div class='scorecard-label'>CPM</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='scorecard-value' style='color:{color}'>{cpm:,.0f}円</div>" if cpm else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{cpm:,.0f}円</div>" if cpm else "<div class='scorecard-value'>-</div>", unsafe_allow_html=True)
 with col8:
     st.markdown("<div class='scorecard-label'>クリック</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='scorecard-value' style='color:{color}'>{int(total_clicks):,}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='scorecard-value'>{int(total_clicks):,}</div>", unsafe_allow_html=True)
 
 
 
