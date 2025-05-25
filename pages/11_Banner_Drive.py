@@ -186,7 +186,7 @@ st.markdown("""
   }
 
   .scorecard-value {
-    font-size: 32px;
+    font-size: 30px;
     font-weight: 700;
     text-align: left;
     line-height: 1.2;
