@@ -191,7 +191,7 @@ st.markdown("""
     text-align: left;
     line-height: 1.2;
     padding: 2px 10px;
-    margin-bottom: 10px;
+    margin-bottom: 1rem;
     font-family: 'Inter', 'Roboto', sans-serif;
   }
 
@@ -223,6 +223,10 @@ st.markdown("""
 
   .gray-text {
     color: #888;
+  }
+  
+  .st-emotion-cache-16tyu1 p {
+    margin-bottom: 2rem;
   }
 
   /* 🌙 ダークモード対応 */
