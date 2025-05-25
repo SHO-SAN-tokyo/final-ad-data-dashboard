@@ -169,7 +169,10 @@ for i, (_, r) in enumerate(df_display.iterrows()):
     with cols[i % 5]:
         st.markdown(card_html, unsafe_allow_html=True)
 
-# --- CSS --- 末尾に貼り付け
+# --- Google fonts --- 
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+
+# --- CSS ---
 st.markdown("""
 <style>
   .scorecard-label {
@@ -187,6 +190,7 @@ st.markdown("""
     line-height: 1.2;
     padding: 2px 10px;
     margin-bottom: 10px;
+    font-family: 'Inter', 'Roboto', sans-serif;
   }
 
   .banner-card {
