@@ -177,7 +177,8 @@ st.markdown("""
     margin-bottom: 6px;
     font-weight: 600;
     text-align: left;
-    color: var(--text-color, #333);
+    background: #f1f1f1;
+    padding: .3rem .6rem;
   }
 
   .scorecard-value {
@@ -185,11 +186,8 @@ st.markdown("""
     font-weight: 700;
     text-align: left;
     line-height: 1.2;
-    padding: 12px 16px;
-    border-radius: 8px;
-    background-color: #f3f3f3;
-    color: var(--text-color, #111);
-    margin-bottom: 14px;
+    padding: 2px 10px;
+    margin-bottom: 10px;
   }
 
   .banner-card {
