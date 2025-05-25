@@ -4,8 +4,8 @@ from google.cloud import bigquery
 import re
 
 # --- ページ設定  ---
-st.set_page_config(page_title="🔸 Banner Drive", layout="wide")
-st.title("🔸 Banner Drive")
+st.set_page_config(page_title="🫧 Ad Drive", layout="wide")
+st.title("🫧 Ad Drive")
 
 # --- BigQuery 認証 ---
 cred = dict(st.secrets["connections"]["bigquery"])
