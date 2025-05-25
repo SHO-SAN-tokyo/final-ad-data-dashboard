@@ -112,7 +112,7 @@ with col8:
     st.markdown(f"<div class='scorecard-value'>{int(total_clicks):,}</div>", unsafe_allow_html=True)
 
 # --- 並び順選択 ---
-st.markdown("<div style='margin-top:3.5rem;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
 st.subheader("💠配信バナー")
 opt = st.radio("並び替え基準", ["広告番号順", "CV数の多い順", "CPAの低い順"])
 
