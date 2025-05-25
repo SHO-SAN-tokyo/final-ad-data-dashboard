@@ -175,7 +175,6 @@ st.markdown("""
   .scorecard-label {
     font-size: 14px;
     margin-bottom: 6px;
-    font-weight: 600;
     text-align: left;
     background: #f1f1f1;
     padding: .3rem .6rem;
