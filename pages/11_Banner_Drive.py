@@ -31,15 +31,15 @@ df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
 st.markdown("### 🔎 広告を絞り込む")
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    sel_client = st.multiselect("クライアント名", sorted(df["client_name"].dropna().unique()))
+    sel_client = st.multiselect("クライアント名", sorted(df["client_name"].dropna().unique()), placeholder="すべて")
 with col2:
-    sel_month = st.multiselect("配信月", sorted(df["配信月"].dropna().unique()))
+    sel_month = st.multiselect("配信月", sorted(df["配信月"].dropna().unique()), placeholder="すべて")
 with col3:
-    sel_cat = st.multiselect("カテゴリ", sorted(df["カテゴリ"].dropna().unique()))
+    sel_cat = st.multiselect("カテゴリ", sorted(df["カテゴリ"].dropna().unique()), placeholder="すべて")
 with col4:
-    sel_goal = st.multiselect("広告目的", sorted(df["広告目的"].dropna().unique()))
+    sel_goal = st.multiselect("広告目的", sorted(df["広告目的"].dropna().unique()), placeholder="すべて")
 
-sel_campaign = st.multiselect("キャンペーン名", sorted(df["キャンペーン名"].dropna().unique()))
+sel_campaign = st.multiselect("キャンペーン名", sorted(df["キャンペーン名"].dropna().unique()), placeholder="すべて")
 
 if sel_client:
     df = df[df["client_name"].isin(sel_client)]
