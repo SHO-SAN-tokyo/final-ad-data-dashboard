@@ -75,10 +75,10 @@ st.markdown("### 📊 広告パフォーマンス")
 # --- 絞り込み条件の表示 ---
 st.markdown(
     f"📅 配信月：{df_filtered['配信月'].min()} 〜 {df_filtered['配信月'].max()}　"
-    f"👤 クライアント：{sel_client if sel_client else '未選択'}　"
-    f"📁 カテゴリ：{sel_cat if sel_cat else '未選択'}　"
-    f"🎯 広告目的：{sel_goal if sel_goal else '未選択'}<br>"
-    f"📣 キャンペーン名：{sel_campaign if sel_campaign else '未選択'}",
+    f"👤 クライアント：{sel_client if sel_client else 'すべて'}　"
+    f"📁 カテゴリ：{sel_cat if sel_cat else 'すべて'}　"
+    f"🎯 広告目的：{sel_goal if sel_goal else 'すべて'}<br>"
+    f"📣 キャンペーン名：{sel_campaign if sel_campaign else 'すべて'}",
     unsafe_allow_html=True
 )
 
