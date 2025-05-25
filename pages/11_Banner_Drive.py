@@ -189,6 +189,7 @@ st.markdown("""
     font-size: 30px;
     text-align: left;
     line-height: 1.2;
+    font-weight: 600;
     padding: 2px 10px;
     margin-bottom: 1.4rem;
     font-family: 'Inter', 'Roboto', sans-serif;
