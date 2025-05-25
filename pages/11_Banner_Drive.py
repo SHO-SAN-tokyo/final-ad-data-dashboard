@@ -218,6 +218,7 @@ st.markdown("""
     line-height: 1.6;
     text-align: left;
     color: #111;
+    font-family: 'Inter', 'Roboto', sans-serif;
   }
 
   .gray-text {
