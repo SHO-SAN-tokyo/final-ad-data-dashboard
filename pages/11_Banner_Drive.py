@@ -169,8 +169,10 @@ for i, (_, r) in enumerate(df_display.iterrows()):
     with cols[i % 5]:
         st.markdown(card_html, unsafe_allow_html=True)
 
-# --- Google fonts --- 
+# --- Google Fontsを読み込む ---
+st.markdown("""
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+""", unsafe_allow_html=True)
 
 # --- CSS ---
 st.markdown("""
