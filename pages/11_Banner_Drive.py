@@ -186,7 +186,7 @@ st.markdown("""
     text-align: left;
     line-height: 1.2;
     margin-bottom: 12px;
-    color: #111;
+    /* color: #111; */
   }
   .banner-card {
     padding: 12px 12px 20px;
