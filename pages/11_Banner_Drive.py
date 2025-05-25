@@ -172,20 +172,26 @@ for i, (_, r) in enumerate(df_display.iterrows()):
 # --- CSS --- 末尾に貼り付け
 st.markdown("""
 <style>
-  /* 共通スタイル（明るめ） */
   .scorecard-label {
     font-size: 14px;
-    margin-bottom: 4px;
-    font-weight: 500;
+    margin-bottom: 6px;
+    font-weight: 600;
     text-align: left;
+    color: var(--text-color, #333);
   }
+
   .scorecard-value {
-    font-size: 30px;
-    font-weight: bold;
+    font-size: 32px;
+    font-weight: 700;
     text-align: left;
     line-height: 1.2;
-    margin-bottom: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background-color: #f3f3f3;
+    color: var(--text-color, #111);
+    margin-bottom: 14px;
   }
+
   .banner-card {
     padding: 12px 12px 20px;
     border: 1px solid #e6e6e6;
@@ -194,6 +200,7 @@ st.markdown("""
     height: auto;
     margin-bottom: 14px;
   }
+
   .banner-card img {
     width: 100%;
     height: auto;
@@ -201,6 +208,7 @@ st.markdown("""
     border-radius: 8px;
     cursor: pointer;
   }
+
   .banner-caption {
     margin-top: 8px;
     font-size: 14px;
@@ -208,16 +216,18 @@ st.markdown("""
     text-align: left;
     color: #111;
   }
+
   .gray-text {
     color: #888;
   }
 
-  /* 🌙 ダークモード用スタイル */
+  /* 🌙 ダークモード対応 */
   @media (prefers-color-scheme: dark) {
     .scorecard-label {
       color: #ccc !important;
     }
     .scorecard-value {
+      background-color: #333 !important;
       color: #fff !important;
     }
     .banner-card {
