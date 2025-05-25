@@ -185,11 +185,10 @@ st.markdown("""
 
   .scorecard-value {
     font-size: 30px;
-    font-weight: 700;
     text-align: left;
     line-height: 1.2;
     padding: 2px 10px;
-    margin-bottom: 1rem;
+    margin-bottom: 1.4rem;
     font-family: 'Inter', 'Roboto', sans-serif;
   }
 
