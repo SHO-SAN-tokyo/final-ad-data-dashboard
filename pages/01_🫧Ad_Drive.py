@@ -46,7 +46,8 @@ else:
     st.markdown("""
         <style>
         h3.top {
-            color: #f1f1f1;
+            color: white;
+            background-color: #ccc;
             margin: 0.8rem auto 1.5rem auto !important;
         }
         </style>
