@@ -252,6 +252,9 @@ st.markdown("""
 
   /* 🌙 ダークモード対応 */
   @media (prefers-color-scheme: dark) {
+    h3 {
+      background-color: #394046;
+    }
     .scorecard-label {
       color: #ccc !important;
     }
