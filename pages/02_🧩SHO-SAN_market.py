@@ -5,7 +5,7 @@ import plotly.express as px
 from google.cloud import bigquery
 
 # ------------------------------------------------------------
-# 0. ページ設定
+# 0. ページ設定 
 # ------------------------------------------------------------
 st.set_page_config(page_title="カテゴリ×都道府県 達成率モニター", layout="wide")
 st.title("🧩 SHO‑SAN market")
