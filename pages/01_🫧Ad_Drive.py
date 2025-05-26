@@ -153,7 +153,7 @@ for i, (_, r) in enumerate(df_display.iterrows()):
         f"<b>クリック：</b>{clk:,.0f}",
         f"<b>CTR：</b>{ctr*100:.2f}%" if pd.notna(ctr) else "<b>CTR：</b>-",
         f"<b>CV数：</b>{cv if cv else 'なし'}",
-        f"<b>CPA：</b>{cpa:.0f}円" if pd.notna(cpa) else "<b>CPA：</b>-",
+        f"<b>CPA：</b>{cpa:,.0f}円" if pd.notna(cpa) else "<b>CPA：</b>-",
         canva_html,
         f"<b>メインテキスト：</b>{text}"
     ]
