@@ -222,7 +222,7 @@ st.markdown(f"""
     margin-bottom: 1.4rem;
     font-family: 'Inter', 'Roboto', sans-serif;
     background-color: {"#333" if is_dark else "transparent"};
-    color: {"#fff" if is_dark else "#111 !important"};
+    color: {"#fff" if is_dark else "#111"};
   }}
   .banner-card {{
     padding: 12px 12px 20px;
