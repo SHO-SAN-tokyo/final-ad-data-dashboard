@@ -29,18 +29,26 @@ df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
 
 # --- フィルター ---
 st.markdown("### 🔎 広告を絞り込む")
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    sel_client = st.multiselect("👤クライアント名", sorted(df["client_name"].dropna().unique()), placeholder="すべて")
-with col2:
-    sel_month = st.multiselect("📅配信月", sorted(df["配信月"].dropna().unique()), placeholder="すべて")
-with col3:
-    sel_cat = st.multiselect("📁カテゴリ", sorted(df["カテゴリ"].dropna().unique()), placeholder="すべて")
-with col4:
-    sel_goal = st.multiselect("🎯広告目的", sorted(df["広告目的"].dropna().unique()), placeholder="すべて")
 
-sel_media = st.multiselect("📡媒体", sorted(df["ServiceNameJA"].dropna().unique()), placeholder="すべて")
-sel_campaign = st.multiselect("📣キャンペーン名", sorted(df["キャンペーン名"].dropna().unique()), placeholder="すべて")
+# 1段目：配信月、クライアント名
+col1, col2 = st.columns(2)
+with col1:
+    sel_month = st.multiselect("📅 配信月", sorted(df["配信月"].dropna().unique()), placeholder="すべて")
+with col2:
+    sel_client = st.multiselect("👤 クライアント名", sorted(df["client_name"].dropna().unique()), placeholder="すべて")
+
+# 2段目：カテゴリ、媒体、広告目的
+col3, col4, col5 = st.columns(3)
+with col3:
+    sel_cat = st.multiselect("📁 カテゴリ", sorted(df["カテゴリ"].dropna().unique()), placeholder="すべて")
+with col4:
+    sel_media = st.multiselect("📡 媒体", sorted(df["ServiceNameJA"].dropna().unique()), placeholder="すべて")
+with col5:
+    sel_goal = st.multiselect("🎯 広告目的", sorted(df["広告目的"].dropna().unique()), placeholder="すべて")
+
+# 3段目：キャンペーン名
+sel_campaign = st.multiselect("📣 キャンペーン名", sorted(df["キャンペーン名"].dropna().unique()), placeholder="すべて")
+
 
 if sel_client:
     df = df[df["client_name"].isin(sel_client)]
