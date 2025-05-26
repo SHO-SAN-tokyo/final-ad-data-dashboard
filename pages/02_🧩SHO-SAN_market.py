@@ -64,7 +64,9 @@ df_table = df[[
     "配信月", "都道府県", "カテゴリ", "広告目的", "CampaignName",
     指標, 目標値列, 達成率列, 評価列, "目標CPA"
 ]].sort_values(["配信月", "都道府県", "CampaignName"])
-st.dataframe(df_table, use_container_width=True, hide_index=True)
+st.dataframe(df_table, use_container_width=True, hide_index=True)    
+
+st.write("📌 データフレームの列一覧：", df.columns.tolist())
 
 # ------------------------------------------------------------
 # 5. 月別推移グラフ
