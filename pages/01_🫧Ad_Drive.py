@@ -33,27 +33,6 @@ st.markdown("<h3 class='top'>🔎 広告を絞り込む</h3>", unsafe_allow_html
 # --- ダークモード・ライトモードを判定してスタイルを注入 ---
 theme = st.get_option("theme.base")
 
-if theme == "light":
-    st.markdown("""
-        <style>
-        h3.top {
-            color: white;
-            margin: 0.8rem auto 1.5rem auto !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown("""
-        <style>
-        h3.top {
-            color: #000;
-            background-color: #ccc;
-            margin: 0.8rem auto 1.5rem auto !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-
 # 1段目：配信月、クライアント名
 col1, col2 = st.columns(2)
 with col1:
@@ -243,13 +222,13 @@ st.markdown(f"""
     margin-bottom: 1.4rem;
     font-family: 'Inter', 'Roboto', sans-serif;
     background-color: {"#333" if is_dark else "transparent"};
-    color: {"#fff" if is_dark else "#111"};
+    color: {"#fff" if is_dark else "#111 !important"};
   }}
   .banner-card {{
     padding: 12px 12px 20px;
     border: 1px solid {"#444" if is_dark else "#e6e6e6"};
     border-radius: 12px;
-    background: {"#222" if is_dark else "#fafafa"};
+    background: {"#222" if is_dark else "#fafafa !important"};
     height: auto;
     margin-bottom: 14px;
   }}
