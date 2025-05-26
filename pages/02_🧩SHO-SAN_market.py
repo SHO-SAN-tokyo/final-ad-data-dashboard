@@ -14,10 +14,9 @@ st.subheader("📊 カテゴリ × 都道府県 キャンペーン達成率モ�
 # ------------------------------------------------------------
 # 1. データ読み込み
 # ------------------------------------------------------------
-cred = dict(st.secrets["connections"]["bigquery"])
-cred["private_key"] = cred["private_key"].replace("\n", "
-")
-client = bigquery.Client.from_service_account_info(cred)
+bq_cred = dict(st.secrets["connections"]["bigquery"])
+bq_cred["private_key"] = bq_cred["private_key"].replace("\\n", "\n")
+client = bigquery.Client.from_service_account_info(bq_cred)
 
 @st.cache_data(show_spinner=False)
 def load_data():
