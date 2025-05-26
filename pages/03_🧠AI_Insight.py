@@ -1,4 +1,4 @@
-# 03_🧠AI_Insight.py - 分析強化版
+# 03_🧠AI_Insight.py - 分析強化版　
 import streamlit as st
 import pandas as pd, numpy as np
 from google.cloud import bigquery
