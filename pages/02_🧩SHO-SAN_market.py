@@ -96,3 +96,72 @@ for 指標 in 指標群:
     fig = px.line(df_plot, x="配信月_dt", y=["実績値", "目標値"], markers=True)
     fig.update_layout(yaxis_title=指標, xaxis_title="配信月", height=400)
     st.plotly_chart(fig, use_container_width=True)
+
+
+# ------------------------------------------------------------
+# 6. 達成率バーグラフ（カテゴリ別）
+# ------------------------------------------------------------
+st.markdown("### 📊 カテゴリ別 CPA達成率バーグラフ")
+
+# CPA達成率を計算（Cost ÷ CPA_best）
+df_bar = df[df["CPA_best"].notna() & df["CPA"].notna()].copy()
+df_bar["CPA_達成率"] = df_bar["CPA"] / df_bar["CPA_best"]
+
+# カテゴリごとの平均達成率を集計
+df_grouped = (
+    df_bar.groupby("カテゴリ")
+          .agg(達成率平均=("CPA_達成率", "mean"))
+          .reset_index()
+)
+df_grouped["達成率平均（％）"] = df_grouped["達成率平均"].apply(lambda x: f"{x:.0%}")
+
+# 棒グラフ描画
+fig = px.bar(
+    df_grouped,
+    x="カテゴリ",
+    y="達成率平均",
+    text="達成率平均（％）",
+    color="達成率平均",
+    color_continuous_scale="RdYlGn_r",
+    labels={"達成率平均": "CPA達成率"}
+)
+fig.update_layout(yaxis_tickformat=".0%", height=400)
+st.plotly_chart(fig, use_container_width=True)
+
+# ------------------------------------------------------------
+# 7. CPA評価 ヒートマップ（都道府県 × カテゴリ）
+# ------------------------------------------------------------
+st.markdown("### 🗾 都道府県 × カテゴリのCPA評価ヒートマップ")
+
+# 評価を数値に変換（◎=3, ○=2, △=1, ×=0）
+評価マップ = {"◎": 3, "○": 2, "△": 1, "×": 0}
+df_heatmap = df[df["CPA_評価"].notna()].copy()
+df_heatmap["CPA評価スコア"] = df_heatmap["CPA_評価"].map(評価マップ)
+
+# 都道府県 × カテゴリ ピボットテーブル（平均スコア）
+heatmap_data = (
+    df_heatmap.pivot_table(
+        index="都道府県",
+        columns="カテゴリ",
+        values="CPA評価スコア",
+        aggfunc="mean"
+    )
+)
+
+# ヒートマップ描画（matplotlib + seaborn）
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(max(10, len(heatmap_data.columns) * 0.6), max(6, len(heatmap_data) * 0.4)))
+sns.heatmap(
+    heatmap_data,
+    cmap="YlGnBu",
+    annot=True,
+    fmt=".1f",
+    linewidths=0.5,
+    cbar_kws={"label": "評価スコア (◎=3, ×=0)"}
+)
+plt.xlabel("カテゴリ")
+plt.ylabel("都道府県")
+plt.title("CPA評価スコア ヒートマップ", fontsize=14)
+st.pyplot(fig)
