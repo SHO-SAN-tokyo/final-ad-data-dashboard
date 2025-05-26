@@ -14,9 +14,9 @@ st.subheader("📊 カテゴリ × 都道府県 キャンペーン達成率モ�
 # ------------------------------------------------------------
 # 1. データ読み込み
 # ------------------------------------------------------------
-bq_cred = dict(st.secrets["connections"]["bigquery"])
-bq_cred["private_key"] = bq_cred["private_key"].replace("\\n", "\n")
-client = bigquery.Client.from_service_account_info(bq_cred)
+cred = dict(st.secrets["connections"]["bigquery"])
+cred["private_key"] = cred["private_key"].replace("\\n", "\n")
+client = bigquery.Client.from_service_account_info(cred)
 
 @st.cache_data(show_spinner=False)
 def load_data():
@@ -31,8 +31,12 @@ df = load_data()
 # 2. 前処理
 # ------------------------------------------------------------
 df["配信月"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
-df["達成率"] = df["達成率"].astype(float)
 指標 = st.selectbox("📌 表示指標を選択", ["CPA", "CVR", "CTR", "CPC", "CPM"])
+
+# 達成率・目標値・評価の列名を指標から自動決定
+達成率列 = f"{指標}_達成率"
+目標値列 = f"{指標}_best"
+評価列 = f"{指標}_評価"
 
 # ------------------------------------------------------------
 # 3. フィルター
@@ -56,8 +60,10 @@ if obj != "すべて":
 # 4. 表示テーブル
 # ------------------------------------------------------------
 st.markdown("### 📋 達成率一覧")
-df_table = df[["配信月", "都道府県", "カテゴリ", "広告目的", "CampaignName",
-               指標, "目標値", "達成率", "評価"]].sort_values(["配信月", "都道府県", "CampaignName"])
+df_table = df[[
+    "配信月", "都道府県", "カテゴリ", "広告目的", "CampaignName",
+    指標, 目標値列, 達成率列, 評価列, "目標CPA"
+]].sort_values(["配信月", "都道府県", "CampaignName"])
 st.dataframe(df_table, use_container_width=True, hide_index=True)
 
 # ------------------------------------------------------------
@@ -66,7 +72,7 @@ st.dataframe(df_table, use_container_width=True, hide_index=True)
 st.markdown("### 📈 月別推移グラフ")
 df_plot = (
     df.groupby("配信月")
-      .agg(実績値=(指標, "mean"), 目標値=("目標値", "mean"))
+      .agg(実績値=(指標, "mean"), 目標値=(目標値列, "mean"))
       .reset_index()
 )
 fig = px.line(df_plot, x="配信月", y=["実績値", "目標値"], markers=True)
