@@ -177,6 +177,12 @@ st.markdown("""
 # --- CSS ---
 st.markdown("""
 <style>
+  h3 {
+    background-color: #ddedfc;
+    padding: .6rem !important;
+    display: block;
+    margin: 1rem auto !important;
+  }
   .scorecard-label {
     font-size: 14px;
     margin-bottom: 6px;
