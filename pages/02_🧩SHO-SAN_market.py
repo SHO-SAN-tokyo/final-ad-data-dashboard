@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
 from google.cloud import bigquery
 
@@ -20,24 +19,23 @@ client = bigquery.Client.from_service_account_info(cred)
 
 @st.cache_data(show_spinner=False)
 def load_data():
-    df = client.query("""
+    query = """
         SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Market_Monthly_Evaluated_View`
-    """).to_dataframe()
-    return df
+    """
+    return client.query(query).to_dataframe()
 
 df = load_data()
-
-st.write("📌 データフレームの列一覧：", df.columns.tolist())
 
 # ------------------------------------------------------------
 # 2. 前処理
 # ------------------------------------------------------------
 df["配信月"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
+
+# 指標を選択
 指標 = st.selectbox("📌 表示指標を選択", ["CPA", "CVR", "CTR", "CPC", "CPM"])
 
-# 達成率・目標値・評価の列名を指標から自動決定
-達成率列 = f"{指標}_達成率"
-目標値列 = f"{指標}_best"
+# 各列名を自動で設定
+目標列 = f"{指標}_best"
 評価列 = f"{指標}_評価"
 
 # ------------------------------------------------------------
@@ -62,13 +60,12 @@ if obj != "すべて":
 # 4. 表示テーブル
 # ------------------------------------------------------------
 st.markdown("### 📋 達成率一覧")
-df_table = df[[
+表示列 = [
     "配信月", "都道府県", "カテゴリ", "広告目的", "CampaignName",
-    指標, 目標値列, 達成率列, 評価列, "目標CPA"
-]].sort_values(["配信月", "都道府県", "CampaignName"])
-st.dataframe(df_table, use_container_width=True, hide_index=True)    
-
-
+    指標, 目標列, 評価列, "目標CPA"
+]
+df_table = df[表示列].sort_values(["配信月", "都道府県", "CampaignName"])
+st.dataframe(df_table, use_container_width=True, hide_index=True)
 
 # ------------------------------------------------------------
 # 5. 月別推移グラフ
@@ -76,7 +73,7 @@ st.dataframe(df_table, use_container_width=True, hide_index=True)
 st.markdown("### 📈 月別推移グラフ")
 df_plot = (
     df.groupby("配信月")
-      .agg(実績値=(指標, "mean"), 目標値=(目標値列, "mean"))
+      .agg(実績値=(指標, "mean"), 目標値=(目標列, "mean"))
       .reset_index()
 )
 fig = px.line(df_plot, x="配信月", y=["実績値", "目標値"], markers=True)
