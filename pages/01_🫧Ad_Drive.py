@@ -27,8 +27,31 @@ df["カテゴリ"] = df["カテゴリ"].fillna("未設定")
 df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
 
 
-# --- フィルター ---
+# --- フィルター ---（表示）
 st.markdown("<h3 class='top'>🔎 広告を絞り込む</h3>", unsafe_allow_html=True)
+
+# --- ダークモード・ライトモードを判定してスタイルを注入 ---
+theme = st.get_option("theme.base")
+
+if theme == "dark":
+    st.markdown("""
+        <style>
+        h3.top {
+            color: white;
+            margin: 0.8rem auto 1.5rem auto !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+        <style>
+        h3.top {
+            color: black;
+            margin: 0.8rem auto 1.5rem auto !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
 
 # 1段目：配信月、クライアント名
 col1, col2 = st.columns(2)
