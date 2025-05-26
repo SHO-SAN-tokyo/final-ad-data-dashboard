@@ -33,7 +33,7 @@ st.markdown("<h3 class='top'>🔎 広告を絞り込む</h3>", unsafe_allow_html
 # --- ダークモード・ライトモードを判定してスタイルを注入 ---
 theme = st.get_option("theme.base")
 
-if theme == "dark":
+if theme == "light":
     st.markdown("""
         <style>
         h3.top {
@@ -46,7 +46,7 @@ else:
     st.markdown("""
         <style>
         h3.top {
-            color: white;
+            color: #000;
             background-color: #ccc;
             margin: 0.8rem auto 1.5rem auto !important;
         }
