@@ -190,7 +190,7 @@ st.markdown("""
 st.markdown("""
 <style>
   h3.top {
-    margin: 1rem auto !important;
+    margin: .4rem auto !important;
   }
   h3 {
     background-color: #ddedfc;
