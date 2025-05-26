@@ -39,6 +39,7 @@ with col3:
 with col4:
     sel_goal = st.multiselect("🎯広告目的", sorted(df["広告目的"].dropna().unique()), placeholder="すべて")
 
+sel_media = st.multiselect("📡媒体", sorted(df["ServiceNameJA"].dropna().unique()), placeholder="すべて")
 sel_campaign = st.multiselect("📣キャンペーン名", sorted(df["キャンペーン名"].dropna().unique()), placeholder="すべて")
 
 if sel_client:
@@ -49,6 +50,8 @@ if sel_cat:
     df = df[df["カテゴリ"].isin(sel_cat)]
 if sel_goal:
     df = df[df["広告目的"].isin(sel_goal)]
+if sel_media:
+    df = df[df["ServiceNameJA"].isin(sel_media)] 
 if sel_campaign:
     df = df[df["キャンペーン名"].isin(sel_campaign)]
 
@@ -77,7 +80,8 @@ st.markdown(
     f"📅 配信月：{df_filtered['配信月'].min()} 〜 {df_filtered['配信月'].max()}　"
     f"👤 クライアント：{sel_client if sel_client else 'すべて'}　"
     f"📁 カテゴリ：{sel_cat if sel_cat else 'すべて'}　"
-    f"🎯 広告目的：{sel_goal if sel_goal else 'すべて'}<br>"
+    f"🎯 広告目的：{sel_goal if sel_goal else 'すべて'}　"
+    f"📡 媒体：{sel_media if sel_media else 'すべて'}<br>"
     f"📣 キャンペーン名：{sel_campaign if sel_campaign else 'すべて'}",
     unsafe_allow_html=True
 )
