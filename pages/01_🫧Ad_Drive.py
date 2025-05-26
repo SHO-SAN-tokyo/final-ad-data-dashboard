@@ -28,7 +28,9 @@ df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
 
 
 # --- フィルター ---
-st.markdown("### 🔎 広告を絞り込む")
+st.markdown("""
+<h3 style='margin: 1rem auto !important;'>🔎 広告を絞り込む</h3>
+""", unsafe_allow_html=True)
 
 # 1段目：配信月、クライアント名
 col1, col2 = st.columns(2)
