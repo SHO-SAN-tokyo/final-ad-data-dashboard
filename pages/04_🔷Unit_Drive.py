@@ -16,7 +16,7 @@ client = bigquery.Client.from_service_account_info(info_dict)
 
 # データ取得
 def load_data():
-    df = client.query("SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data").to_dataframe()
+    df = client.query("SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Unit_Drive_Ready_View").to_dataframe()
     unit_df = client.query("SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.UnitMapping").to_dataframe()
     return df, unit_df
 
