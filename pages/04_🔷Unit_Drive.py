@@ -35,6 +35,8 @@ preview_df = client.query("""
 st.dataframe(preview_df, use_container_width=True)
 st.write("📌 列一覧:", preview_df.columns.tolist())
 
+st.write("所属 列の型一覧:", unit_summary["所属"].apply(type).value_counts())
+
 
 # 📅 日付フィルター
 min_date = df["Date"].min().date()
