@@ -99,35 +99,33 @@ for 指標 in 指標群:
 
 
 # ------------------------------------------------------------
-# 6. 配信月 × カテゴリ 複合棒グラフ（CPA達成率）
+# 6. 配信月 × カテゴリ 複合折れ線グラフ（CPA達成率）
 # ------------------------------------------------------------
-st.markdown("### 📊 配信月 × カテゴリ 複合棒グラフ（CPA達成率）")
+st.markdown("### 📈 配信月 × カテゴリ 複合折れ線グラフ（CPA達成率）")
 
-# 達成率計算
-df_bar = df[df["CPA_best"].notna() & df["CPA"].notna()].copy()
-df_bar["CPA_達成率"] = df_bar["CPA"] / df_bar["CPA_best"]
+# CPA達成率を計算
+df_line = df[df["CPA_best"].notna() & df["CPA"].notna()].copy()
+df_line["CPA_達成率"] = df_line["CPA"] / df_line["CPA_best"]
 
-# 配信月はdatetimeから文字列に揃える（例：2025/07）
-df_bar["配信月_str"] = df_bar["配信月_dt"].dt.strftime("%Y/%m")
+# 表示用の文字列列（例：2025/07）
+df_line["配信月_str"] = df_line["配信月_dt"].dt.strftime("%Y/%m")
 
-# 集計：配信月 × カテゴリごとの平均達成率
-df_grouped = (
-    df_bar.groupby(["配信月_str", "カテゴリ"])
-          .agg(CPA達成率平均=("CPA_達成率", "mean"))
-          .reset_index()
+# 月 × カテゴリで平均CPA達成率を集計
+df_grouped_line = (
+    df_line.groupby(["配信月_str", "カテゴリ"])
+           .agg(CPA達成率平均=("CPA_達成率", "mean"))
+           .reset_index()
 )
 
-# グラフ描画：配信月 × カテゴリの複合棒グラフ
+# 折れ線グラフ描画
 import plotly.express as px
-
-fig = px.bar(
-    df_grouped,
+fig = px.line(
+    df_grouped_line,
     x="配信月_str",
     y="CPA達成率平均",
     color="カテゴリ",
-    barmode="group",
-    text=df_grouped["CPA達成率平均"].apply(lambda x: f"{x:.0%}"),
-    labels={"CPA達成率平均": "CPA達成率", "配信月_str": "配信月"}
+    markers=True,
+    labels={"配信月_str": "配信月", "CPA達成率平均": "CPA達成率"}
 )
 
 fig.update_layout(
@@ -136,8 +134,8 @@ fig.update_layout(
     yaxis_title="CPA達成率",
     height=500
 )
-
 st.plotly_chart(fig, use_container_width=True)
+
 
 
 # ------------------------------------------------------------
