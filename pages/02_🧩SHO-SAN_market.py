@@ -116,6 +116,7 @@ df_grouped = (
 df_grouped["達成率平均（％）"] = df_grouped["達成率平均"].apply(lambda x: f"{x:.0%}")
 
 # 棒グラフ描画
+import plotly.express as px
 fig = px.bar(
     df_grouped,
     x="カテゴリ",
@@ -128,37 +129,34 @@ fig = px.bar(
 fig.update_layout(yaxis_tickformat=".0%", height=400)
 st.plotly_chart(fig, use_container_width=True)
 
+
 # ------------------------------------------------------------
-# 7. CPA評価 ヒートマップ（都道府県 × カテゴリ）
+# 7. 達成率バーグラフ（都道府県別）
 # ------------------------------------------------------------
-st.markdown("### 🗾 都道府県 × カテゴリのCPA評価ヒートマップ")
+st.markdown("### 📊 都道府県別 CPA達成率バーグラフ")
 
-# 評価を数値に変換（◎=3, ○=2, △=1, ×=0）
-評価マップ = {"◎": 3, "○": 2, "△": 1, "×": 0}
-df_heatmap = df[df["CPA_評価"].notna()].copy()
-df_heatmap["CPA評価スコア"] = df_heatmap["CPA_評価"].map(評価マップ)
+# CPA達成率を計算（Cost ÷ CPA_best）
+df_pref = df[df["CPA_best"].notna() & df["CPA"].notna()].copy()
+df_pref["CPA_達成率"] = df_pref["CPA"] / df_pref["CPA_best"]
 
-# ピボット：都道府県 × カテゴリ
-heatmap_data = df_heatmap.pivot_table(
-    index="都道府県",
-    columns="カテゴリ",
-    values="CPA評価スコア",
-    aggfunc="mean"
+# 都道府県ごとの平均達成率を集計
+df_grouped_pref = (
+    df_pref.groupby("都道府県")
+           .agg(達成率平均=("CPA_達成率", "mean"))
+           .reset_index()
 )
+df_grouped_pref["達成率平均（％）"] = df_grouped_pref["達成率平均"].apply(lambda x: f"{x:.0%}")
 
-# Plotlyで描画
-import plotly.express as px
-
-fig = px.imshow(
-    heatmap_data,
-    color_continuous_scale="YlGnBu",
-    aspect="auto",
-    labels=dict(color="評価スコア（◎=3, ×=0）")
+# 棒グラフ描画
+fig = px.bar(
+    df_grouped_pref.sort_values("達成率平均", ascending=False),
+    x="都道府県",
+    y="達成率平均",
+    text="達成率平均（％）",
+    color="達成率平均",
+    color_continuous_scale="RdYlGn_r",
+    labels={"達成率平均": "CPA達成率"}
 )
-fig.update_layout(
-    xaxis_title="カテゴリ",
-    yaxis_title="都道府県",
-    title="CPA評価スコア ヒートマップ",
-    height=600
-)
+fig.update_layout(yaxis_tickformat=".0%", height=600)
 st.plotly_chart(fig, use_container_width=True)
+
