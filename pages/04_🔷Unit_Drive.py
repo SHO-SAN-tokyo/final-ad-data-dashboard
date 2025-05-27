@@ -24,26 +24,44 @@ df = load_data()
 # 前処理 
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-# --- フィルター（最上部に配置） ---
-st.markdown("### 🔍 絞り込みフィルター")
-
+# 📅 配信月フィルター
 month_options = sorted(df["配信月"].dropna().unique())
 selected_month = st.selectbox("📅 配信月", ["すべて"] + month_options)
+if selected_month != "すべて":
+    df = df[df["配信月"] == selected_month]
 
-unit_options = df["所属"].dropna()
+# 所属が None でなく、str型の行のみ
+latest = df.copy()
+numeric_cols = latest.select_dtypes(include=["number"]).columns
+latest[numeric_cols] = latest[numeric_cols].replace([np.inf, -np.inf], 0).fillna(0)
+latest = latest[latest["所属"].notna()]
+latest = latest[latest["所属"].apply(lambda x: isinstance(x, str))]
+
+# --- フィルターエリア（1行構成） ---
+unit_options = latest["所属"].dropna()
 unit_options = unit_options[unit_options.apply(lambda x: isinstance(x, str))].unique()
-unit_filter = st.selectbox("🏷️ Unit", ["すべて"] + sorted(unit_options))
+person_options = latest["担当者"].dropna().astype(str).unique()
+front_options = latest["フロント"].dropna().astype(str).unique()
 
-person_options = df["担当者"].dropna().astype(str).unique()
-person_filter = st.selectbox("👤 担当者", ["すべて"] + sorted(person_options))
-
-front_options = df["フロント"].dropna().astype(str).unique()
-front_filter = st.selectbox("📞 フロント", ["すべて"] + sorted(front_options))
+f1, f2, f3, f4 = st.columns([2, 2, 2, 4])
+with f1:
+    unit_filter = st.selectbox("🏷️ Unit", ["すべて"] + sorted(unit_options))
+with f2:
+    person_filter = st.selectbox("👤 担当者", ["すべて"] + sorted(person_options))
+with f3:
+    front_filter = st.selectbox("👤 フロント", ["すべて"] + sorted(front_options))
+with f4:
+    st.markdown(f"""
+    <div style='padding-top: 2rem;'>
+        📅 配信月: <b>{selected_month}</b>　|
+        Unit: <b>{unit_filter}</b>　|
+        担当者: <b>{person_filter}</b>　|
+        フロント: <b>{front_filter}</b>
+    </div>
+    """, unsafe_allow_html=True)
 
 # フィルター適用
-df_filtered = df.copy()
-if selected_month != "すべて":
-    df_filtered = df_filtered[df_filtered["配信月"] == selected_month]
+df_filtered = latest.copy()
 if unit_filter != "すべて":
     df_filtered = df_filtered[df_filtered["所属"] == unit_filter]
 if person_filter != "すべて":
@@ -51,27 +69,8 @@ if person_filter != "すべて":
 if front_filter != "すべて":
     df_filtered = df_filtered[df_filtered["フロント"] == front_filter]
 
-# --- 選択中の条件表示 ---
-st.markdown(
-    f"#### 🎯 絞り込み条件\n"
-    f"📅 配信月：{selected_month}　"
-    f"🏷️ Unit：{unit_filter}　"
-    f"👤 担当者：{person_filter}　"
-    f"📞 フロント：{front_filter}",
-    unsafe_allow_html=True
-)
-
-# --- 数値補正 ---
-numeric_cols = df_filtered.select_dtypes(include=["number"]).columns
-df_filtered[numeric_cols] = df_filtered[numeric_cols].replace([np.inf, -np.inf], 0).fillna(0)
-
-# 所属前処理
-latest = df_filtered.copy()
-latest = latest[latest["所属"].notna()]
-latest = latest[latest["所属"].apply(lambda x: isinstance(x, str))]
-
 # Unit集計
-unit_summary = latest.groupby("所属").agg({
+unit_summary = df_filtered.groupby("所属").agg({
     "CampaignId": "nunique",
     "予算": "sum",
     "消化金額": "sum",
@@ -107,9 +106,9 @@ for idx, row in unit_summary.iterrows():
         </div>
         """, unsafe_allow_html=True)
 
-# --- 担当者別スコアカード ---
+# --- 担当者別カード ---
 st.write("#### 👨‍💼 担当者ごとのスコア")
-person_summary = latest.groupby("担当者").agg({
+person_summary = df_filtered.groupby("担当者").agg({
     "CampaignId": "nunique",
     "予算": "sum",
     "消化金額": "sum",
@@ -127,10 +126,10 @@ person_summary = person_summary.merge(
     latest[["担当者", "所属"]].drop_duplicates(), on="担当者", how="left"
 )
 
-person_cols = st.columns(4)
+person_cols = st.columns(5)
 for idx, row in person_summary.iterrows():
     color = unit_color_map.get(row.get("所属"), "#f0f0f0")
-    with person_cols[idx % 4]:
+    with person_cols[idx % 5]:
         st.markdown(f"""
         <div style='background-color: {color}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
             <h4 style='margin-bottom: 0.3rem;'>{row['担当者']}</h4>
@@ -154,9 +153,9 @@ person_agg = df_filtered.groupby("担当者").agg(
 person_agg["達成率"] = person_agg["達成件数"] / person_agg["campaign_count"]
 person_agg = person_agg.sort_values("達成率", ascending=False)
 
-person_cols = st.columns(4)
+person_cols = st.columns(5)
 for idx, row in person_agg.iterrows():
-    with person_cols[idx % 4]:
+    with person_cols[idx % 5]:
         st.markdown(f"""
         <div style='background-color: #f0f5eb; padding: 1rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
             <h5>{row["担当者"]}</h5>
