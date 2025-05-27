@@ -151,5 +151,49 @@ st.dataframe(
     use_container_width=True
 )
 
+# ✅ 担当者別達成率スコアカード
+st.write("### 👨‍💼 担当者ごとの達成率")
+person_agg = df.groupby("担当者").agg(
+    campaign_count=("CampaignId", "nunique"),
+    達成件数=("達成状況", lambda x: (x == "達成").sum())
+).reset_index()
+person_agg["達成率"] = person_agg["達成件数"] / person_agg["campaign_count"]
+person_agg = person_agg.sort_values("達成率", ascending=False)
+
+person_cols = st.columns(4)
+for idx, row in person_agg.iterrows():
+    with person_cols[idx % 4]:
+        st.markdown(f"""
+        <div style='background-color: #f0f5eb; padding: 1rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
+            <h5>{row["担当者"]}</h5>
+            <div style='font-size: 1.2rem; font-weight: bold;'>{row["達成率"]:.0%}</div>
+            <div style='font-size: 0.9rem;'>
+                達成数: {int(row["達成件数"])} / {int(row["campaign_count"])}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+# ✅ 達成キャンペーン一覧
+st.write("### ✅ 達成キャンペーン一覧")
+achieved = df[df["達成状況"] == "達成"]
+st.dataframe(
+    achieved[[
+        "配信月", "CampaignName", "担当者", "所属",
+        "CPA", "CPA_KPI_評価", "目標CPA", "独立CPA_達成"
+    ]],
+    use_container_width=True
+)
+
+# ❌ 未達成キャンペーン一覧
+st.write("### ❌ 未達成キャンペーン一覧")
+missed = df[df["達成状況"] == "未達成"]
+st.dataframe(
+    missed[[
+        "配信月", "CampaignName", "担当者", "所属",
+        "CPA", "CPA_KPI_評価", "目標CPA", "独立CPA_達成"
+    ]],
+    use_container_width=True
+)
+
 # 余白
 st.markdown("<div style='margin-top: 4.5rem;'></div>", unsafe_allow_html=True)
