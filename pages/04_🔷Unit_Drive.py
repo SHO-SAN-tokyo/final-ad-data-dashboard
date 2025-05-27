@@ -33,7 +33,11 @@ if selected_month != "すべて":
 
 # Unitの前処理
 latest = df.copy()
-latest = latest.replace([np.inf, -np.inf], 0).fillna(0)
+
+# 数値列のみ選んで補正する
+numeric_cols = latest.select_dtypes(include=["number"]).columns
+latest[numeric_cols] = latest[numeric_cols].replace([np.inf, -np.inf], 0).fillna(0)
+
 
 # 所属が None でなく、str型の行のみ
 latest = latest[latest["所属"].notna()]
