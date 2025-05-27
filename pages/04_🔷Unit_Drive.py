@@ -35,8 +35,6 @@ preview_df = client.query("""
 st.dataframe(preview_df, use_container_width=True)
 st.write("📌 列一覧:", preview_df.columns.tolist())
 
-st.write("所属 列の型一覧:", unit_summary["所属"].apply(type).value_counts())
-
 
 # 📅 日付フィルター
 min_date = df["Date"].min().date()
@@ -57,6 +55,9 @@ unit_summary = valid_unit_df.groupby("所属").agg({
     "フィー": "sum",
     "コンバージョン数": "sum"
 }).reset_index()
+
+# ✅ 型確認（ここで unit_summary は定義済み）
+st.write("所属 列の型一覧:", unit_summary["所属"].apply(type).value_counts())
 
 unit_summary["CPA"] = unit_summary.apply(
     lambda row: row["消化金額"] / row["コンバージョン数"] if row["コンバージョン数"] > 0 else 0,
