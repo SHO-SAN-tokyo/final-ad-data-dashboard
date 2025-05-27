@@ -31,6 +31,10 @@ max_date = df["Date"].max().date()
 date_range = st.date_input("", (min_date, max_date), min_value=min_date, max_value=max_date)
 df = df[(df["Date"].dt.date >= date_range[0]) & (df["Date"].dt.date <= date_range[1])]
 
+st.write("列一覧:", latest.columns.tolist())
+st.write("所属ユニーク:", latest["所属"].unique())
+
+
 # Unitの付与
 latest = df.copy()
 latest = latest.merge(unit_df, on="担当者", how="left")
