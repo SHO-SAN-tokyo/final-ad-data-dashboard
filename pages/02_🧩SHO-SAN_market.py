@@ -131,32 +131,66 @@ st.plotly_chart(fig, use_container_width=True)
 
 
 # ------------------------------------------------------------
-# 7. 達成率バーグラフ（都道府県別） 
+# 7. 達成率バーグラフ（都道府県別・色分け）
 # ------------------------------------------------------------
-st.markdown("### 📊 都道府県別 CPA達成率バーグラフ")
+st.markdown("### 📊 都道府県別 CPA達成率バーグラフ（評価付き）")
 
 # CPA達成率を計算（Cost ÷ CPA_best）
 df_pref = df[df["CPA_best"].notna() & df["CPA"].notna()].copy()
 df_pref["CPA_達成率"] = df_pref["CPA"] / df_pref["CPA_best"]
 
-# 都道府県ごとの平均達成率を集計
+# 都道府県ごとの平均CPA達成率
 df_grouped_pref = (
     df_pref.groupby("都道府県")
            .agg(達成率平均=("CPA_達成率", "mean"))
            .reset_index()
 )
+
+# カラー分類（緑: >=1.0, 黄: >=0.9, 赤: <0.9）
+def color_label(rate):
+    if rate >= 1.0:
+        return "良好"
+    elif rate >= 0.9:
+        return "注意"
+    else:
+        return "低調"
+
+df_grouped_pref["評価"] = df_grouped_pref["達成率平均"].apply(color_label)
 df_grouped_pref["達成率平均（％）"] = df_grouped_pref["達成率平均"].apply(lambda x: f"{x:.0%}")
 
-# 棒グラフ描画
-fig = px.bar(
-    df_grouped_pref.sort_values("達成率平均", ascending=False),
-    x="都道府県",
-    y="達成率平均",
-    text="達成率平均（％）",
-    color="達成率平均",
-    color_continuous_scale="RdYlGn_r",
-    labels={"達成率平均": "CPA達成率"}
+# カラー定義（落ち着いた薄めの色）
+color_map = {
+    "良好": "#B8E0D2",   # 薄緑
+    "注意": "#FFF3B0",   # 薄黄
+    "低調": "#F4C2C2"    # 薄赤
+}
+df_grouped_pref["色"] = df_grouped_pref["評価"].map(color_map)
+
+# 棒グラフ描画（横向き）
+import plotly.graph_objects as go
+
+fig = go.Figure()
+
+df_sorted = df_grouped_pref.sort_values("達成率平均", ascending=True)
+
+fig.add_trace(go.Bar(
+    x=df_sorted["達成率平均"],
+    y=df_sorted["都道府県"],
+    orientation="h",
+    text=df_sorted["達成率平均（％）"],
+    textposition="outside",
+    marker_color=df_sorted["色"],
+    hovertemplate="%{y}<br>達成率：%{text}<extra></extra>"
+))
+
+fig.update_layout(
+    height=800,
+    xaxis=dict(title="CPA達成率", tickformat=".0%"),
+    yaxis=dict(title="都道府県"),
+    title="都道府県別 CPA達成率（色付き）",
+    margin=dict(l=100, r=40, t=50, b=40)
 )
-fig.update_layout(yaxis_tickformat=".0%", height=600)
+
 st.plotly_chart(fig, use_container_width=True)
+
 
