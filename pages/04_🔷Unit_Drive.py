@@ -139,7 +139,7 @@ for idx, row in person_summary.iterrows():
 st.write("#### 📋 配信キャンペーン")
 campaign_table = filtered_df[["配信月","CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
 campaign_table = campaign_table.rename(columns={"所属": "Unit"})
-campaign_table = campaign_table[["CampaignName", "担当者", "Unit", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
+campaign_table = campaign_table[["配信月","CampaignName", "担当者", "Unit", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
 
 st.dataframe(
     campaign_table.style.format({
