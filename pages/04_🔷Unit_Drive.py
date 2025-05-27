@@ -24,18 +24,6 @@ df = load_data()
 # 前処理
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-st.markdown("### 🧪 Unit_Drive_Ready_View のプレビュー")
-
-# データ取得（上位20行のみ）
-preview_df = client.query("""
-    SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Unit_Drive_Ready_View`
-    LIMIT 20
-""").to_dataframe()
-
-st.dataframe(preview_df, use_container_width=True)
-st.write("📌 列一覧:", preview_df.columns.tolist())
-
-
 # 📅 日付フィルター
 min_date = df["Date"].min().date()
 max_date = df["Date"].max().date()
@@ -46,29 +34,23 @@ df = df[(df["Date"].dt.date >= date_range[0]) & (df["Date"].dt.date <= date_rang
 latest = df.copy()
 latest = latest.replace([np.inf, -np.inf], 0).fillna(0)
 
-# 所属が None でない行だけ抽出
-valid_unit_df = latest[latest["所属"].notna()]
-
-# 所属が文字列以外の行を除外（int型など）
-valid_unit_df = valid_unit_df[valid_unit_df["所属"].apply(lambda x: isinstance(x, str))]
+# 所属が None でなく、str型の行のみ
+latest = latest[latest["所属"].notna()]
+latest = latest[latest["所属"].apply(lambda x: isinstance(x, str))]
 
 # Unit集計
-unit_summary = valid_unit_df.groupby("所属").agg({
+unit_summary = latest.groupby("所属").agg({
     "CampaignId": "nunique",
     "予算": "sum",
     "消化金額": "sum",
     "フィー": "sum",
     "コンバージョン数": "sum"
 }).reset_index()
-
 unit_summary["CPA"] = unit_summary.apply(
     lambda row: row["消化金額"] / row["コンバージョン数"] if row["コンバージョン数"] > 0 else 0,
     axis=1
 )
-
 unit_summary = unit_summary.sort_values("所属")
-
-
 
 # --- Unit別色マップ
 unit_colors = ["#c0e4eb", "#cbebb5", "#ffdda6"]
@@ -96,9 +78,16 @@ for idx, row in unit_summary.iterrows():
 # --- 担当者別フィルター ---
 st.write("#### 👨‍💼 担当者ごとのスコア")
 col1, col2, col3 = st.columns(3)
-unit_filter = col1.selectbox("Unit", ["すべて"] + sorted(latest["所属"].dropna().unique()))
-person_filter = col2.selectbox("担当者", ["すべて"] + sorted(latest["担当者"].dropna().unique()))
-front_filter = col3.selectbox("フロント", ["すべて"] + sorted(latest["フロント"].dropna().unique()))
+
+unit_options = latest["所属"].dropna()
+unit_options = unit_options[unit_options.apply(lambda x: isinstance(x, str))].unique()
+unit_filter = col1.selectbox("Unit", ["すべて"] + sorted(unit_options))
+
+person_options = latest["担当者"].dropna().astype(str).unique()
+person_filter = col2.selectbox("担当者", ["すべて"] + sorted(person_options))
+
+front_options = latest["フロント"].dropna().astype(str).unique()
+front_filter = col3.selectbox("フロント", ["すべて"] + sorted(front_options))
 
 filtered_df = latest.copy()
 if unit_filter != "すべて":
@@ -116,13 +105,20 @@ person_summary = filtered_df.groupby("担当者").agg({
     "フィー": "sum",
     "コンバージョン数": "sum"
 }).reset_index()
-person_summary["CPA"] = person_summary.apply(lambda row: row["消化金額"] / row["コンバージョン数"] if row["コンバージョン数"] > 0 else 0, axis=1)
+person_summary["CPA"] = person_summary.apply(
+    lambda row: row["消化金額"] / row["コンバージョン数"] if row["コンバージョン数"] > 0 else 0,
+    axis=1
+)
 person_summary = person_summary.sort_values("担当者")
 
-# --- Unit色付け ---
+# 所属取得して色付け（NaNはグレー）
+person_summary = person_summary.merge(
+    latest[["担当者", "所属"]].drop_duplicates(), on="担当者", how="left"
+)
+
 person_cols = st.columns(4)
 for idx, row in person_summary.iterrows():
-    color = unit_color_map.get(row.get("所属", "未設定"), "#f0f0f0")
+    color = unit_color_map.get(row.get("所属"), "#f0f0f0")
     with person_cols[idx % 4]:
         st.markdown(f"""
         <div style='background-color: {color}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
