@@ -24,11 +24,12 @@ df = load_data()
 # 前処理
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-# 📅 日付フィルター
-min_date = df["Date"].min().date()
-max_date = df["Date"].max().date()
-date_range = st.date_input("", (min_date, max_date), min_value=min_date, max_value=max_date)
-df = df[(df["Date"].dt.date >= date_range[0]) & (df["Date"].dt.date <= date_range[1])]
+# 📅 配信月フィルター
+month_options = sorted(df["配信月"].dropna().unique())
+selected_month = st.selectbox("📅 配信月", ["すべて"] + month_options)
+
+if selected_month != "すべて":
+    df = df[df["配信月"] == selected_month]
 
 # Unitの前処理
 latest = df.copy()
@@ -136,7 +137,7 @@ for idx, row in person_summary.iterrows():
 
 # --- キャンペーン一覧テーブル ---
 st.write("#### 📋 配信キャンペーン")
-campaign_table = filtered_df[["CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
+campaign_table = filtered_df[["配信月","CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
 campaign_table = campaign_table.rename(columns={"所属": "Unit"})
 campaign_table = campaign_table[["CampaignName", "担当者", "Unit", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
 
