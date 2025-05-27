@@ -14,13 +14,12 @@ info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info_dict)
 
-# データ取得 (VIEW)
+# データ取得（VIEW）
 def load_data():
     df = client.query("SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Unit_Drive_Ready_View").to_dataframe()
-    unit_df = client.query("SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.UnitMapping").to_dataframe()
-    return df, unit_df
+    return df
 
-df, unit_df = load_data()
+df = load_data()
 
 # 前処理
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
@@ -31,19 +30,8 @@ max_date = df["Date"].max().date()
 date_range = st.date_input("", (min_date, max_date), min_value=min_date, max_value=max_date)
 df = df[(df["Date"].dt.date >= date_range[0]) & (df["Date"].dt.date <= date_range[1])]
 
-df = load_data()
-st.write("列一覧（VIEWからの直接取得）:", df.columns.tolist())
-
-# 所属列が存在するかチェック
-if "所属" in df.columns:
-    st.write("所属ユニーク:", df["所属"].unique())
-else:
-    st.warning("⚠️ '所属' 列が見つかりません")
-
-
-# Unitの付与
+# Unitの前処理
 latest = df.copy()
-latest = latest.merge(unit_df, on="担当者", how="left")
 latest = latest.replace([np.inf, -np.inf], 0).fillna(0)
 
 # --- Unit集計 ---
@@ -69,12 +57,12 @@ for idx, row in unit_summary.iterrows():
         st.markdown(f"""
         <div style='background-color: {unit_color_map[row['所属']]}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
             <h3 style='margin-bottom: 0.3rem;'>{row['所属']}</h3>
-            <div style='font-size: 1.5rem; font-weight: bold;'>\u00a5{row['CPA']:,.0f}</div>
+            <div style='font-size: 1.5rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
             <div style='font-size: 0.9rem; margin-top: 0.5rem;'>
                 キャンペーン数: {int(row['CampaignId'])}<br>
-                予算: \u00a5{int(row['予算'])}<br>
-                消化金額: \u00a5{int(row['消化金額'])}<br>
-                フィー: \u00a5{int(row['フィー'])}<br>
+                予算: ¥{int(row['予算'])}<br>
+                消化金額: ¥{int(row['消化金額'])}<br>
+                フィー: ¥{int(row['フィー'])}<br>
                 CV: {int(row['コンバージョン数'])}
             </div>
         </div>
@@ -106,22 +94,20 @@ person_summary = filtered_df.groupby("担当者").agg({
 person_summary["CPA"] = person_summary.apply(lambda row: row["消化金額"] / row["コンバージョン数"] if row["コンバージョン数"] > 0 else 0, axis=1)
 person_summary = person_summary.sort_values("担当者")
 
-# 色もUnitに連動
-person_summary = person_summary.merge(unit_df, on="担当者", how="left")
-
+# --- Unit色付け ---
 person_cols = st.columns(4)
 for idx, row in person_summary.iterrows():
-    color = unit_color_map.get(row["所属"], "#f0f0f0")
+    color = unit_color_map.get(row.get("所属", "未設定"), "#f0f0f0")
     with person_cols[idx % 4]:
         st.markdown(f"""
         <div style='background-color: {color}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
             <h4 style='margin-bottom: 0.3rem;'>{row['担当者']}</h4>
-            <div style='font-size: 1.3rem; font-weight: bold;'>\u00a5{row['CPA']:,.0f}</div>
+            <div style='font-size: 1.3rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
             <div style='font-size: 0.9rem; margin-top: 0.5rem;'>
                 キャンペーン数: {int(row['CampaignId'])}<br>
-                予算: \u00a5{int(row['予算'])}<br>
-                消化金額: \u00a5{int(row['消化金額'])}<br>
-                フィー: \u00a5{int(row['フィー'])}<br>
+                予算: ¥{int(row['予算'])}<br>
+                消化金額: ¥{int(row['消化金額'])}<br>
+                フィー: ¥{int(row['フィー'])}<br>
                 CV: {int(row['コンバージョン数'])}
             </div>
         </div>
@@ -135,10 +121,10 @@ campaign_table = campaign_table[["CampaignName", "担当者", "Unit", "予算", 
 
 st.dataframe(
     campaign_table.style.format({
-        "予算": "\u00a5{:.0f}",
-        "フィー": "\u00a5{:.0f}",
-        "消化金額": "\u00a5{:.0f}",
-        "CPA": "\u00a5{:.0f}"
+        "予算": "¥{:.0f}",
+        "フィー": "¥{:.0f}",
+        "消化金額": "¥{:.0f}",
+        "CPA": "¥{:.0f}"
     }),
     use_container_width=True
 )
