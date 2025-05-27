@@ -139,22 +139,6 @@ for idx, row in person_summary.iterrows():
         </div>
         """, unsafe_allow_html=True)
 
-# --- キャンペーン一覧テーブル ---
-st.write("#### 📋 配信キャンペーン")
-campaign_table = filtered_df[["配信月","CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
-campaign_table = campaign_table.rename(columns={"所属": "Unit"})
-campaign_table = campaign_table[["配信月","CampaignName", "担当者", "Unit", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
-
-st.dataframe(
-    campaign_table.style.format({
-        "予算": "¥{:.0f}",
-        "フィー": "¥{:.0f}",
-        "消化金額": "¥{:.0f}",
-        "CPA": "¥{:.0f}"
-    }),
-    use_container_width=True
-)
-
 # ✅ 担当者別達成率スコアカード
 st.write("### 👨‍💼 担当者ごとの達成率")
 person_agg = df.groupby("担当者").agg(
@@ -176,6 +160,22 @@ for idx, row in person_agg.iterrows():
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+# --- キャンペーン一覧テーブル ---
+st.write("#### 📋 配信キャンペーン")
+campaign_table = filtered_df[["配信月","CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
+campaign_table = campaign_table.rename(columns={"所属": "Unit"})
+campaign_table = campaign_table[["配信月","CampaignName", "担当者", "Unit", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
+
+st.dataframe(
+    campaign_table.style.format({
+        "予算": "¥{:.0f}",
+        "フィー": "¥{:.0f}",
+        "消化金額": "¥{:.0f}",
+        "CPA": "¥{:.0f}"
+    }),
+    use_container_width=True
+)
 
 # 👍 達成キャンペーン一覧
 st.write("### 👍 達成キャンペーン一覧")
