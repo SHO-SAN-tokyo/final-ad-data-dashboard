@@ -21,7 +21,7 @@ def load_data():
 
 df = load_data()
 
-# 前処理
+# 前処理 
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
 # 📅 配信月フィルター
