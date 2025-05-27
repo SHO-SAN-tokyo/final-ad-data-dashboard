@@ -126,6 +126,7 @@ for 指標 in 指標群:
     fig.update_layout(
         yaxis_title=指標,
         xaxis_title="配信月",
+        xaxis_tickformat="%Y/%m",
         height=400,
         hovermode="x unified"
     )
