@@ -31,8 +31,14 @@ max_date = df["Date"].max().date()
 date_range = st.date_input("", (min_date, max_date), min_value=min_date, max_value=max_date)
 df = df[(df["Date"].dt.date >= date_range[0]) & (df["Date"].dt.date <= date_range[1])]
 
-st.write("列一覧:", latest.columns.tolist())
-st.write("所属ユニーク:", latest["所属"].unique())
+df = load_data()
+st.write("列一覧（VIEWからの直接取得）:", df.columns.tolist())
+
+# 所属列が存在するかチェック
+if "所属" in df.columns:
+    st.write("所属ユニーク:", df["所属"].unique())
+else:
+    st.warning("⚠️ '所属' 列が見つかりません")
 
 
 # Unitの付与
