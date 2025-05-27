@@ -46,8 +46,13 @@ df = df[(df["Date"].dt.date >= date_range[0]) & (df["Date"].dt.date <= date_rang
 latest = df.copy()
 latest = latest.replace([np.inf, -np.inf], 0).fillna(0)
 
-# --- Unit集計（所属がNoneの人は除外）---
-valid_unit_df = latest[latest["所属"].notna()]  # ← None除外
+# 所属が None でない行だけ抽出
+valid_unit_df = latest[latest["所属"].notna()]
+
+# 所属が文字列以外の行を除外（int型など）
+valid_unit_df = valid_unit_df[valid_unit_df["所属"].apply(lambda x: isinstance(x, str))]
+
+# Unit集計
 unit_summary = valid_unit_df.groupby("所属").agg({
     "CampaignId": "nunique",
     "予算": "sum",
@@ -56,14 +61,13 @@ unit_summary = valid_unit_df.groupby("所属").agg({
     "コンバージョン数": "sum"
 }).reset_index()
 
-# ✅ 型確認（ここで unit_summary は定義済み）
-st.write("所属 列の型一覧:", unit_summary["所属"].apply(type).value_counts())
-
 unit_summary["CPA"] = unit_summary.apply(
     lambda row: row["消化金額"] / row["コンバージョン数"] if row["コンバージョン数"] > 0 else 0,
     axis=1
 )
+
 unit_summary = unit_summary.sort_values("所属")
+
 
 
 # --- Unit別色マップ
