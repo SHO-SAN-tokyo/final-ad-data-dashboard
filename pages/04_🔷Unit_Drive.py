@@ -24,6 +24,18 @@ df = load_data()
 # 前処理
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
+st.markdown("### 🧪 Unit_Drive_Ready_View のプレビュー")
+
+# データ取得（上位20行のみ）
+preview_df = client.query("""
+    SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Unit_Drive_Ready_View`
+    LIMIT 20
+""").to_dataframe()
+
+st.dataframe(preview_df, use_container_width=True)
+st.write("📌 列一覧:", preview_df.columns.tolist())
+
+
 # 📅 日付フィルター
 min_date = df["Date"].min().date()
 max_date = df["Date"].max().date()
