@@ -42,7 +42,13 @@ unit_summary = latest.groupby("所属").agg({
     "フィー": "sum",
     "コンバージョン数": "sum"
 }).reset_index()
-unit_summary["CPA"] = unit_summary.apply(lambda row: row["消化金額"] / row["コンバージョン数"] if row["コンバージョン数"] > 0 else 0, axis=1)
+
+# ✅ NaNの所属を埋めてから並び替え
+unit_summary["所属"] = unit_summary["所属"].fillna("未設定")
+unit_summary["CPA"] = unit_summary.apply(
+    lambda row: row["消化金額"] / row["コンバージョン数"] if row["コンバージョン数"] > 0 else 0,
+    axis=1
+)
 unit_summary = unit_summary.sort_values("所属")
 
 # --- Unit別色マップ
