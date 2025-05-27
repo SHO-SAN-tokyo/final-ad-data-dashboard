@@ -131,66 +131,74 @@ st.plotly_chart(fig, use_container_width=True)
 
 
 # ------------------------------------------------------------
-# 7. 達成率バーグラフ（都道府県別・色分け）
+# 7. 達成率バーグラフ（都道府県別・タブ切り替え）
 # ------------------------------------------------------------
-st.markdown("### 📊 都道府県別 CPA達成率バーグラフ（評価付き）")
+st.markdown("### 📊 都道府県別 達成率バーグラフ（指標別）")
 
-# CPA達成率を計算（Cost ÷ CPA_best）
-df_pref = df[df["CPA_best"].notna() & df["CPA"].notna()].copy()
-df_pref["CPA_達成率"] = df_pref["CPA"] / df_pref["CPA_best"]
+指標リスト = ["CPA", "CVR", "CPC", "CPM"]
+タブ = st.tabs(指標リスト)
 
-# 都道府県ごとの平均CPA達成率
-df_grouped_pref = (
-    df_pref.groupby("都道府県")
-           .agg(達成率平均=("CPA_達成率", "mean"))
-           .reset_index()
-)
+for 指標, tab in zip(指標リスト, タブ):
+    with tab:
+        st.markdown(f"#### 🧭 都道府県別 {指標} 達成率")
 
-# カラー分類（緑: >=1.0, 黄: >=0.9, 赤: <0.9）
-def color_label(rate):
-    if rate >= 1.0:
-        return "良好"
-    elif rate >= 0.9:
-        return "注意"
-    else:
-        return "低調"
+        # 対象データ抽出
+        col_best = f"{指標}_best"
+        df_metric = df[df[col_best].notna() & df[指標].notna()].copy()
+        df_metric[f"{指標}_達成率"] = df_metric[指標] / df_metric[col_best]
 
-df_grouped_pref["評価"] = df_grouped_pref["達成率平均"].apply(color_label)
-df_grouped_pref["達成率平均（％）"] = df_grouped_pref["達成率平均"].apply(lambda x: f"{x:.0%}")
+        # 都道府県別集計
+        df_grouped = (
+            df_metric.groupby("都道府県")
+                     .agg(達成率平均=(f"{指標}_達成率", "mean"))
+                     .reset_index()
+        )
 
-# カラー定義（落ち着いた薄めの色）
-color_map = {
-    "良好": "#B8E0D2",   # 薄緑
-    "注意": "#FFF3B0",   # 薄黄
-    "低調": "#F4C2C2"    # 薄赤
-}
-df_grouped_pref["色"] = df_grouped_pref["評価"].map(color_map)
+        # 評価分類
+        def get_label(rate):
+            if rate >= 1.0:
+                return "良好"
+            elif rate >= 0.9:
+                return "注意"
+            else:
+                return "低調"
 
-# 棒グラフ描画（横向き）
-import plotly.graph_objects as go
+        df_grouped["評価"] = df_grouped["達成率平均"].apply(get_label)
+        df_grouped["達成率（％）"] = df_grouped["達成率平均"].apply(lambda x: f"{x:.0%}")
 
-fig = go.Figure()
+        # 色マッピング（落ち着いた色）
+        color_map = {
+            "良好": "#B8E0D2",  # 薄緑
+            "注意": "#FFF3B0",  # 薄黄
+            "低調": "#F4C2C2"   # 薄赤
+        }
+        df_grouped["色"] = df_grouped["評価"].map(color_map)
 
-df_sorted = df_grouped_pref.sort_values("達成率平均", ascending=True)
+        # グラフ用データ並び替え
+        df_sorted = df_grouped.sort_values("達成率平均", ascending=True)
 
-fig.add_trace(go.Bar(
-    x=df_sorted["達成率平均"],
-    y=df_sorted["都道府県"],
-    orientation="h",
-    text=df_sorted["達成率平均（％）"],
-    textposition="outside",
-    marker_color=df_sorted["色"],
-    hovertemplate="%{y}<br>達成率：%{text}<extra></extra>"
-))
+        # 棒グラフ描画（横型）
+        import plotly.graph_objects as go
+        fig = go.Figure()
 
-fig.update_layout(
-    height=800,
-    xaxis=dict(title="CPA達成率", tickformat=".0%"),
-    yaxis=dict(title="都道府県"),
-    title="都道府県別 CPA達成率（色付き）",
-    margin=dict(l=100, r=40, t=50, b=40)
-)
+        fig.add_trace(go.Bar(
+            x=df_sorted["達成率平均"],
+            y=df_sorted["都道府県"],
+            orientation="h",
+            text=df_sorted["達成率（％）"],
+            textposition="outside",
+            marker_color=df_sorted["色"],
+            hovertemplate="%{y}<br>達成率：%{text}<extra></extra>"
+        ))
 
-st.plotly_chart(fig, use_container_width=True)
+        fig.update_layout(
+            height=400,  # ✅ 縦幅を半分に
+            xaxis=dict(title=f"{指標}達成率", tickformat=".0%"),
+            yaxis=dict(title="都道府県"),
+            margin=dict(l=100, r=40, t=40, b=40)
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
 
 
