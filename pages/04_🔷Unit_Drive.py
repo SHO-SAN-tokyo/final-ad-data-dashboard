@@ -46,8 +46,9 @@ df = df[(df["Date"].dt.date >= date_range[0]) & (df["Date"].dt.date <= date_rang
 latest = df.copy()
 latest = latest.replace([np.inf, -np.inf], 0).fillna(0)
 
-# --- Unit集計 ---
-unit_summary = latest.groupby("所属").agg({
+# --- Unit集計（所属がNoneの人は除外）---
+valid_unit_df = latest[latest["所属"].notna()]  # ← None除外
+unit_summary = valid_unit_df.groupby("所属").agg({
     "CampaignId": "nunique",
     "予算": "sum",
     "消化金額": "sum",
@@ -55,13 +56,12 @@ unit_summary = latest.groupby("所属").agg({
     "コンバージョン数": "sum"
 }).reset_index()
 
-# ✅ NaNの所属を埋めてから並び替え
-unit_summary["所属"] = unit_summary["所属"].fillna("未設定")
 unit_summary["CPA"] = unit_summary.apply(
     lambda row: row["消化金額"] / row["コンバージョン数"] if row["コンバージョン数"] > 0 else 0,
     axis=1
 )
 unit_summary = unit_summary.sort_values("所属")
+
 
 # --- Unit別色マップ
 unit_colors = ["#c0e4eb", "#cbebb5", "#ffdda6"]
