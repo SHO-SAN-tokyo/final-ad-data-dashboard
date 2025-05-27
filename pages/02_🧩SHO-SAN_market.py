@@ -81,21 +81,56 @@ for col in ["CPA", "CPA_best", "CPC", "CPC_best", "CPM", "CPM_best", "目標CPA"
 st.dataframe(df_fmt.sort_values(["配信月", "都道府県", "CampaignName"]), use_container_width=True, hide_index=True)
 
 # ------------------------------------------------------------
-# 5. 月別推移グラフ（指標ごとに分けて表示）
+# 5. 月別推移グラフ（指標ごとに分けて表示・実績値表示付き）
 # ------------------------------------------------------------
 st.markdown("### 📈 月別推移グラフ（指標別）")
 指標群 = ["CPA", "CVR", "CTR", "CPC", "CPM"]
 
 for 指標 in 指標群:
     st.markdown(f"#### 📉 {指標} 推移")
+    
     df_plot = (
         df.groupby("配信月_dt")
           .agg(実績値=(指標, "mean"), 目標値=(f"{指標}_best", "mean"))
           .reset_index()
     )
-    fig = px.line(df_plot, x="配信月_dt", y=["実績値", "目標値"], markers=True)
-    fig.update_layout(yaxis_title=指標, xaxis_title="配信月", height=400)
+
+    # 実績値ラベル（表示用）
+    df_plot["実績値_label"] = df_plot["実績値"].apply(
+        lambda x: f"¥{x:,.0f}" if 指標 in ["CPA", "CPC", "CPM"] else f"{x:.1%}"
+    )
+
+    import plotly.graph_objects as go
+    fig = go.Figure()
+
+    # 実績値の線
+    fig.add_trace(go.Scatter(
+        x=df_plot["配信月_dt"],
+        y=df_plot["実績値"],
+        mode="lines+markers+text",
+        name="実績値",
+        text=df_plot["実績値_label"],
+        textposition="top center",
+        line=dict(color="blue")
+    ))
+
+    # 目標値の線
+    fig.add_trace(go.Scatter(
+        x=df_plot["配信月_dt"],
+        y=df_plot["目標値"],
+        mode="lines+markers",
+        name="目標値",
+        line=dict(color="gray", dash="dash")
+    ))
+
+    fig.update_layout(
+        yaxis_title=指標,
+        xaxis_title="配信月",
+        height=400,
+        hovermode="x unified"
+    )
     st.plotly_chart(fig, use_container_width=True)
+
 
 
 # ------------------------------------------------------------
