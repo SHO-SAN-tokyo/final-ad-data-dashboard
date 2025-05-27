@@ -99,42 +99,49 @@ for 指標 in 指標群:
 
 
 # ------------------------------------------------------------
-# 6. 配信月 × カテゴリ 複合折れ線グラフ（CPA達成率）
+# 6. 配信月 × カテゴリ 複合折れ線グラフ（指標別タブ）
 # ------------------------------------------------------------
-st.markdown("### 📈 配信月 × カテゴリ 複合折れ線グラフ（CPA達成率）")
+st.markdown("### 📈 配信月 × カテゴリ 複合折れ線グラフ（指標別）")
 
-# CPA達成率を計算
-df_line = df[df["CPA_best"].notna() & df["CPA"].notna()].copy()
-df_line["CPA_達成率"] = df_line["CPA"] / df_line["CPA_best"]
+指標リスト = ["CPA", "CVR", "CPC", "CPM"]
+折れ線タブ = st.tabs(指標リスト)
 
-# 表示用の文字列列（例：2025/07）
-df_line["配信月_str"] = df_line["配信月_dt"].dt.strftime("%Y/%m")
+for 指標, tab in zip(指標リスト, 折れ線タブ):
+    with tab:
+        st.markdown(f"#### 📉 {指標} 達成率の推移（カテゴリ別）")
 
-# 月 × カテゴリで平均CPA達成率を集計
-df_grouped_line = (
-    df_line.groupby(["配信月_str", "カテゴリ"])
-           .agg(CPA達成率平均=("CPA_達成率", "mean"))
-           .reset_index()
-)
+        best_col = f"{指標}_best"
+        rate_col = f"{指標}_達成率"
 
-# 折れ線グラフ描画
-import plotly.express as px
-fig = px.line(
-    df_grouped_line,
-    x="配信月_str",
-    y="CPA達成率平均",
-    color="カテゴリ",
-    markers=True,
-    labels={"配信月_str": "配信月", "CPA達成率平均": "CPA達成率"}
-)
+        # データフィルタと達成率計算
+        df_line = df[df[best_col].notna() & df[指標].notna()].copy()
+        df_line[rate_col] = df_line[指標] / df_line[best_col]
+        df_line["配信月_str"] = df_line["配信月_dt"].dt.strftime("%Y/%m")
 
-fig.update_layout(
-    yaxis_tickformat=".0%",
-    xaxis_title="配信月",
-    yaxis_title="CPA達成率",
-    height=500
-)
-st.plotly_chart(fig, use_container_width=True)
+        # 月×カテゴリごとの平均達成率を集計
+        df_grouped_line = (
+            df_line.groupby(["配信月_str", "カテゴリ"])
+                   .agg(達成率平均=(rate_col, "mean"))
+                   .reset_index()
+        )
+
+        # グラフ描画
+        import plotly.express as px
+        fig = px.line(
+            df_grouped_line,
+            x="配信月_str",
+            y="達成率平均",
+            color="カテゴリ",
+            markers=True,
+            labels={"配信月_str": "配信月", "達成率平均": f"{指標}達成率"}
+        )
+        fig.update_layout(
+            yaxis_tickformat=".0%",
+            xaxis_title="配信月",
+            yaxis_title=f"{指標}達成率",
+            height=500
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
 
 
