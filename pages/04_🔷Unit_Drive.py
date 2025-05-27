@@ -177,8 +177,8 @@ for idx, row in person_agg.iterrows():
         </div>
         """, unsafe_allow_html=True)
 
-# ✨ 達成キャンペーン一覧
-st.write("### ✨ 達成キャンペーン一覧")
+# 🎉 達成キャンペーン一覧
+st.write("### 🎉 達成キャンペーン一覧")
 achieved = df[df["達成状況"] == "達成"]
 st.dataframe(
     achieved[[
