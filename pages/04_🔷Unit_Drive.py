@@ -24,22 +24,49 @@ df = load_data()
 # 前処理 
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-# 📅 配信月フィルター
+# --- フィルター（最上部に配置） ---
+st.markdown("### 🔍 絞り込みフィルター")
+
 month_options = sorted(df["配信月"].dropna().unique())
 selected_month = st.selectbox("📅 配信月", ["すべて"] + month_options)
 
+unit_options = df["所属"].dropna()
+unit_options = unit_options[unit_options.apply(lambda x: isinstance(x, str))].unique()
+unit_filter = st.selectbox("🏷️ Unit", ["すべて"] + sorted(unit_options))
+
+person_options = df["担当者"].dropna().astype(str).unique()
+person_filter = st.selectbox("👤 担当者", ["すべて"] + sorted(person_options))
+
+front_options = df["フロント"].dropna().astype(str).unique()
+front_filter = st.selectbox("📞 フロント", ["すべて"] + sorted(front_options))
+
+# フィルター適用
+df_filtered = df.copy()
 if selected_month != "すべて":
-    df = df[df["配信月"] == selected_month]
+    df_filtered = df_filtered[df_filtered["配信月"] == selected_month]
+if unit_filter != "すべて":
+    df_filtered = df_filtered[df_filtered["所属"] == unit_filter]
+if person_filter != "すべて":
+    df_filtered = df_filtered[df_filtered["担当者"] == person_filter]
+if front_filter != "すべて":
+    df_filtered = df_filtered[df_filtered["フロント"] == front_filter]
 
-# Unitの前処理
-latest = df.copy()
+# --- 選択中の条件表示 ---
+st.markdown(
+    f"#### 🎯 絞り込み条件\n"
+    f"📅 配信月：{selected_month}　"
+    f"🏷️ Unit：{unit_filter}　"
+    f"👤 担当者：{person_filter}　"
+    f"📞 フロント：{front_filter}",
+    unsafe_allow_html=True
+)
 
-# 数値列のみ選んで補正する
-numeric_cols = latest.select_dtypes(include=["number"]).columns
-latest[numeric_cols] = latest[numeric_cols].replace([np.inf, -np.inf], 0).fillna(0)
+# --- 数値補正 ---
+numeric_cols = df_filtered.select_dtypes(include=["number"]).columns
+df_filtered[numeric_cols] = df_filtered[numeric_cols].replace([np.inf, -np.inf], 0).fillna(0)
 
-
-# 所属が None でなく、str型の行のみ
+# 所属前処理
+latest = df_filtered.copy()
 latest = latest[latest["所属"].notna()]
 latest = latest[latest["所属"].apply(lambda x: isinstance(x, str))]
 
@@ -80,30 +107,9 @@ for idx, row in unit_summary.iterrows():
         </div>
         """, unsafe_allow_html=True)
 
-# --- 担当者別フィルター ---
+# --- 担当者別スコアカード ---
 st.write("#### 👨‍💼 担当者ごとのスコア")
-col1, col2, col3 = st.columns(3)
-
-unit_options = latest["所属"].dropna()
-unit_options = unit_options[unit_options.apply(lambda x: isinstance(x, str))].unique()
-unit_filter = col1.selectbox("Unit", ["すべて"] + sorted(unit_options))
-
-person_options = latest["担当者"].dropna().astype(str).unique()
-person_filter = col2.selectbox("担当者", ["すべて"] + sorted(person_options))
-
-front_options = latest["フロント"].dropna().astype(str).unique()
-front_filter = col3.selectbox("フロント", ["すべて"] + sorted(front_options))
-
-filtered_df = latest.copy()
-if unit_filter != "すべて":
-    filtered_df = filtered_df[filtered_df["所属"] == unit_filter]
-if person_filter != "すべて":
-    filtered_df = filtered_df[filtered_df["担当者"] == person_filter]
-if front_filter != "すべて":
-    filtered_df = filtered_df[filtered_df["フロント"] == front_filter]
-
-# --- 担当者別カード ---
-person_summary = filtered_df.groupby("担当者").agg({
+person_summary = latest.groupby("担当者").agg({
     "CampaignId": "nunique",
     "予算": "sum",
     "消化金額": "sum",
@@ -141,7 +147,7 @@ for idx, row in person_summary.iterrows():
 
 # ✅ 担当者別達成率スコアカード
 st.write("### 👨‍💼 担当者ごとの達成率")
-person_agg = df.groupby("担当者").agg(
+person_agg = df_filtered.groupby("担当者").agg(
     campaign_count=("CampaignId", "nunique"),
     達成件数=("達成状況", lambda x: (x == "達成").sum())
 ).reset_index()
@@ -163,7 +169,7 @@ for idx, row in person_agg.iterrows():
 
 # --- キャンペーン一覧テーブル ---
 st.write("#### 📋 配信キャンペーン")
-campaign_table = filtered_df[["配信月","CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
+campaign_table = df_filtered[["配信月","CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
 campaign_table = campaign_table.rename(columns={"所属": "Unit"})
 campaign_table = campaign_table[["配信月","CampaignName", "担当者", "Unit", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
 
@@ -179,7 +185,7 @@ st.dataframe(
 
 # 👍 達成キャンペーン一覧
 st.write("### 👍 達成キャンペーン一覧")
-achieved = df[df["達成状況"] == "達成"]
+achieved = df_filtered[df_filtered["達成状況"] == "達成"]
 st.dataframe(
     achieved[[
         "配信月", "CampaignName", "担当者", "所属",
@@ -190,7 +196,7 @@ st.dataframe(
 
 # 💤 未達成キャンペーン一覧
 st.write("### 💤 未達成キャンペーン一覧")
-missed = df[df["達成状況"] == "未達成"]
+missed = df_filtered[df_filtered["達成状況"] == "未達成"]
 st.dataframe(
     missed[[
         "配信月", "CampaignName", "担当者", "所属",
