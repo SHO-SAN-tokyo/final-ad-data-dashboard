@@ -138,30 +138,27 @@ st.markdown("### 🗾 都道府県 × カテゴリのCPA評価ヒートマップ
 df_heatmap = df[df["CPA_評価"].notna()].copy()
 df_heatmap["CPA評価スコア"] = df_heatmap["CPA_評価"].map(評価マップ)
 
-# 都道府県 × カテゴリ ピボットテーブル（平均スコア）
-heatmap_data = (
-    df_heatmap.pivot_table(
-        index="都道府県",
-        columns="カテゴリ",
-        values="CPA評価スコア",
-        aggfunc="mean"
-    )
+# ピボット：都道府県 × カテゴリ
+heatmap_data = df_heatmap.pivot_table(
+    index="都道府県",
+    columns="カテゴリ",
+    values="CPA評価スコア",
+    aggfunc="mean"
 )
 
-# ヒートマップ描画（matplotlib + seaborn）
-import seaborn as sns
-import matplotlib.pyplot as plt
+# Plotlyで描画
+import plotly.express as px
 
-fig, ax = plt.subplots(figsize=(max(10, len(heatmap_data.columns) * 0.6), max(6, len(heatmap_data) * 0.4)))
-sns.heatmap(
+fig = px.imshow(
     heatmap_data,
-    cmap="YlGnBu",
-    annot=True,
-    fmt=".1f",
-    linewidths=0.5,
-    cbar_kws={"label": "評価スコア (◎=3, ×=0)"}
+    color_continuous_scale="YlGnBu",
+    aspect="auto",
+    labels=dict(color="評価スコア（◎=3, ×=0）")
 )
-plt.xlabel("カテゴリ")
-plt.ylabel("都道府県")
-plt.title("CPA評価スコア ヒートマップ", fontsize=14)
-st.pyplot(fig)
+fig.update_layout(
+    xaxis_title="カテゴリ",
+    yaxis_title="都道府県",
+    title="CPA評価スコア ヒートマップ",
+    height=600
+)
+st.plotly_chart(fig, use_container_width=True)
