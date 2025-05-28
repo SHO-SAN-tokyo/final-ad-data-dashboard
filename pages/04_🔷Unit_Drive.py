@@ -99,20 +99,21 @@ unit_color_map = {unit: unit_colors[i % len(unit_colors)] for i, unit in enumera
 st.write("#### 🍋🍋‍🟩 Unitごとのスコア 🍒🍏")
 unit_cols = st.columns(3)
 for idx, row in unit_summary.iterrows():
-    with unit_cols[idx % 3]:
-        st.markdown(f"""
-        <div style='background-color: {unit_color_map[row['所属']]}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
-            <h3 style='margin-bottom: 0.3rem;'>{row['所属']}</h3>
-            <div style='font-size: 1.5rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
-            <div style='font-size: 0.9rem; margin-top: 0.5rem;'>
-                キャンペーン数: {int(row['CampaignId'])}<br>
-                予算: ¥{int(row['予算'])}<br>
-                消化金額: ¥{int(row['消化金額'])}<br>
-                フィー: ¥{int(row['フィー'])}<br>
-                CV: {int(row['コンバージョン数'])}
-            </div>
+    with person_cols[idx % 5]:
+    st.markdown(f"""
+    <div style='background-color: {color}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
+        <div style='font-size: 1.3rem; font-weight: bold; text-align: center;'>{row['担当者']}</div>
+        <div style='font-size: 1.3rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
+        <div style='font-size: 0.9rem; margin-top: 0.5rem;'>
+            キャンペーン数: {int(row['CampaignId'])}<br>
+            予算: ¥{int(row['予算'])}<br>
+            消化金額: ¥{int(row['消化金額'])}<br>
+            フィー: ¥{int(row['フィー'])}<br>
+            CV: {int(row['コンバージョン数'])}
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
+
 
 # --- 担当者別カード ---
 st.write("#### 👨‍💼 担当者ごとのスコア")
