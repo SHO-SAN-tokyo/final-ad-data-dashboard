@@ -218,7 +218,3 @@ st.dataframe(
     }),
     use_container_width=True
 )
-
-
-st.dataframe(missed_display, use_container_width=True)
-
