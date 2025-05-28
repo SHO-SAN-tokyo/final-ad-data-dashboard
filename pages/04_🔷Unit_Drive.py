@@ -96,7 +96,7 @@ unit_colors = ["#c0e4eb", "#cbebb5", "#ffdda6"]
 unit_color_map = {unit: unit_colors[i % len(unit_colors)] for i, unit in enumerate(unit_summary["所属"].unique())}
 
 # --- Unitカード ---
-st.write("#### 🍋🍋‍🟩 Unitごとのスコア")
+st.write("#### 🍋🍋‍🟩 Unitごとのスコア 🍒🍏")
 unit_cols = st.columns(3)
 for idx, row in unit_summary.iterrows():
     with unit_cols[idx % 3]:
