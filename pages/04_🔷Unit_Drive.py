@@ -38,12 +38,11 @@ latest = latest[latest["所属"].notna()]
 latest = latest[latest["所属"].apply(lambda x: isinstance(x, str))]
 
 # --- フィルターエリア（1行構成） ---
-# フィルターエリア（1行構成）
 unit_options = latest["所属"].dropna()
 unit_options = unit_options[unit_options.apply(lambda x: isinstance(x, str))].unique()
 person_options = latest["担当者"].dropna().astype(str).unique()
 front_options = latest["フロント"].dropna().astype(str).unique()
-employment_options = latest["雇用形態"].dropna().astype(str).unique()  # ← 追加
+employment_options = latest["雇用形態"].dropna().astype(str).unique()
 
 f1, f2, f3, f4 = st.columns([2, 2, 2, 2])
 with f1:
@@ -55,19 +54,18 @@ with f3:
 with f4:
     employment_filter = st.selectbox("🏢 雇用形態", ["すべて"] + sorted(employment_options), key="employment_type")
 
-
 # --- フィルター選択状況を1行で表示 ---
 st.markdown(f"""
 <div style='padding: 0.8rem 0 1.2rem 0; font-size: 0.9rem; border-radius: 0.5rem;'>
     📅 配信月: <b>{selected_month}</b>　
     |　🏷️Unit: <b>{unit_filter}</b>　
     |　👤担当者: <b>{person_filter}</b>　
-    |　👤フロント: <b>{front_filter}</b>
+    |　👤フロント: <b>{front_filter}</b>　
+    |　🏢雇用形態: <b>{employment_filter}</b>
 </div>
 """, unsafe_allow_html=True)
 
-
-# フィルター適用
+# --- フィルター適用 ---
 df_filtered = latest.copy()
 if unit_filter != "すべて":
     df_filtered = df_filtered[df_filtered["所属"] == unit_filter]
@@ -75,6 +73,9 @@ if person_filter != "すべて":
     df_filtered = df_filtered[df_filtered["担当者"] == person_filter]
 if front_filter != "すべて":
     df_filtered = df_filtered[df_filtered["フロント"] == front_filter]
+if employment_filter != "すべて":
+    df_filtered = df_filtered[df_filtered["雇用形態"] == employment_filter]
+
 
 # Unit集計
 unit_summary = df_filtered.groupby("所属").agg({
