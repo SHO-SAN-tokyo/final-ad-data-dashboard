@@ -174,46 +174,51 @@ for idx, row in person_agg.iterrows():
         </div>
         """, unsafe_allow_html=True)
 
-# --- 📋 配信キャンペーン ---
+# --- キャンペーン一覧テーブル ---
 st.write("#### 📋 配信キャンペーン")
-campaign_table = df_filtered[["配信月","CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
+campaign_table = df_filtered[["配信月", "CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
 campaign_table = campaign_table.rename(columns={"所属": "Unit"})
 campaign_table = campaign_table[["配信月", "CampaignName", "担当者", "Unit", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
 
 st.dataframe(
     campaign_table.style.format({
-        "予算": "¥{:,}",
-        "フィー": "¥{:,}",
-        "消化金額": "¥{:,}",
-        "コンバージョン数": "{:,}",
-        "CPA": "¥{:,}"
+        "予算": "¥{:,.0f}",
+        "フィー": "¥{:,.0f}",
+        "消化金額": "¥{:,.0f}",
+        "コンバージョン数": "{:,.0f}",
+        "CPA": "¥{:,.0f}"
     }),
     use_container_width=True
 )
 
-# --- 👍 達成キャンペーン一覧 ---
+# --- 達成キャンペーン一覧 ---
 st.write("### 👍 達成キャンペーン一覧")
 achieved = df_filtered[df_filtered["達成状況"] == "達成"]
-achieved_display = achieved[[
-    "配信月", "CampaignName", "担当者", "所属",
-    "CPA", "CPA_KPI_評価", "目標CPA", "独立CPA_達成"
-]].copy()
+st.dataframe(
+    achieved[[
+        "配信月", "CampaignName", "担当者", "所属",
+        "CPA", "CPA_KPI_評価", "目標CPA", "独立CPA_達成"
+    ]].style.format({
+        "CPA": "¥{:,.0f}",
+        "目標CPA": "¥{:,.0f}"
+    }),
+    use_container_width=True
+)
 
-achieved_display["CPA"] = achieved_display["CPA"].map("¥{:,}".format)
-achieved_display["目標CPA"] = achieved_display["目標CPA"].map(lambda x: f"¥{int(x):,}" if pd.notnull(x) else "")  # NULL対応
-
-st.dataframe(achieved_display, use_container_width=True)
-
-# --- 💤 未達成キャンペーン一覧 ---
+# --- 未達成キャンペーン一覧 ---
 st.write("### 💤 未達成キャンペーン一覧")
 missed = df_filtered[df_filtered["達成状況"] == "未達成"]
-missed_display = missed[[
-    "配信月", "CampaignName", "担当者", "所属",
-    "CPA", "CPA_KPI_評価", "目標CPA", "独立CPA_達成"
-]].copy()
+st.dataframe(
+    missed[[
+        "配信月", "CampaignName", "担当者", "所属",
+        "CPA", "CPA_KPI_評価", "目標CPA", "独立CPA_達成"
+    ]].style.format({
+        "CPA": "¥{:,.0f}",
+        "目標CPA": "¥{:,.0f}"
+    }),
+    use_container_width=True
+)
 
-missed_display["CPA"] = missed_display["CPA"].map("¥{:,}".format)
-missed_display["目標CPA"] = missed_display["目標CPA"].map(lambda x: f"¥{int(x):,}" if pd.notnull(x) else "")
 
 st.dataframe(missed_display, use_container_width=True)
 
