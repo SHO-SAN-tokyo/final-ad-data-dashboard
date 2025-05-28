@@ -57,9 +57,9 @@ with f4:
 st.markdown(f"""
 <div style='padding: 0.8rem 0 1.2rem 0; font-size: 0.9rem; border-radius: 0.5rem;'>
     📅 配信月: <b>{selected_month}</b>　
-    |  Unit: <b>{unit_filter}</b>　
-    |  担当者: <b>{person_filter}</b>　
-    |  フロント: <b>{front_filter}</b>
+    |　🏷️Unit: <b>{unit_filter}</b>　
+    |　👤担当者: <b>{person_filter}</b>　
+    |　👤フロント: <b>{front_filter}</b>
 </div>
 """, unsafe_allow_html=True)
 
