@@ -38,12 +38,7 @@ latest = latest[latest["所属"].notna()]
 latest = latest[latest["所属"].apply(lambda x: isinstance(x, str))]
 
 # --- フィルターエリア（1行構成） ---
-unit_options = latest["所属"].dropna()
-unit_options = unit_options[unit_options.apply(lambda x: isinstance(x, str))].unique()
-person_options = latest["担当者"].dropna().astype(str).unique()
-front_options = latest["フロント"].dropna().astype(str).unique()
-
-f1, f2, f3, f4 = st.columns([2, 2, 2, 4])
+f1, f2, f3, f4 = st.columns([2, 2, 2, 2])
 with f1:
     unit_filter = st.selectbox("🏷️ Unit", ["すべて"] + sorted(unit_options))
 with f2:
@@ -51,14 +46,18 @@ with f2:
 with f3:
     front_filter = st.selectbox("👤 フロント", ["すべて"] + sorted(front_options))
 with f4:
-    st.markdown(f"""
-    <div style='padding-top: 2rem;'>
-        📅 配信月: <b>{selected_month}</b>　|
-        Unit: <b>{unit_filter}</b>　|
-        担当者: <b>{person_filter}</b>　|
-        フロント: <b>{front_filter}</b>
-    </div>
-    """, unsafe_allow_html=True)
+    st.selectbox("📅 配信月", ["すべて"] + month_options, index=(["すべて"] + month_options).index(selected_month), key="dummy_month")
+
+# --- フィルター選択状況を1行で表示 ---
+st.markdown(f"""
+<div style='padding: 0.8rem 0 1.2rem 0; font-size: 0.9rem; background-color: #f9f9f9; border-radius: 0.5rem;'>
+    📅 配信月: <b>{selected_month}</b>　
+    | Unit: <b>{unit_filter}</b>　
+    | 担当者: <b>{person_filter}</b>　
+    | フロント: <b>{front_filter}</b>
+</div>
+""", unsafe_allow_html=True)
+
 
 # フィルター適用
 df_filtered = latest.copy()
