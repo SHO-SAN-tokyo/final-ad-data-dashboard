@@ -38,10 +38,12 @@ latest = latest[latest["所属"].notna()]
 latest = latest[latest["所属"].apply(lambda x: isinstance(x, str))]
 
 # --- フィルターエリア（1行構成） ---
+# フィルターエリア（1行構成）
 unit_options = latest["所属"].dropna()
 unit_options = unit_options[unit_options.apply(lambda x: isinstance(x, str))].unique()
 person_options = latest["担当者"].dropna().astype(str).unique()
 front_options = latest["フロント"].dropna().astype(str).unique()
+employment_options = latest["雇用形態"].dropna().astype(str).unique()  # ← 追加
 
 f1, f2, f3, f4 = st.columns([2, 2, 2, 2])
 with f1:
@@ -51,7 +53,8 @@ with f2:
 with f3:
     front_filter = st.selectbox("👤 フロント", ["すべて"] + sorted(front_options))
 with f4:
-    st.selectbox("📅 配信月", ["すべて"] + month_options, index=(["すべて"] + month_options).index(selected_month), key="dummy_month")
+    employment_filter = st.selectbox("🏢 雇用形態", ["すべて"] + sorted(employment_options), key="employment_type")
+
 
 # --- フィルター選択状況を1行で表示 ---
 st.markdown(f"""
