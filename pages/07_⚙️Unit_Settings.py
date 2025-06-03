@@ -70,17 +70,7 @@ if st.button("＋ 担当者を追加"):
 st.subheader("🔁 Unit異動（上書きしない形式で更新）")
 st.markdown("""<br>""", unsafe_allow_html=True)
 with st.form("異動フォーム"):
-
     move_person = st.selectbox("👤 異動させる担当者", current_df[current_df["end_month"].isnull()]["担当者"].unique())
-
-    # 🔍 現在の所属Unitを動的に表示
-    if move_person:
-        current_unit = current_df[(current_df["担当者"] == move_person) & (current_df["end_month"].isnull())]["所属"].values
-        if len(current_unit) > 0:
-            st.markdown(f"現在の所属: <b>{current_unit[0]}</b>", unsafe_allow_html=True)
-        else:
-            st.markdown("⚠️ 現在の所属が見つかりません。", unsafe_allow_html=True)
-
     new_unit = st.text_input("🏷️ 新しい所属Unit")
     move_month = st.text_input("📅 異動月 (YYYY-MM)", value=datetime.today().strftime("%Y-%m"))
     submitted = st.form_submit_button("異動を登録")
