@@ -77,7 +77,7 @@ with st.form("異動フォーム"):
     if move_person:
         current_unit = current_df[(current_df["担当者"] == move_person) & (current_df["end_month"].isnull())]["所属"].values
         if len(current_unit) > 0:
-            st.markdown(f"✅ 現在の所属: <b>{current_unit[0]}</b>", unsafe_allow_html=True)
+            st.markdown(f"現在の所属: <b>{current_unit[0]}</b>", unsafe_allow_html=True)
         else:
             st.markdown("⚠️ 現在の所属が見つかりません。", unsafe_allow_html=True)
 
