@@ -103,7 +103,7 @@ with st.expander("📘 Unit設定 使い方マニュアル", expanded=False):
     """)
 
 
-# === ① 担当者の新規追加フォーム ===
+# === ① 担当者の新規追加フォーム  ===
 st.subheader("➕ 担当者をUnitに追加（新規登録）")
 st.markdown("""<br>""", unsafe_allow_html=True)
 selected_person = st.text_input("👤 担当者名")
