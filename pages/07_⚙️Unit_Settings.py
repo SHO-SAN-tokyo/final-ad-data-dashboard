@@ -41,6 +41,7 @@ current_df = load_unit_mapping()
 
 # === ① 担当者の新規追加フォーム ===
 st.subheader("➕ 担当者をUnitに追加（新規登録）")
+st.markdown("""<br>""", unsafe_allow_html=True)
 selected_person = st.text_input("👤 担当者名")
 input_unit = st.text_input("🏷️ 所属Unit名")
 input_status = st.text_input("💼 雇用形態（例：社員、インターン）")
@@ -67,6 +68,7 @@ if st.button("＋ 担当者を追加"):
 
 # === ② Unit異動フォーム ===
 st.subheader("🔁 Unit異動（上書きしない形式で更新）")
+st.markdown("""<br>""", unsafe_allow_html=True)
 with st.form("異動フォーム"):
     move_person = st.selectbox("👤 異動させる担当者", current_df[current_df["end_month"].isnull()]["担当者"].unique())
     new_unit = st.text_input("🏷️ 新しい所属Unit")
@@ -93,10 +95,16 @@ with st.form("異動フォーム"):
 
 # === ③ 編集・保存テーブル ===
 st.subheader("📝 一覧編集（直接修正可）")
+st.markdown("""<br>""", unsafe_allow_html=True)
 editable_df = st.data_editor(
     current_df.sort_values(["担当者", "start_month"]),
     use_container_width=True,
-    num_rows="dynamic"
+    num_rows="dynamic",
+    column_config={
+        "operator_id": "マイページID",
+        "start_month": "開始月",
+        "end_month": "終了月"
+    }
 )
 if st.button("💾 修正内容を保存"):
     save_to_bq(editable_df)
@@ -106,21 +114,34 @@ if st.button("💾 修正内容を保存"):
 
 # === ④ Unitごとの現在の担当者一覧 ===
 st.subheader("🏷️ Unitごとの現在所属者")
+st.markdown("""<br>""", unsafe_allow_html=True)
 current_only = current_df[current_df["end_month"].isnull()].copy()
 for unit in sorted(current_only["所属"].dropna().unique()):
     st.markdown(f"#### 🔹 {unit}")
     st.dataframe(current_only[current_only["所属"] == unit][["担当者", "雇用形態"]], use_container_width=True)
 
 # === ⑤ 異動履歴 ===
-st.subheader("📜 異動履歴一覧")
+st.subheader("📜 過去の異動履歴")
+st.markdown("""<br>""", unsafe_allow_html=True)
 history_only = current_df[current_df["end_month"].notnull()].copy()
-st.dataframe(history_only.sort_values(["担当者", "start_month"]), use_container_width=True)
+history_only = history_only.rename(columns={
+    "start_month": "開始月",
+    "end_month": "終了月",
+    "operator_id": "マイページID"
+})
+st.dataframe(history_only.sort_values(["担当者", "開始月"]), use_container_width=True)
 
 # === ⑥ 退職者一覧（任意表示） ===
 st.subheader("🚪 退職済み（所属なし）担当者一覧")
+st.markdown("""<br>""", unsafe_allow_html=True)
 retired = current_df.groupby("担当者").agg(max_end=("end_month", "max"))
 latest_start = current_df.groupby("担当者").agg(max_start=("start_month", "max"))
 retired = retired.join(latest_start)
 retired = retired[retired["max_end"] < datetime.today().strftime("%Y-%m")]
 retired = retired.reset_index()
+retired = retired.rename(columns={
+    "operator_name": "担当者",
+    "max_end": "終了月",
+    "max_start": "最終開始月"
+})
 st.dataframe(retired, use_container_width=True)
