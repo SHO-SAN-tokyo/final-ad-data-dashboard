@@ -40,7 +40,7 @@ def save_to_bq(df):
 current_df = load_unit_mapping()
 
 # 🔰 使い方マニュアル
-with st.expander("📘 このページの使い方マニュアル（クリックで展開）", expanded=False):
+with st.expander("📘 Unit設定 使い方マニュアル", expanded=False):
     st.markdown("""
 このページでは、**広告運用メンバーの所属Unit管理**を行います。  
 「誰がどのユニットに所属しているか」や「異動の履歴」をまとめて確認・管理できます。
