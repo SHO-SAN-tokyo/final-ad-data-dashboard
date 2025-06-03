@@ -1,141 +1,126 @@
 import streamlit as st
 from google.cloud import bigquery
 import pandas as pd
+from datetime import datetime
 
 st.set_page_config(page_title="Unit設定", layout="wide")
-st.title("⚙️ Unit設定")
+st.title("⚙️ Unit設定（履歴対応版）")
 
-# BigQuery 認証
+# --- BigQuery接続 ---
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info_dict)
 
-# テーブル情報
+# --- テーブル定義 ---
 project_id = "careful-chess-406412"
 dataset = "SHOSAN_Ad_Tokyo"
 table = "UnitMapping"
 full_table = f"{project_id}.{dataset}.{table}"
 
-# 担当者一覧の取得
-@st.cache_data(ttl=60)
-def get_unique_tantousha():
-    query = f"""
-    SELECT DISTINCT `担当者`
-    FROM {project_id}.{dataset}.Final_Ad_Data
-    WHERE `担当者` IS NOT NULL AND `担当者` != ''
-    ORDER BY `担当者`
-    """
-    return client.query(query).to_dataframe()
-
-# Unit Mapping の取得
+# --- データ読み込み ---
 @st.cache_data(ttl=60)
 def load_unit_mapping():
-    query = f"SELECT * FROM {full_table}"
-    return client.query(query).to_dataframe()
+    return client.query(f"SELECT * FROM {full_table}").to_dataframe()
 
-# 担当者追加UI
-st.markdown("### ➕ 担当者をUnitに追加")
+def save_to_bq(df):
+    job_config = bigquery.LoadJobConfig(
+        write_disposition="WRITE_TRUNCATE",
+        schema=[
+            bigquery.SchemaField("担当者", "STRING"),
+            bigquery.SchemaField("所属", "STRING"),
+            bigquery.SchemaField("雇用形態", "STRING"),
+            bigquery.SchemaField("operator_id", "STRING"),
+            bigquery.SchemaField("start_month", "STRING"),
+            bigquery.SchemaField("end_month", "STRING"),
+        ]
+    )
+    job = client.load_table_from_dataframe(df, full_table, job_config=job_config)
+    job.result()
 
-try:
-    all_tantousha_df = get_unique_tantousha()
-    current_df = load_unit_mapping()
-    already_assigned = set(current_df["担当者"].dropna())
-    unassigned_df = all_tantousha_df[~all_tantousha_df["担当者"].isin(already_assigned)]
+current_df = load_unit_mapping()
 
-    if unassigned_df.empty:
-        st.info("✨ すべての担当者がUnitに振り分けられています。")
+# === ① 担当者の新規追加フォーム ===
+st.subheader("➕ 担当者をUnitに追加（新規登録）")
+selected_person = st.text_input("👤 担当者名")
+input_unit = st.text_input("🏷️ 所属Unit名")
+input_status = st.text_input("💼 雇用形態（例：社員、インターン）")
+input_operator_id = st.text_input("🆔 マイページID（任意）")
+input_start = st.text_input("📅 所属開始月 (YYYY-MM)", value=datetime.today().strftime("%Y-%m"))
+
+if st.button("＋ 担当者を追加"):
+    if selected_person and input_unit and input_start:
+        new_row = pd.DataFrame([{
+            "担当者": selected_person,
+            "所属": input_unit,
+            "雇用形態": input_status,
+            "operator_id": input_operator_id,
+            "start_month": input_start,
+            "end_month": None
+        }])
+        updated_df = pd.concat([current_df, new_row], ignore_index=True)
+        save_to_bq(updated_df)
+        st.success(f"✅ {selected_person} を {input_unit} に追加しました！")
+        st.cache_data.clear()
+        current_df = load_unit_mapping()
     else:
-        selected_person = st.selectbox("👤 担当者を選択", unassigned_df["担当者"])
-        input_unit = st.text_input("🏷️ 割り当てるUnit名（所属）")
-        input_status = st.text_input("🪪 雇用形態（例：社員、インターン、業務委託など）")
+        st.warning("⚠️ 担当者名・Unit名・開始月は必須です")
 
-        if st.button("＋ この担当者をUnitに追加"):
-            if selected_person and input_unit:
-                new_row = pd.DataFrame([{
-                    "担当者": selected_person,
-                    "所属": input_unit,
-                    "雇用形態": input_status
-                }])
-                updated_df = pd.concat([current_df, new_row], ignore_index=True)
-
-                try:
-                    with st.spinner("保存中です..."):
-                        job_config = bigquery.LoadJobConfig(
-                            write_disposition="WRITE_TRUNCATE",
-                            schema=[
-                                bigquery.SchemaField("担当者", "STRING"),
-                                bigquery.SchemaField("所属", "STRING"),
-                                bigquery.SchemaField("雇用形態", "STRING"),
-                            ]
-                        )
-                        job = client.load_table_from_dataframe(updated_df, full_table, job_config=job_config)
-                        job.result()
-                        st.success(f"✅ {selected_person} を『{input_unit}』に追加しました！")
-                        st.cache_data.clear()
-                        current_df = load_unit_mapping()
-                except Exception as e:
-                    st.error(f"❌ 保存に失敗しました: {e}")
-            else:
-                st.warning("⚠️ Unit名を入力してください。")
-
-except Exception as e:
-    st.error(f"❌ 担当者一覧の取得に失敗しました: {e}")
-
-# 編集可能なUnit割当一覧
-st.markdown("---")
-st.markdown("### 📝 既存のUnit割当を編集・並べ替え")
-
-editable_df = st.data_editor(
-    current_df.sort_values(["所属", "担当者"]),
-    use_container_width=True,
-    num_rows="dynamic",
-    key="editable_unit_table"
-)
-
-if st.button("💾 修正内容を保存する"):
-    with st.spinner("修正内容を保存中です..."):
-        try:
-            job_config = bigquery.LoadJobConfig(
-                write_disposition="WRITE_TRUNCATE",
-                schema=[
-                    bigquery.SchemaField("担当者", "STRING"),
-                    bigquery.SchemaField("所属", "STRING"),
-                    bigquery.SchemaField("雇用形態", "STRING"),
-                ]
-            )
-            job = client.load_table_from_dataframe(editable_df, full_table, job_config=job_config)
-            job.result()
-            st.success("✅ 編集した内容を保存しました！")
+# === ② Unit異動フォーム ===
+st.subheader("🔁 Unit異動（上書きしない形式で更新）")
+with st.form("異動フォーム"):
+    move_person = st.selectbox("👤 異動させる担当者", current_df[current_df["end_month"].isnull()]["担当者"].unique())
+    new_unit = st.text_input("🏷️ 新しい所属Unit")
+    move_month = st.text_input("📅 異動月 (YYYY-MM)", value=datetime.today().strftime("%Y-%m"))
+    submitted = st.form_submit_button("異動を登録")
+    if submitted:
+        if move_person and new_unit and move_month:
+            updated_df = current_df.copy()
+            # 現所属のend_monthを埋める
+            updated_df.loc[(updated_df["担当者"] == move_person) & (updated_df["end_month"].isnull()), "end_month"] = move_month
+            # 新行を追加
+            latest_row = updated_df[updated_df["担当者"] == move_person].sort_values("start_month").iloc[-1]
+            new_row = latest_row.copy()
+            new_row["所属"] = new_unit
+            new_row["start_month"] = move_month
+            new_row["end_month"] = None
+            updated_df = pd.concat([updated_df, pd.DataFrame([new_row])], ignore_index=True)
+            save_to_bq(updated_df)
+            st.success(f"✅ {move_person} を {new_unit} に異動登録しました！")
             st.cache_data.clear()
             current_df = load_unit_mapping()
-        except Exception as e:
-            st.error(f"❌ 編集内容の保存に失敗しました: {e}")
+        else:
+            st.warning("⚠️ 異動先Unitと異動月は必須です")
 
-# Unitごとのグルーピング表示（読み取り専用）
-st.markdown("---")
-st.markdown("### 🧩 Unitごとの担当者一覧")
+# === ③ 編集・保存テーブル ===
+st.subheader("📝 一覧編集（直接修正可）")
+editable_df = st.data_editor(
+    current_df.sort_values(["担当者", "start_month"]),
+    use_container_width=True,
+    num_rows="dynamic"
+)
+if st.button("💾 修正内容を保存"):
+    save_to_bq(editable_df)
+    st.success("✅ 編集内容を保存しました")
+    st.cache_data.clear()
+    current_df = load_unit_mapping()
 
-grouped = current_df.groupby("所属")
+# === ④ Unitごとの現在の担当者一覧 ===
+st.subheader("🏷️ Unitごとの現在所属者")
+current_only = current_df[current_df["end_month"].isnull()].copy()
+for unit in sorted(current_only["所属"].dropna().unique()):
+    st.markdown(f"#### 🔹 {unit}")
+    st.dataframe(current_only[current_only["所属"] == unit][["担当者", "雇用形態"]], use_container_width=True)
 
-for unit, group in grouped:
-    st.markdown(f"#### 🟢 {unit}")
-    st.dataframe(group[["担当者", "雇用形態"]].reset_index(drop=True), use_container_width=True)
+# === ⑤ 異動履歴 ===
+st.subheader("📜 異動履歴一覧")
+history_only = current_df[current_df["end_month"].notnull()].copy()
+st.dataframe(history_only.sort_values(["担当者", "start_month"]), use_container_width=True)
 
-# --- ボタンの色をカスタマイズ（CSS適用） ---
-st.markdown("""
-    <style>
-    div.stButton > button:first-child {
-        background-color: #4a84da;
-        color: white;
-        border: 1px solid #4a84da;
-        border-radius: 0.5rem;
-        padding: 0.6em 1.2em;
-        font-weight: 600;
-        transition: 0.3s ease;
-    }
-    div.stButton > button:first-child:hover {
-        background-color: #3f77cc;
-        border-color: #3f77cc;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# === ⑥ 退職者一覧（任意表示） ===
+st.subheader("🚪 退職済み（所属なし）担当者一覧")
+retired = current_df.groupby("担当者").agg(max_end=("end_month", "max"))
+latest_start = current_df.groupby("担当者").agg(max_start=("start_month", "max"))
+retired = retired.join(latest_start)
+retired = retired[retired["max_end"] < datetime.today().strftime("%Y-%m")]
+retired = retired.reset_index()
+st.dataframe(retired, use_container_width=True)
