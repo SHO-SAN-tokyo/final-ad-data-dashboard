@@ -53,7 +53,7 @@ with st.expander("📘 Unit設定 使い方マニュアル", expanded=False):
 「➕ 担当者をUnitに追加」から以下を入力してください：
 - 担当者名
 - 所属するUnit名（例：Unit A）
-- 雇用形態（例：社員、アルバイト）
+- 雇用形態（例：社員、インターン）
 - 所属を開始した月（例：2024-06）
 
 ✅ 入力後、「＋ 担当者を追加」ボタンを押すと登録されます。
@@ -75,14 +75,14 @@ with st.expander("📘 Unit設定 使い方マニュアル", expanded=False):
 「📝 一覧編集（直接修正可）」の表で、直接入力して修正できます：
 
 - 所属や開始月・終了月を直す
-- 行を削除することで履歴を消すことも可能
+- 間違えて登録してしまった場合は、行を削除することで履歴を消すことも可能
 - 編集後は「💾 修正内容を保存」ボタンを忘れずに押してください
 
 ---
 
 #### ④ 所属状況や履歴を確認したいとき
 
-- **🏷️ 現在の所属一覧**：今、どのUnitに誰がいるかを確認できます
+- **🏷️ Unitごとの現在の担当者一覧**：今、どのUnitに誰がいるかを確認できます
 - **📜 異動履歴**：これまでの異動の記録を一覧で見られます
 - **🚪 退職済み一覧**：過去に所属があったが、今はどこにも所属していない人を表示します
 
@@ -177,7 +177,7 @@ if st.button("💾 修正内容を保存"):
     current_df = load_unit_mapping()
 
 # === ④ Unitごとの現在の担当者一覧 ===
-st.subheader("🏷️ Unitごとの現在所属者")
+st.subheader("🏷️ Unitごとの現在の担当者一覧")
 st.markdown("""<br>""", unsafe_allow_html=True)
 current_only = current_df[current_df["end_month"].isnull()].copy()
 for unit in sorted(current_only["所属"].dropna().unique()):
