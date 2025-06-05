@@ -97,11 +97,11 @@ with st.expander("📘 Unit設定 使い方マニュアル", expanded=False):
 
 - **🏷️ Unitごとの現在の担当者一覧**：今、どのUnitに誰がいるかを確認できます
 - **📜 異動履歴**：これまでの異動の記録を一覧で見られます
-- **🚪 退職済み一覧**：過去に所属があったが、今はどこにも所属していない人を表示します
+- **🚪 メンバー外一覧**：過去に所属があったが、今はどこにも所属していない人を表示します
 
 ---
 
-#### ⑤ 担当者が退職したとき（重要！）
+#### ⑤ 担当者が退職・もしくは広告TMから外れたとき
 
 担当者が会社を辞めた場合は、**現在の所属行に「終了月（end_month）」を入力するだけでOKです。**  
 新しい行の追加は不要です。
@@ -111,7 +111,7 @@ with st.expander("📘 Unit設定 使い方マニュアル", expanded=False):
 2. `end_month` 列に退職月を `YYYY-MM` 形式で入力（例：2024-10）  
 3. 「💾 修正内容を保存」を押して反映完了
 
-📌 `end_month` が入力されると、その担当者は「🚪 退職済み一覧」に表示され、現在のUnitからは外れます。
+📌 `end_month` が入力されると、その担当者は「🚪 メンバー外一覧」に表示され、現在のUnitからは外れます。
 
 ---
 
@@ -230,8 +230,8 @@ history_only = history_only.rename(columns={
 })
 st.dataframe(history_only.sort_values(["担当者", "開始月"]), use_container_width=True)
 
-# === ⑥ 退職者一覧（任意表示） ===
-st.subheader("🚪 退職済み（所属なし）担当者一覧")
+# === ⑥ メンバー外一覧（任意表示） ===
+st.subheader("🚪 メンバー外（所属なし）担当者一覧")
 st.markdown("""<br>""", unsafe_allow_html=True)
 retired = current_df.groupby("担当者").agg(max_end=("end_month", "max"))
 latest_start = current_df.groupby("担当者").agg(max_start=("start_month", "max"))
