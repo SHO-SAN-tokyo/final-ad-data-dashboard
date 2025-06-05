@@ -192,6 +192,14 @@ with st.form("異動フォーム"):
         else:
             st.warning("⚠️ 異動先Unitと異動月は必須です")
 
+# === ④ Unitごとの現在の担当者一覧 ===
+st.subheader("🏷️ Unitごとの現在の担当者一覧")
+st.markdown("""<br>""", unsafe_allow_html=True)
+current_only = current_df[current_df["end_month"].isnull()].copy()
+for unit in sorted(current_only["所属"].dropna().unique()):
+    st.markdown(f"#### 🔹 {unit}")
+    st.dataframe(current_only[current_only["所属"] == unit][["担当者", "雇用形態"]], use_container_width=True)
+
 # === ③ 編集・保存テーブル ===
 st.subheader("📝 一覧編集（直接修正可）")
 st.markdown("""<br>""", unsafe_allow_html=True)
@@ -210,14 +218,6 @@ if st.button("💾 修正内容を保存"):
     st.success("✅ 編集内容を保存しました")
     st.cache_data.clear()
     current_df = load_unit_mapping()
-
-# === ④ Unitごとの現在の担当者一覧 ===
-st.subheader("🏷️ Unitごとの現在の担当者一覧")
-st.markdown("""<br>""", unsafe_allow_html=True)
-current_only = current_df[current_df["end_month"].isnull()].copy()
-for unit in sorted(current_only["所属"].dropna().unique()):
-    st.markdown(f"#### 🔹 {unit}")
-    st.dataframe(current_only[current_only["所属"] == unit][["担当者", "雇用形態"]], use_container_width=True)
 
 # === ⑤ 異動履歴 ===
 st.subheader("📜 過去の異動履歴")
