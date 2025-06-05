@@ -130,7 +130,7 @@ else:
     selected_person = st.selectbox("👤 担当者を選択", unassigned_df["担当者"])
     input_unit = st.text_input("🏷️ 所属Unit名")
     input_status = st.text_input("💼 雇用形態（例：社員、インターン）")
-    input_operator_id = st.text_input("🆔 マイページID（任意）")
+    input_operator_id = st.text_input("🆔 マイページID（名前の読みを半角英字で入力 例：takahashitsuyoshi）")
     input_start = st.text_input("📅 所属開始月 (YYYY-MM)", value=datetime.today().strftime("%Y-%m"))
 
     if st.button("＋ 担当者を追加"):
