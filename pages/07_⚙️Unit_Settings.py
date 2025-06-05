@@ -48,7 +48,7 @@ def save_to_bq(df):
     job = client.load_table_from_dataframe(df, full_table, job_config=job_config)
     job.result()
 
-# --- データロード ---
+# --- データロード  ---
 all_tantousha_df = get_unique_tantousha()
 current_df = load_unit_mapping()
 
