@@ -17,7 +17,18 @@ dataset = "SHOSAN_Ad_Tokyo"
 table = "UnitMapping"
 full_table = f"{project_id}.{dataset}.{table}"
 
-# --- データ読み込み ---
+# --- 担当者一覧の動的取得 ---
+@st.cache_data(ttl=60)
+def get_unique_tantousha():
+    query = f"""
+    SELECT DISTINCT 担当者
+    FROM `{project_id}.{dataset}.Final_Ad_Data`
+    WHERE 担当者 IS NOT NULL AND 担当者 != ''
+    ORDER BY 担当者
+    """
+    return client.query(query).to_dataframe()
+
+# --- Unit Mapping の取得 ---
 @st.cache_data(ttl=60)
 def load_unit_mapping():
     return client.query(f"SELECT * FROM {full_table}").to_dataframe()
@@ -37,6 +48,8 @@ def save_to_bq(df):
     job = client.load_table_from_dataframe(df, full_table, job_config=job_config)
     job.result()
 
+# --- データロード ---
+all_tantousha_df = get_unique_tantousha()
 current_df = load_unit_mapping()
 
 # 🔰 使い方マニュアル
@@ -103,32 +116,41 @@ with st.expander("📘 Unit設定 使い方マニュアル", expanded=False):
     """)
 
 
-# === ① 担当者の新規追加フォーム  ===
+# === ① 担当者の新規追加フォーム ===
 st.subheader("➕ 担当者をUnitに追加（新規登録）")
 st.markdown("""<br>""", unsafe_allow_html=True)
-selected_person = st.text_input("👤 担当者名")
-input_unit = st.text_input("🏷️ 所属Unit名")
-input_status = st.text_input("💼 雇用形態（例：社員、インターン）")
-input_operator_id = st.text_input("🆔 マイページID（任意）")
-input_start = st.text_input("📅 所属開始月 (YYYY-MM)", value=datetime.today().strftime("%Y-%m"))
 
-if st.button("＋ 担当者を追加"):
-    if selected_person and input_unit and input_start:
-        new_row = pd.DataFrame([{
-            "担当者": selected_person,
-            "所属": input_unit,
-            "雇用形態": input_status,
-            "operator_id": input_operator_id,
-            "start_month": input_start,
-            "end_month": None
-        }])
-        updated_df = pd.concat([current_df, new_row], ignore_index=True)
-        save_to_bq(updated_df)
-        st.success(f"✅ {selected_person} を {input_unit} に追加しました！")
-        st.cache_data.clear()
-        current_df = load_unit_mapping()
-    else:
-        st.warning("⚠️ 担当者名・Unit名・開始月は必須です")
+# まだ登録されていない担当者のみを抽出
+already_assigned = set(current_df["担当者"].dropna())
+unassigned_df = all_tantousha_df[~all_tantousha_df["担当者"].isin(already_assigned)]
+
+if unassigned_df.empty:
+    st.info("✨ すべての担当者がUnitに登録されています。")
+else:
+    selected_person = st.selectbox("👤 担当者を選択", unassigned_df["担当者"])
+    input_unit = st.text_input("🏷️ 所属Unit名")
+    input_status = st.text_input("💼 雇用形態（例：社員、インターン）")
+    input_operator_id = st.text_input("🆔 マイページID（任意）")
+    input_start = st.text_input("📅 所属開始月 (YYYY-MM)", value=datetime.today().strftime("%Y-%m"))
+
+    if st.button("＋ 担当者を追加"):
+        if selected_person and input_unit and input_start:
+            new_row = pd.DataFrame([{
+                "担当者": selected_person,
+                "所属": input_unit,
+                "雇用形態": input_status,
+                "operator_id": input_operator_id,
+                "start_month": input_start,
+                "end_month": None
+            }])
+            updated_df = pd.concat([current_df, new_row], ignore_index=True)
+            save_to_bq(updated_df)
+            st.success(f"✅ {selected_person} を {input_unit} に追加しました！")
+            st.cache_data.clear()
+            current_df = load_unit_mapping()
+        else:
+            st.warning("⚠️ 担当者・Unit・開始月は必須です")
+
 
 # === ② Unit異動フォーム ===
 st.subheader("🔁 Unit異動（上書きしない形式で更新）")
