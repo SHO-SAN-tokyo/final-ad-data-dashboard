@@ -181,7 +181,7 @@ st.write("#### 📋 配信キャンペーン（最大1000件）")
 
 # 表示列を定義
 columns = [
-    "配信月", "キャンペーン名", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA",
+    "配信月", "CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA",
     "クライアント名", "canvaURL", "カテゴリ", "媒体", "CVR", "CTR", "CPC", "CPM"
 ]
 columns = [col for col in columns if col in df_filtered.columns]
