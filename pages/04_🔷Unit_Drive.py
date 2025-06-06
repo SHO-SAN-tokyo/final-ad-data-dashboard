@@ -3,6 +3,7 @@ from google.cloud import bigquery
 import pandas as pd
 import numpy as np
 from datetime import datetime
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 st.set_page_config(page_title="Unit Drive", layout="wide")
 st.title("🔷 Unit Drive")
@@ -174,13 +175,11 @@ for idx, row in person_agg.iterrows():
         </div>
         """, unsafe_allow_html=True)
 
-import streamlit as st
-import pandas as pd
 
 # --- キャンペーン一覧テーブル（追加列すべて含む）---
 st.write("#### 📋 配信キャンペーン")
 
-# 一覧に必要な列を抽出
+# --- 一覧に必要な列を抽出（存在前提） ---
 campaign_table = df_filtered[
     [
         "配信月", "CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA",
@@ -188,7 +187,10 @@ campaign_table = df_filtered[
     ]
 ].copy()
 
-# canvaURL をクリック可能なHTMLリンクに変換
+# --- 最大1000件に制限 ---
+campaign_table = campaign_table.head(1000)
+
+# --- canvaURL をクリック可能なリンクに変換 ---
 def make_link(url):
     if pd.isna(url) or url.strip() == "":
         return ""
@@ -196,29 +198,27 @@ def make_link(url):
 
 campaign_table["canvaURL"] = campaign_table["canvaURL"].apply(make_link)
 
-# 数値フォーマット
-format_dict = {
-    "予算": "¥{:,.0f}",
-    "フィー": "¥{:,.0f}",
-    "消化金額": "¥{:,.0f}",
-    "コンバージョン数": "{:,.0f}",
-    "CPA": "¥{:,.0f}",
-    "CVR": "{:.2%}",
-    "CTR": "{:.2%}",
-    "CPC": "¥{:,.0f}",
-    "CPM": "¥{:,.0f}"
-}
+# --- 数値・パーセントフォーマット（AgGrid上ではそのまま文字列として整形） ---
+for col in ["予算", "フィー", "消化金額", "CPA", "CPC", "CPM"]:
+    campaign_table[col] = campaign_table[col].apply(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "")
+for col in ["CVR", "CTR"]:
+    campaign_table[col] = campaign_table[col].apply(lambda x: f"{x:.2%}" if pd.notna(x) else "")
 
-# --- 表示（HTMLリンク含むためunsafe_allow_html使用）---
-st.write("✅ 表示形式：canvaURLはクリック可能")
+# --- AgGrid設定 ---
+gb = GridOptionsBuilder.from_dataframe(campaign_table)
+gb.configure_default_column(sortable=True, filter=True, resizable=True)
+gb.configure_column("canvaURL", header_name="canvaURL", cellRenderer='htmlRenderer')
+gb.configure_grid_options(domLayout='normal', enableRangeSelection=True)
 
-st.write(
-    campaign_table.to_html(
-        escape=False,  # リンクをHTMLとして解釈
-        index=False,
-        formatters={k: lambda x: format_dict[k].format(x) if pd.notna(x) else "" for k in format_dict}
-    ),
-    unsafe_allow_html=True
+# --- 表示 ---
+st.write("#### 📋 配信キャンペーン（最大1000件）")
+AgGrid(
+    campaign_table,
+    gridOptions=gb.build(),
+    enable_enterprise_modules=False,
+    allow_unsafe_jscode=True,
+    fit_columns_on_grid_load=True,
+    height=500
 )
 
 
