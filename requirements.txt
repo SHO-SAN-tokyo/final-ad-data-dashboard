@@ -6,3 +6,4 @@ streamlit-option-menu
 pandas_gbq
 plotly
 openai
+streamlit-aggrid==0.3.4.post3
