@@ -177,20 +177,23 @@ for idx, row in person_agg.iterrows():
 
 
 # ✅ 📋 配信キャンペーン一覧
-st.write("#### 📋 配信キャンペーン（最大1000件）")
+# 列名を日本語に変換（必要に応じて）
+df_filtered = df_filtered.rename(columns={
+    "CampaignName": "キャンペーン名"
+})
 
-# 表示列を定義
-columns = [
-    "配信月", "CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA",
-    "クライアント名", "canvaURL", "カテゴリ", "媒体", "CVR", "CTR", "CPC", "CPM"
+# 表示したい列
+columns_to_show = [
+    "配信月", "キャンペーン名", "担当者", "所属", "予算", "フィー",
+    "消化金額", "コンバージョン数", "CPA", "CVR", "CTR", "CPC", "CPM",
+    "canvaURL", "クライアント名", "広告目的", "カテゴリ"
 ]
-columns = [col for col in columns if col in df_filtered.columns]
 
-# 最大1000件に制限
-campaign_table = df_filtered[columns].copy().head(1000)
+# 存在する列だけ抽出（安全対策）
+columns_to_show = [col for col in columns_to_show if col in df_filtered.columns]
 
-# フォーマット設定
-format_dict = {
+# 表示整形
+styled_table = df_filtered[columns_to_show].head(1000).style.format({
     "予算": "¥{:,.0f}",
     "フィー": "¥{:,.0f}",
     "消化金額": "¥{:,.0f}",
@@ -200,13 +203,10 @@ format_dict = {
     "CTR": "{:.1%}",
     "CPC": "¥{:,.0f}",
     "CPM": "¥{:,.0f}"
-}
+})
 
-# スタイル付きデータフレームで表示
-st.dataframe(
-    campaign_table.style.format(format_dict),
-    use_container_width=True
-)
+st.write("#### 📋 配信キャンペーン一覧（最大1000件）")
+st.dataframe(styled_table, use_container_width=True)
 
 
 
