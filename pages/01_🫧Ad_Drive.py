@@ -84,35 +84,6 @@ ctr = total_clicks / total_impressions if total_impressions else None
 cpm = (total_cost * 1000 / total_impressions) if total_impressions else None
 
 
-# --- 一覧表用データ用　UnitMapping 読み込み ---
-unit_query = """
-SELECT client_name, operator as 担当者, Unit, front as フロント, budget as 予算, fee as フィー
-FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.UnitMapping`
-"""
-df_unit = client.query(unit_query).to_dataframe()
-
-# --- 一覧表用データ（広告フィルター後のdf_filteredを元にJOIN）---
-df_table = df_filtered.copy()
-df_table = df_table.merge(df_unit, on="client_name", how="left")
-
-# --- 一覧表の列定義 ---
-columns_to_show = [
-    "配信月", "キャンペーン名", "担当者", "Unit", "フロント", "予算", "フィー", "client_name", 
-    "Cost", "canvaURL", "遷移先URL", "カテゴリ", "ServiceNameJA", "広告目的", 
-    "cv_value", "CPA", "CVR", "CTR", "CPC", "CPM"
-]
-column_rename = {
-    "client_name": "クライアント名",
-    "Cost": "消化金額",
-    "ServiceNameJA": "媒体",
-}
-df_table = df_table[columns_to_show].rename(columns=column_rename)
-
-# --- 表示 ---
-with st.expander("📋 一覧表を表示（最大1000件）", expanded=False):
-    st.dataframe(df_table.head(1000), use_container_width=True)
-
-
 # --- スコアカード表示 ---
 st.markdown("### 📊 広告パフォーマンス")
 
