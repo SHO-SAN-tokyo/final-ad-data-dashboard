@@ -174,22 +174,53 @@ for idx, row in person_agg.iterrows():
         </div>
         """, unsafe_allow_html=True)
 
-# --- キャンペーン一覧テーブル ---
-st.write("#### 📋 配信キャンペーン")
-campaign_table = df_filtered[["配信月", "CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
-campaign_table = campaign_table.rename(columns={"所属": "Unit"})
-campaign_table = campaign_table[["配信月", "CampaignName", "担当者", "Unit", "予算", "フィー", "消化金額", "コンバージョン数", "CPA"]]
+import streamlit as st
+import pandas as pd
 
-st.dataframe(
-    campaign_table.style.format({
-        "予算": "¥{:,.0f}",
-        "フィー": "¥{:,.0f}",
-        "消化金額": "¥{:,.0f}",
-        "コンバージョン数": "{:,.0f}",
-        "CPA": "¥{:,.0f}"
-    }),
-    use_container_width=True
+# --- キャンペーン一覧テーブル（追加列すべて含む）---
+st.write("#### 📋 配信キャンペーン")
+
+# 一覧に必要な列を抽出
+campaign_table = df_filtered[
+    [
+        "配信月", "CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA",
+        "クライアント名", "canvaURL", "カテゴリ", "媒体", "CVR", "CTR", "CPC", "CPM"
+    ]
+].copy()
+
+# canvaURL をクリック可能なHTMLリンクに変換
+def make_link(url):
+    if pd.isna(url) or url.strip() == "":
+        return ""
+    return f'<a href="{url}" target="_blank">リンク↗</a>'
+
+campaign_table["canvaURL"] = campaign_table["canvaURL"].apply(make_link)
+
+# 数値フォーマット
+format_dict = {
+    "予算": "¥{:,.0f}",
+    "フィー": "¥{:,.0f}",
+    "消化金額": "¥{:,.0f}",
+    "コンバージョン数": "{:,.0f}",
+    "CPA": "¥{:,.0f}",
+    "CVR": "{:.2%}",
+    "CTR": "{:.2%}",
+    "CPC": "¥{:,.0f}",
+    "CPM": "¥{:,.0f}"
+}
+
+# --- 表示（HTMLリンク含むためunsafe_allow_html使用）---
+st.write("✅ 表示形式：canvaURLはクリック可能")
+
+st.write(
+    campaign_table.to_html(
+        escape=False,  # リンクをHTMLとして解釈
+        index=False,
+        formatters={k: lambda x: format_dict[k].format(x) if pd.notna(x) else "" for k in format_dict}
+    ),
+    unsafe_allow_html=True
 )
+
 
 # --- 達成キャンペーン一覧 ---
 st.write("### 👍 達成キャンペーン一覧")
