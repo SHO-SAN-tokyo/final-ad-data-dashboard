@@ -193,5 +193,103 @@ for i, (_, row) in enumerate(df_banner_disp.iterrows()):
         st.markdown(card_html, unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
-# ⑧ フォント & CSS（元コードをそのまま設置）  … 省略 …
+# ⑧ フォント & CSS
 # ──────────────────────────────────────────────
+# --- Google Fontsを読み込む ---
+st.markdown("""
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+""", unsafe_allow_html=True)
+
+# --- CSS ---
+theme = st.get_option("theme.base")
+is_dark = theme == "dark"
+
+# --- CSS 出力（ダーク or ライト）---
+st.markdown("""
+<style>
+  h3.top {
+    margin: .4rem auto 1rem auto !important;
+  }
+  h3 {
+    background-color: #ddedfc;
+    padding: .6rem !important;
+    display: block;
+    margin: 2rem auto 1rem auto !important;
+  }
+  .scorecard-label {
+    font-size: 14px;
+    margin-bottom: 6px;
+    text-align: left;
+    background: #f1f1f1;
+    padding: .3rem .6rem;
+  }
+
+  .scorecard-value {
+    font-size: 30px;
+    text-align: left;
+    line-height: 1.2;
+    font-weight: 600;
+    padding: 2px 10px;
+    margin-bottom: 1.4rem;
+    font-family: 'Inter', 'Roboto', sans-serif;
+  }
+
+  .banner-card {
+    padding: 12px 12px 20px;
+    border: 1px solid #e6e6e6;
+    border-radius: 12px;
+    background: #fafafa;
+    height: auto;
+    margin-bottom: 14px;
+  }
+
+  .banner-card img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .banner-caption {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    text-align: left;
+    color: #111;
+    font-family: 'Inter', 'Roboto', sans-serif;
+  }
+
+  .gray-text {
+    color: #888;
+  }
+  
+  .st-emotion-cache-16tyu1 p {
+    margin-bottom: 2rem;
+  }
+
+  /* 🌙 ダークモード対応 */
+  @media (prefers-color-scheme: dark) {
+    h3 {
+      background-color: #394046;
+    }
+    .scorecard-label {
+      color: #ccc !important;
+    }
+    .scorecard-value {
+      background-color: #333 !important;
+      color: #fff !important;
+    }
+    .banner-card {
+      background: #222;
+      border: 1px solid #444;
+    }
+    .banner-caption {
+      color: #eee;
+    }
+    .gray-text {
+      color: #aaa;
+    }
+  }
+</style>
+""", unsafe_allow_html=True)
