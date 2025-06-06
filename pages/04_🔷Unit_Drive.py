@@ -177,8 +177,6 @@ for idx, row in person_agg.iterrows():
 
 
 # --- キャンペーン一覧テーブル（追加列すべて含む）---
-st.write("#### 📋 配信キャンペーン")
-
 # --- 一覧に必要な列を抽出（存在前提） ---
 campaign_table = df_filtered[
     [
