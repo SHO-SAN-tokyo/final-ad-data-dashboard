@@ -176,9 +176,7 @@ for idx, row in person_agg.iterrows():
         """, unsafe_allow_html=True)
 
 
-import streamlit as st
-import pandas as pd
-
+# ✅ 📋 配信キャンペーン一覧
 st.write("#### 📋 配信キャンペーン（最大1000件）")
 
 # 表示列を定義
