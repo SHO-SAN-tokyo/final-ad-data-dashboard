@@ -176,48 +176,40 @@ for idx, row in person_agg.iterrows():
         """, unsafe_allow_html=True)
 
 
-# --- キャンペーン一覧テーブル（追加列すべて含む）---
-# --- 一覧に必要な列を抽出（存在前提） ---
-campaign_table = df_filtered[
-    [
-        "配信月", "CampaignName", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA",
-        "クライアント名", "canvaURL", "カテゴリ", "媒体", "CVR", "CTR", "CPC", "CPM"
-    ]
-].copy()
+import streamlit as st
+import pandas as pd
 
-# --- 最大1000件に制限 ---
-campaign_table = campaign_table.head(1000)
-
-# --- canvaURL をクリック可能なリンクに変換 ---
-def make_link(url):
-    if pd.isna(url) or url.strip() == "":
-        return ""
-    return f'<a href="{url}" target="_blank">リンク↗</a>'
-
-campaign_table["canvaURL"] = campaign_table["canvaURL"].apply(make_link)
-
-# --- 数値・パーセントフォーマット（AgGrid上ではそのまま文字列として整形） ---
-for col in ["予算", "フィー", "消化金額", "CPA", "CPC", "CPM"]:
-    campaign_table[col] = campaign_table[col].apply(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "")
-for col in ["CVR", "CTR"]:
-    campaign_table[col] = campaign_table[col].apply(lambda x: f"{x:.2%}" if pd.notna(x) else "")
-
-# --- AgGrid設定 ---
-gb = GridOptionsBuilder.from_dataframe(campaign_table)
-gb.configure_default_column(sortable=True, filter=True, resizable=True)
-gb.configure_column("canvaURL", header_name="canvaURL", cellRenderer='htmlRenderer')
-gb.configure_grid_options(domLayout='normal', enableRangeSelection=True)
-
-# --- 表示 ---
 st.write("#### 📋 配信キャンペーン（最大1000件）")
-AgGrid(
-    campaign_table,
-    gridOptions=gb.build(),
-    enable_enterprise_modules=False,
-    allow_unsafe_jscode=True,
-    fit_columns_on_grid_load=True,
-    height=500
+
+# 表示列を定義
+columns = [
+    "配信月", "キャンペーン名", "担当者", "所属", "予算", "フィー", "消化金額", "コンバージョン数", "CPA",
+    "クライアント名", "canvaURL", "カテゴリ", "媒体", "CVR", "CTR", "CPC", "CPM"
+]
+columns = [col for col in columns if col in df_filtered.columns]
+
+# 最大1000件に制限
+campaign_table = df_filtered[columns].copy().head(1000)
+
+# フォーマット設定
+format_dict = {
+    "予算": "¥{:,.0f}",
+    "フィー": "¥{:,.0f}",
+    "消化金額": "¥{:,.0f}",
+    "コンバージョン数": "{:,.0f}",
+    "CPA": "¥{:,.0f}",
+    "CVR": "{:.1%}",
+    "CTR": "{:.1%}",
+    "CPC": "¥{:,.0f}",
+    "CPM": "¥{:,.0f}"
+}
+
+# スタイル付きデータフレームで表示
+st.dataframe(
+    campaign_table.style.format(format_dict),
+    use_container_width=True
 )
+
 
 
 # --- 達成キャンペーン一覧 ---
