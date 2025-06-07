@@ -166,7 +166,7 @@ st.markdown(
 # 3列（上段）
 row1 = [
     {"label": "CPA (円)", "value": f"{cpa:,.0f}" if cpa else "-", "bg": "#ecf6ff"},
-    {"label": "コンバージョン数", "value": f"{int(total_cv):,}", "bg": "#f3f3f3"},
+    {"label": "コンバージョン数", "value": f"{int(total_cv):,}", "bg": "#ecf6ff"},
     {"label": "CVR (%)", "value": f"{cvr*100:,.2f}" if cvr else "-", "bg": "#ecf6ff"},
 ]
 cols1 = st.columns(5)
@@ -191,11 +191,11 @@ for i, card in enumerate(row1):
 
 # 5列（下段）
 row2 = [
-    {"label": "消化金額 (円)", "value": f"{total_cost:,.0f}", "bg": "#f3f3f3"},
+    {"label": "消化金額 (円)", "value": f"{total_cost:,.0f}", "bg": "#ecf6ff"},
     {"label": "インプレッション", "value": f"{int(total_imp):,}", "bg": "#ecf6ff"},
-    {"label": "CTR (%)", "value": f"{ctr*100:,.2f}" if ctr else "-", "bg": "#f3f3f3"},
+    {"label": "CTR (%)", "value": f"{ctr*100:,.2f}" if ctr else "-", "bg": "#ecf6ff"},
     {"label": "CPM (円)", "value": f"{cpm:,.0f}" if cpm else "-", "bg": "#ecf6ff"},
-    {"label": "クリック", "value": f"{int(total_click):,}", "bg": "#f3f3f3"},
+    {"label": "クリック", "value": f"{int(total_click):,}", "bg": "#ecf6ff"},
 ]
 cols2 = st.columns(5)
 for i, card in enumerate(row2):
