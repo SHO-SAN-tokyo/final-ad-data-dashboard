@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from google.cloud import bigquery
 import re
+import html
 
 # ──────────────────────────────────────────────
 # ページ設定 & BigQuery 認証
@@ -166,8 +167,15 @@ else:
 # ──────────────────────────────────────────────
 # ⑦ バナーカード描画
 # ──────────────────────────────────────────────
-def split_urls(raw):  # canvaURL / URL の複数リンク分割
-    return [u for u in re.split(r"[,\\s]+", str(raw or "")) if u.startswith("http")]
+import html
+
+# ⑦ バナーカード描画
+def split_urls(raw):
+    # スペース・カンマ・全角スペース・改行などで分割してURLだけ返す
+    urls = re.split(r"[,\s　]+", str(raw or ""))
+    # URLの前後の空白や制御文字除去・http(s)で始まるものだけ
+    urls = [u.strip() for u in urls if u.strip().startswith("http")]
+    return urls
 
 cols = st.columns(5, gap="small")
 for i, (_, row) in enumerate(df_banner_disp.iterrows()):
@@ -179,10 +187,13 @@ for i, (_, row) in enumerate(df_banner_disp.iterrows()):
     ctr_ = row.get("CTR")
 
     canva_links = split_urls(row.get("canvaURL", ""))
-    canva_html = " ,".join(
-        f'<a href="{u}" target="_blank">canvaURL{j+1 if len(canva_links)>1 else ""}↗️</a>'
-        for j, u in enumerate(canva_links)
-    ) if canva_links else '<span class="gray-text">canvaURL：なし</span>'
+    if canva_links:
+        canva_html = "<br>".join(
+            f'<a href="{html.escape(u)}" target="_blank">canvaURL{j+1}↗️</a>'
+            for j, u in enumerate(canva_links)
+        )
+    else:
+        canva_html = '<span class="gray-text">canvaURL：なし</span>'
 
     caption = [
         f"<b>広告名：</b>{row.get('AdName', '')}",
@@ -206,6 +217,7 @@ for i, (_, row) in enumerate(df_banner_disp.iterrows()):
     """
     with cols[i % 5]:
         st.markdown(card_html, unsafe_allow_html=True)
+
 
 # ──────────────────────────────────────────────
 # ⑧ フォント & CSS
