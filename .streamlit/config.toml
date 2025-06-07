@@ -1,0 +1,9 @@
+[theme]
+base = "light"
+
+[server]
+headless = true
+
+[ui]
+# 画面幅を "wide" に強制
+layout = "wide"
