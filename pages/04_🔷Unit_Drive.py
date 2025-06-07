@@ -195,6 +195,11 @@ st.dataframe(styled_table, use_container_width=True)
 # --- 達成キャンペーン一覧 ---
 if "達成状況" in df_filtered.columns:
     st.write("### 👍 達成キャンペーン一覧")
+
+    st.write("全カラム名", df_filtered.columns.tolist())
+    st.write("達成状況ユニーク値", df_filtered["達成状況"].unique())
+
+
     achieved = df_filtered[df_filtered["達成状況"] == "達成"]
     if not achieved.empty:
         st.dataframe(
