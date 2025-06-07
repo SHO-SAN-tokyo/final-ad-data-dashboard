@@ -196,27 +196,34 @@ st.dataframe(styled_table, use_container_width=True)
 if "達成状況" in df_filtered.columns:
     st.write("### 👍 達成キャンペーン一覧")
     achieved = df_filtered[df_filtered["達成状況"] == "達成"]
-    st.dataframe(
-        achieved[[
-            "配信月", "キャンペーン名", "担当者", "所属",
-            "CPA", "CPA_KPI_評価", "目標CPA", "個別CPA_達成"
-        ]].style.format({
-            "CPA": "¥{:,.0f}",
-            "目標CPA": "¥{:,.0f}"
-        }),
-        use_container_width=True
-    )
+    if not achieved.empty:
+        st.dataframe(
+            achieved[[
+                "配信月", "キャンペーン名", "担当者", "所属",
+                "CPA", "CPA_KPI_評価", "目標CPA", "個別CPA_達成"
+            ]].style.format({
+                "CPA": "¥{:,.0f}",
+                "目標CPA": "¥{:,.0f}"
+            }),
+            use_container_width=True
+        )
+    else:
+        st.info("達成キャンペーンがありません。")
 
     # --- 未達成キャンペーン一覧 ---
     st.write("### 💤 未達成キャンペーン一覧")
     missed = df_filtered[df_filtered["達成状況"] == "未達成"]
-    st.dataframe(
-        missed[[
-            "配信月", "キャンペーン名", "担当者", "所属",
-            "CPA", "CPA_KPI_評価", "目標CPA", "個別CPA_達成"
-        ]].style.format({
-            "CPA": "¥{:,.0f}",
-            "目標CPA": "¥{:,.0f}"
-        }),
-        use_container_width=True
-    )
+    if not missed.empty:
+        st.dataframe(
+            missed[[
+                "配信月", "キャンペーン名", "担当者", "所属",
+                "CPA", "CPA_KPI_評価", "目標CPA", "個別CPA_達成"
+            ]].style.format({
+                "CPA": "¥{:,.0f}",
+                "目標CPA": "¥{:,.0f}"
+            }),
+            use_container_width=True
+        )
+    else:
+        st.info("未達成キャンペーンがありません。")
+
