@@ -309,7 +309,6 @@ st.markdown("""
     font-size: 14px;
     margin-bottom: 6px;
     text-align: left;
-    background: #f1f1f1;
     padding: .3rem .6rem;
   }
 
