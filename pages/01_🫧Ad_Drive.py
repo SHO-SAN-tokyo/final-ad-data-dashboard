@@ -65,21 +65,49 @@ for d in (df_num, df_banner):
 # ──────────────────────────────────────────────
 st.markdown("<h3 class='top'>🔎 広告を絞り込む</h3>", unsafe_allow_html=True)
 
+# 最初は全データ
+filtered = df_num.copy()
+
+# --- 1段目: 配信月 & クライアント名 ---
 col1, col2 = st.columns(2)
 with col1:
-    sel_month = st.multiselect("📅 配信月", sorted(df_num["配信月"].dropna().unique()) if "配信月" in df_num.columns else [], placeholder="すべて")
+    month_options = sorted(filtered["配信月"].dropna().unique())
+    sel_month = st.multiselect("📅 配信月", month_options, placeholder="すべて")
+    if sel_month:
+        filtered = filtered[filtered["配信月"].isin(sel_month)]
 with col2:
-    sel_client = st.multiselect("👤 クライアント名", sorted(df_num["client_name"].dropna().unique()) if "client_name" in df_num.columns else [], placeholder="すべて")
+    client_options = sorted(filtered["client_name"].dropna().unique())
+    sel_client = st.multiselect("👤 クライアント名", client_options, placeholder="すべて")
+    if sel_client:
+        filtered = filtered[filtered["client_name"].isin(sel_client)]
 
+# --- 2段目: カテゴリ・媒体・広告目的 ---
 col3, col4, col5 = st.columns(3)
 with col3:
-    sel_cat = st.multiselect("📁 カテゴリ", sorted(df_num["カテゴリ"].dropna().unique()) if "カテゴリ" in df_num.columns else [], placeholder="すべて")
+    cat_options = sorted(filtered["カテゴリ"].dropna().unique())
+    sel_cat = st.multiselect("📁 カテゴリ", cat_options, placeholder="すべて")
+    if sel_cat:
+        filtered = filtered[filtered["カテゴリ"].isin(sel_cat)]
 with col4:
-    sel_media = st.multiselect("📡 媒体", sorted(df_num["ServiceNameJA"].dropna().unique()) if "ServiceNameJA" in df_num.columns else [], placeholder="すべて")
+    media_options = sorted(filtered["ServiceNameJA"].dropna().unique())
+    sel_media = st.multiselect("📡 媒体", media_options, placeholder="すべて")
+    if sel_media:
+        filtered = filtered[filtered["ServiceNameJA"].isin(sel_media)]
 with col5:
-    sel_goal = st.multiselect("🎯 広告目的", sorted(df_num["広告目的"].dropna().unique()) if "広告目的" in df_num.columns else [], placeholder="すべて")
+    goal_options = sorted(filtered["広告目的"].dropna().unique())
+    sel_goal = st.multiselect("🎯 広告目的", goal_options, placeholder="すべて")
+    if sel_goal:
+        filtered = filtered[filtered["広告目的"].isin(sel_goal)]
 
-sel_campaign = st.multiselect("📣 キャンペーン名", sorted(df_num["キャンペーン名"].dropna().unique()) if "キャンペーン名" in df_num.columns else [], placeholder="すべて")
+# --- 下段: キャンペーン名 ---
+camp_options = sorted(filtered["キャンペーン名"].dropna().unique())
+sel_campaign = st.multiselect("📣 キャンペーン名", camp_options, placeholder="すべて")
+if sel_campaign:
+    filtered = filtered[filtered["キャンペーン名"].isin(sel_campaign)]
+
+# 以降、filteredを df_num_filt として以降で使う
+df_num_filt = filtered
+
 
 # ──────────────────────────────────────────────
 # ④ フィルター関数（キャンペーン / バナー両方へ適用）
