@@ -191,7 +191,7 @@ for i, (_, row) in enumerate(df_banner_disp.iterrows()):
         canva_html = '<span class="gray-text">canvaURL：なし</span>'
 
     caption = [
-        f"<span style='font-size:11px;color:#888;'>{row.get('キャンペーン名','')}</span>",
+        f"<span style='font-size:11px;color:#888;line-height:0.8;margin-bottom:0;'>{row.get('キャンペーン名','')}</span>",
         f"<b>広告名：</b>{row.get('AdName', '')}",
         f"<b>消化金額：</b>{cost:,.0f}円",
         f"<b>IMP：</b>{imp:,.0f}",
