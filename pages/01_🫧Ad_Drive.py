@@ -228,15 +228,18 @@ for i, card in enumerate(row2):
 st.subheader("💠 配信バナー")
 order = st.radio("並び替え基準", ["広告番号順", "CV数の多い順", "CPAの低い順"])
 
+df_banner_sorted = df_banner_filt.copy()
 if order == "CV数の多い順":
-    df_banner_disp = df_banner_disp[df_banner_disp["conv_banner"] > 0]\
-                     .sort_values("conv_banner", ascending=False)
+    df_banner_sorted = df_banner_sorted.sort_values("conv_banner", ascending=False)
 elif order == "CPAの低い順":
-    df_banner_disp = df_banner_disp[df_banner_disp["CPA"].notna()]\
-                     .sort_values("CPA")
-else:
-    if "banner_number" in df_banner_disp.columns:
-        df_banner_disp = df_banner_disp.sort_values("banner_number")
+    df_banner_sorted = df_banner_sorted[df_banner_sorted["CPA"].notna()].sort_values("CPA")
+else:  # 広告番号順
+    if "banner_number" in df_banner_sorted.columns:
+        df_banner_sorted = df_banner_sorted.sort_values("banner_number")
+
+# 「ソートした後で」CloudStorageUrlのある上位100件のみ表示
+df_banner_disp = df_banner_sorted[df_banner_sorted["CloudStorageUrl"].notna()].head(100)
+
 
 # ──────────────────────────────────────────────
 # ⑧ バナーカード描画
