@@ -315,29 +315,5 @@ st.markdown("""
   .st-emotion-cache-16tyu1 p {
     margin-bottom: 2rem;
   }
-
-  /* 🌙 ダークモード対応 */
-  @media (prefers-color-scheme: dark) {
-    h3 {
-      background-color: #394046;
-    }
-    .scorecard-label {
-      color: #ccc !important;
-    }
-    .scorecard-value {
-      background-color: #333 !important;
-      color: #fff !important;
-    }
-    .banner-card {
-      background: #222;
-      border: 1px solid #444;
-    }
-    .banner-caption {
-      color: #eee;
-    }
-    .gray-text {
-      color: #aaa;
-    }
-  }
 </style>
 """, unsafe_allow_html=True)
