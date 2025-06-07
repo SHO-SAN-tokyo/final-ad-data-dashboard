@@ -180,7 +180,7 @@ for i, card in enumerate(row1):
                 margin-bottom: 0.8rem;
                 box-shadow: 0 2px 6px rgba(50,60,80,.04);
                 border:1px solid #e4e4e4;">
-              <div class="scorecard-label" style="font-size:14px; color:#457; margin-bottom:2px;">
+              <div class="scorecard-label" style="font-size:14px; color:#111; margin-bottom:2px;">
                 {card['label']}
               </div>
               <div class="scorecard-value" style="font-size:2.0rem; font-weight:600; color:#111; letter-spacing:0.01em;">
