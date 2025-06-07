@@ -4,7 +4,9 @@ import pandas as pd, numpy as np
 
 # --- ページ設定 ---
 st.set_page_config(page_title="LP_Drive", layout="wide")
-st.title("🎨 LP別の広告成果")
+st.title("🎨 LP Score")
+
+st.subheader("📊 LP別の広告スコア")
 
 # --- 認証 & 接続 ---
 cred = dict(st.secrets["connections"]["bigquery"])
