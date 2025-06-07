@@ -168,9 +168,7 @@ else:
 # ⑦ バナーカード描画
 # ──────────────────────────────────────────────
 def split_urls(raw):
-    # スペース・カンマ・全角スペース・改行などで分割してURLだけ返す
     urls = re.split(r"[,\s　]+", str(raw or ""))
-    # URLの前後の空白や制御文字除去・http(s)で始まるものだけ
     urls = [u.strip() for u in urls if u.strip().startswith("http")]
     return urls
 
@@ -186,7 +184,7 @@ for i, (_, row) in enumerate(df_banner_disp.iterrows()):
     canva_links = split_urls(row.get("canvaURL", ""))
     if canva_links:
         canva_html = "<br>".join(
-            f'<a href="{html.escape(u)}" target="_blank">canvaURL{j+1}↗️</a>'
+            f'<a href="{html.escape(u)}" target="_blank">canvaURL{"↗️" if j == 0 else str(j+1)+"↗️"}</a>'
             for j, u in enumerate(canva_links)
         )
     else:
