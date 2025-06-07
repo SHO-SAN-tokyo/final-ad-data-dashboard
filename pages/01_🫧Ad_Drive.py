@@ -170,9 +170,9 @@ st.markdown(
 st.subheader("💠 広告数値")
 # 3列（上段）
 row1 = [
-    {"label": "CPA - 獲得単価", "value": f"{cpa:,.0f}円" if cpa else "-", "bg": "#ecf6ff"},
-    {"label": "コンバージョン数", "value": f"{int(total_cv):,}", "bg": "#ecf6ff"},
-    {"label": "CVR - コンバージョン率", "value": f"{cvr*100:,.2f}%" if cvr else "-", "bg": "#ecf6ff"},
+    {"label": "CPA - 獲得単価", "value": f"{cpa:,.0f}円" if cpa else "-", "bg": "#fff"},
+    {"label": "コンバージョン数", "value": f"{int(total_cv):,}", "bg": "#fff"},
+    {"label": "CVR - コンバージョン率", "value": f"{cvr*100:,.2f}%" if cvr else "-", "bg": "#fff"},
 ]
 cols1 = st.columns(5)
 for i, card in enumerate(row1):
@@ -196,11 +196,11 @@ for i, card in enumerate(row1):
 
 # 5列（下段）
 row2 = [
-    {"label": "消化金額", "value": f"{total_cost:,.0f}円", "bg": "#ecf6ff"},
-    {"label": "インプレッション", "value": f"{int(total_imp):,}", "bg": "#ecf6ff"},
-    {"label": "CTR - クリック率", "value": f"{ctr*100:,.2f}%" if ctr else "-", "bg": "#ecf6ff"},
-    {"label": "CPM", "value": f"{cpm:,.0f}" if cpm else "-", "bg": "#ecf6ff"},
-    {"label": "クリック", "value": f"{int(total_click):,}", "bg": "#ecf6ff"},
+    {"label": "消化金額", "value": f"{total_cost:,.0f}円", "bg": "#fff"},
+    {"label": "インプレッション", "value": f"{int(total_imp):,}", "bg": "#fff"},
+    {"label": "CTR - クリック率", "value": f"{ctr*100:,.2f}%" if ctr else "-", "bg": "#fff"},
+    {"label": "CPM", "value": f"{cpm:,.0f}" if cpm else "-", "bg": "#fff"},
+    {"label": "クリック", "value": f"{int(total_click):,}", "bg": "#fff"},
 ]
 cols2 = st.columns(5)
 for i, card in enumerate(row2):
