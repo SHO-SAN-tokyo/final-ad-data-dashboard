@@ -163,18 +163,59 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 3+5 列のスコアカード
-sc1, sc2, sc3, _, _ = st.columns(5)
-with sc1: st.metric("CPA (円)", f"{cpa:,.0f}" if cpa else "-")
-with sc2: st.metric("コンバージョン数", f"{int(total_cv):,}")
-with sc3: st.metric("CVR (%)", f"{cvr*100:,.2f}" if cvr else "-")
+# 3列（上段）
+row1 = [
+    {"label": "CPA (円)", "value": f"{cpa:,.0f}" if cpa else "-", "bg": "#ecf6ff"},
+    {"label": "コンバージョン数", "value": f"{int(total_cv):,}", "bg": "#f3f3f3"},
+    {"label": "CVR (%)", "value": f"{cvr*100:,.2f}" if cvr else "-", "bg": "#ecf6ff"},
+]
+cols1 = st.columns(5)
+for i, card in enumerate(row1):
+    with cols1[i]:
+        st.markdown(f"""
+            <div class="scorecard" style="
+                background:{card['bg']};
+                border-radius: 11px;
+                padding: 1.1rem .8rem .8rem .8rem;
+                margin-bottom: 0.8rem;
+                box-shadow: 0 2px 6px rgba(50,60,80,.04);
+                border:1px solid #e4e4e4;">
+              <div class="scorecard-label" style="font-size:14px; color:#457; margin-bottom:2px;">
+                {card['label']}
+              </div>
+              <div class="scorecard-value" style="font-size:2.0rem; font-weight:600; color:#111; letter-spacing:0.01em;">
+                {card['value']}
+              </div>
+            </div>
+        """, unsafe_allow_html=True)
 
-sc4, sc5, sc6, sc7, sc8 = st.columns(5)
-with sc4: st.metric("消化金額 (円)", f"{total_cost:,.0f}")
-with sc5: st.metric("インプレッション", f"{int(total_imp):,}")
-with sc6: st.metric("CTR (%)", f"{ctr*100:,.2f}" if ctr else "-")
-with sc7: st.metric("CPM (円)", f"{cpm:,.0f}" if cpm else "-")
-with sc8: st.metric("クリック", f"{int(total_click):,}")
+# 5列（下段）
+row2 = [
+    {"label": "消化金額 (円)", "value": f"{total_cost:,.0f}", "bg": "#f3f3f3"},
+    {"label": "インプレッション", "value": f"{int(total_imp):,}", "bg": "#ecf6ff"},
+    {"label": "CTR (%)", "value": f"{ctr*100:,.2f}" if ctr else "-", "bg": "#f3f3f3"},
+    {"label": "CPM (円)", "value": f"{cpm:,.0f}" if cpm else "-", "bg": "#ecf6ff"},
+    {"label": "クリック", "value": f"{int(total_click):,}", "bg": "#f3f3f3"},
+]
+cols2 = st.columns(5)
+for i, card in enumerate(row2):
+    with cols2[i]:
+        st.markdown(f"""
+            <div class="scorecard" style="
+                background:{card['bg']};
+                border-radius: 11px;
+                padding: 1.1rem .8rem .8rem .8rem;
+                margin-bottom: 0.8rem;
+                box-shadow: 0 2px 6px rgba(50,60,80,.04);
+                border:1px solid #e4e4e4;">
+              <div class="scorecard-label" style="font-size:14px; color:#457; margin-bottom:2px;">
+                {card['label']}
+              </div>
+              <div class="scorecard-value" style="font-size:2.0rem; font-weight:600; color:#111; letter-spacing:0.01em;">
+                {card['value']}
+              </div>
+            </div>
+        """, unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
 # ⑥ バナー並び替え UI
