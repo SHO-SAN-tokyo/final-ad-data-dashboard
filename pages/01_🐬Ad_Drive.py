@@ -235,7 +235,8 @@ elif order == "CPAの低い順":
     df_banner_sorted = df_banner_sorted[df_banner_sorted["CPA"].notna()].sort_values("CPA")
 else:  # 広告番号順
     if "banner_number" in df_banner_sorted.columns:
-        # これだけでOK
+        df_banner_sorted = df_banner_sorted.copy()
+        df_banner_sorted["banner_number"] = pd.to_numeric(df_banner_sorted["banner_number"], errors="coerce")
         df_banner_sorted = df_banner_sorted.sort_values("banner_number", na_position="last")
 
 # 「ソートした後で」CloudStorageUrlのある上位100件のみ表示
