@@ -235,11 +235,16 @@ elif order == "CPAの低い順":
     df_banner_sorted = df_banner_sorted[df_banner_sorted["CPA"].notna()].sort_values("CPA")
 else:  # 広告番号順
     if "banner_number" in df_banner_sorted.columns:
-        # banner_number列を明示的に数値化してからソート
+        def zfill_for_sort(val):
+            try:
+                num = int(val)
+                return f"{num:02d}"
+            except:
+                return str(val)
         df_banner_sorted = df_banner_sorted.copy()
-        df_banner_sorted["banner_number_numeric"] = pd.to_numeric(df_banner_sorted["banner_number"], errors="coerce")
-        df_banner_sorted = df_banner_sorted.sort_values("banner_number_numeric", na_position="last")
-        df_banner_sorted = df_banner_sorted.drop(columns=["banner_number_numeric"])  # 不要なら一時列を削除
+        df_banner_sorted["_banner_number_for_sort"] = df_banner_sorted["banner_number"].apply(zfill_for_sort)
+        df_banner_sorted = df_banner_sorted.sort_values("_banner_number_for_sort")
+        df_banner_sorted = df_banner_sorted.drop(columns=["_banner_number_for_sort"])
 
 # 「ソートした後で」CloudStorageUrlのある上位100件のみ表示
 df_banner_disp = df_banner_sorted[df_banner_sorted["CloudStorageUrl"].notna()].head(100)
