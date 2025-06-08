@@ -233,7 +233,7 @@ if order == "CV数の多い順":
     df_banner_sorted = df_banner_sorted.sort_values("conv_banner", ascending=False)
 elif order == "CPAの低い順":
     df_banner_sorted = df_banner_sorted[df_banner_sorted["CPA"].notna()].sort_values("CPA")
-else:  # 広告番号順
+elif order == "広告番号順":
     if "banner_number" in df_banner_sorted.columns:
         # デバッグ: banner_numberの中身と型を確認
         st.write("▼ banner_numberのhead(20)")
@@ -245,6 +245,8 @@ else:  # 広告番号順
         df_banner_sorted = df_banner_sorted.copy()
         df_banner_sorted["banner_number"] = pd.to_numeric(df_banner_sorted["banner_number"], errors="coerce")
         df_banner_sorted = df_banner_sorted.sort_values("banner_number", na_position="last")
+    else:
+        st.warning("⚠️ banner_number列が存在しません。元の順序で表示します。")
 
 # 「ソートした後で」CloudStorageUrlのある上位100件のみ表示
 df_banner_disp = df_banner_sorted[df_banner_sorted["CloudStorageUrl"].notna()].head(100)
