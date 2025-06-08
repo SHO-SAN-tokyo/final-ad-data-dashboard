@@ -8,7 +8,7 @@ import html
 # ページ設定 & BigQuery 認証
 # ──────────────────────────────────────────────
 st.set_page_config(page_title="♦️ Ad Drive", layout="wide")
-st.title("🫧 Ad Drive")
+st.title("♦️ Ad Drive")
 
 cred = dict(st.secrets["connections"]["bigquery"])
 cred["private_key"] = cred["private_key"].replace("\\n", "\n")
