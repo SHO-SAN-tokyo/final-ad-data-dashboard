@@ -89,7 +89,7 @@ with col3:
     if sel_cat:
         filtered = filtered[filtered["メインカテゴリ"].isin(sel_cat)]
 with col4:
-    media_options = sorted(filtered["ServiceNameJA"].dropna().unique())
+    media_options = sorted(filtered["広告媒体"].dropna().unique())
     sel_media = st.multiselect("📡 媒体", media_options, placeholder="すべて")
     if sel_media:
         filtered = filtered[filtered["ServiceNameJA"].isin(sel_media)]
