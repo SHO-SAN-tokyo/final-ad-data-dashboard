@@ -84,10 +84,10 @@ with col2:
 # --- 2段目: カテゴリ・媒体・広告目的 ---
 col3, col4, col5 = st.columns(3)
 with col3:
-    cat_options = sorted(filtered["カテゴリ"].dropna().unique())
-    sel_cat = st.multiselect("📁 カテゴリ", cat_options, placeholder="すべて")
+    cat_options = sorted(filtered["メインカテゴリ"].dropna().unique())
+    sel_cat = st.multiselect("📁 メインカテゴリ", cat_options, placeholder="すべて")
     if sel_cat:
-        filtered = filtered[filtered["カテゴリ"].isin(sel_cat)]
+        filtered = filtered[filtered["メインカテゴリ"].isin(sel_cat)]
 with col4:
     media_options = sorted(filtered["ServiceNameJA"].dropna().unique())
     sel_media = st.multiselect("📡 媒体", media_options, placeholder="すべて")
@@ -118,8 +118,8 @@ def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
         cond &= df["client_name"].isin(sel_client)
     if "配信月" in df.columns and sel_month:
         cond &= df["配信月"].isin(sel_month)
-    if "カテゴリ" in df.columns and sel_cat:
-        cond &= df["カテゴリ"].isin(sel_cat)
+    if "メインカテゴリ" in df.columns and sel_cat:
+        cond &= df["メインカテゴリ"].isin(sel_cat)
     if "広告目的" in df.columns and sel_goal:
         cond &= df["広告目的"].isin(sel_goal)
     if "ServiceNameJA" in df.columns and sel_media:
@@ -156,7 +156,7 @@ else:
 st.markdown(
     f"📅 配信月：{delivery_range}　"
     f"👤 クライアント：{sel_client or 'すべて'}<br>"
-    f"📁 カテゴリ：{sel_cat or 'すべて'}　"
+    f"📁 メインカテゴリ：{sel_cat or 'すべて'}　"
     f"📡 媒体：{sel_media or 'すべて'}　"
     f"🎯 広告目的：{sel_goal or 'すべて'}<br>"
     f"📣 キャンペーン名：{sel_campaign or 'すべて'}",
