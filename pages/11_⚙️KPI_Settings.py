@@ -15,7 +15,7 @@ client = bigquery.Client(credentials=credentials, project=credentials.project_id
 
 # --- 定数 ---
 project_id = "careful-chess-406412"
-source_table = "SHOSAN_Ad_Tokyo.Final_Ad_Data"
+source_table = "SHOSAN_Ad_Tokyo.Final_Ad_Data_Last"
 target_table = "SHOSAN_Ad_Tokyo.Target_Indicators_Meta"
 
 # --- 広告データから「広告媒体」「メインカテゴリ」「サブカテゴリ」「広告目的」を取得 ---
