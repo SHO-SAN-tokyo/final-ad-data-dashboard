@@ -37,7 +37,7 @@ def load_clients():
     """
     return client.query(query).to_dataframe()
 
-# --- 登録済設定取得 ---
+# --- 登録済み設定取得 ---
 @st.cache_data(ttl=60)
 def load_client_settings():
     query = f"SELECT * FROM `{full_table}`"
@@ -46,7 +46,7 @@ def load_client_settings():
 clients_df = load_clients()
 settings_df = load_client_settings()
 
-# --- 未登録クライアント抽出 ---
+# --- 未登録クライアント取得 ---
 registered_clients = set(settings_df["client_name"]) if not settings_df.empty else set()
 unregistered_df = clients_df[~clients_df["client_name"].isin(registered_clients)]
 
@@ -61,7 +61,7 @@ else:
 
     generated_id = generate_client_id(prefix.strip()) if prefix else ""
     if prefix:
-        st.text_input("🔐 実際に保存されるclient_id", value=generated_id, disabled=True)
+        st.text_input("🔒 実際に保存されるclient_id", value=generated_id, disabled=True)
 
     building_count = st.text_input("🏠 棟数")
     business_content = st.text_input("💼 事業内容")
@@ -102,16 +102,47 @@ else:
         else:
             st.warning("⚠️ IDの先頭を入力してください")
 
-# --- 登録済クライアント一覧 ---
+# --- 登録済みクライアント確認テーブル ---
 st.markdown("---")
-st.markdown("### 📋 登録済クライアント一覧")
+st.markdown("### 🧾 登録済クライアント一覧（確認用）")
 
 if settings_df.empty:
     st.info("❓ まだ登録されたクライアントはありません")
 else:
-    link_df = settings_df[["client_name", "building_count", "buisiness_content", "focus_level", "client_id"]].copy()
-    link_df["リンクURL"] = link_df["client_id"].apply(
-        lambda cid: f"https://{st.secrets['app_domain']}/Ad_Drive?client_id={cid}"
+    st.dataframe(settings_df, use_container_width=True)
+
+# --- 編集機能付きエリア ---
+st.markdown("---")
+st.markdown("### 🛠 KPI Settings（編集＆保存）")
+
+if settings_df.empty:
+    st.info("❗ 編集できるクライアントデータがありません")
+else:
+    editable_df = st.data_editor(
+        settings_df.sort_values("client_name").reset_index(drop=True),
+        num_rows="dynamic",
+        use_container_width=True,
+        key="kpi_settings_editor"
     )
 
-    st.dataframe(link_df, use_container_width=True)
+    if st.button("💾 編集内容を保存"):
+        try:
+            with st.spinner("保存中..."):
+                job_config = bigquery.LoadJobConfig(
+                    write_disposition="WRITE_TRUNCATE",
+                    schema=[
+                        bigquery.SchemaField("client_name", "STRING"),
+                        bigquery.SchemaField("client_id", "STRING"),
+                        bigquery.SchemaField("building_count", "STRING"),
+                        bigquery.SchemaField("buisiness_content", "STRING"),
+                        bigquery.SchemaField("focus_level", "STRING"),
+                        bigquery.SchemaField("created_at", "TIMESTAMP"),
+                    ]
+                )
+                job = client.load_table_from_dataframe(editable_df, full_table, job_config=job_config)
+                job.result()
+                st.success("✅ 編集内容を保存しました！")
+                st.cache_data.clear()
+                settings_df = load_client_settings()
+        except Exception as e:
+            st.error(f"❌ 保存エラー: {e}")
