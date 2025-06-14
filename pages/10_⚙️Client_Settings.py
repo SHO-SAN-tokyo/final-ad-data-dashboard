@@ -53,16 +53,13 @@ if unregistered_df.empty:
     st.info("✅ 登録可能な新規クライアントはありません")
 else:
     selected_client = st.selectbox("👤 クライアント名を選択", unregistered_df["client_name"])
-    
-    client_id_prefix = st.text_input("🆔 クライアントIDの接頭辞を入力（例: livebest）")
-    
+    client_id_prefix = st.text_input("🆔 クライアントIDの接頭辞を入力 (例: livebest)")
+
     if "random_suffix" not in st.session_state:
         st.session_state["random_suffix"] = generate_random_suffix()
 
-    st.text_input("📋 末尾に追加する30桁ランダムID（コピーして使ってください）", 
-                  value=st.session_state["random_suffix"], disabled=True)
-
-    st.markdown("⬆️ `client_id` は「接頭辞 + 上の文字列」を結合したものになります。")
+    st.markdown("📋 下のランダム文字列をコピーして、接頭辞の末尾に貼り付けてください：")
+    st.code(st.session_state["random_suffix"], language="plaintext")
 
     building_count = st.text_input("🏠 棟数")
     business_content = st.text_input("💼 事業内容")
@@ -98,13 +95,11 @@ else:
                     job.result()
                     st.success(f"✅ {selected_client} を登録しました！")
                     st.cache_data.clear()
-                    settings_df = load_client_settings()
                     del st.session_state["random_suffix"]
             except Exception as e:
                 st.error(f"❌ 保存エラー: {e}")
         else:
-            st.warning("⚠️ 接頭辞を入力してください")
-
+            st.warning("⚠️ クライアントIDの接頭辞を入力してください")
 
 # --- クライアント情報の編集 ---
 st.markdown("---")
