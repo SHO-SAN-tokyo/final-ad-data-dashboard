@@ -130,7 +130,6 @@ if not settings_df.empty:
     selected_edit_client = st.selectbox("✏️ 編集するクライアントを選択", edit_names, key="selected_client_name")
     row = settings_df[settings_df["client_name"] == selected_edit_client].iloc[0]
 
-    # クライアント切り替え時に即反映させる
     st.session_state["edit_client_id"] = str(row["client_id"])
 
     new_client_id = st.text_input("🆔 クライアントID", value=st.session_state["edit_client_id"], key="edit_client_id_input")
@@ -169,6 +168,30 @@ if not settings_df.empty:
                 st.cache_data.clear()
         except Exception as e:
             st.error(f"❌ 保存エラー: {e}")
+
+    if st.button("🗑 このクライアント情報を削除"):
+        confirm = st.radio("⚠️ 本当に削除しますか？", ["キャンセル", "削除する"], horizontal=True, key="delete_confirm")
+        if confirm == "削除する":
+            settings_df = settings_df[settings_df["client_name"] != selected_edit_client]
+            try:
+                with st.spinner("削除中..."):
+                    job_config = bigquery.LoadJobConfig(
+                        write_disposition="WRITE_TRUNCATE",
+                        schema=[
+                            bigquery.SchemaField("client_name", "STRING"),
+                            bigquery.SchemaField("client_id", "STRING"),
+                            bigquery.SchemaField("building_count", "STRING"),
+                            bigquery.SchemaField("buisiness_content", "STRING"),
+                            bigquery.SchemaField("focus_level", "STRING"),
+                            bigquery.SchemaField("created_at", "TIMESTAMP"),
+                        ]
+                    )
+                    job = client.load_table_from_dataframe(settings_df, full_table, job_config=job_config)
+                    job.result()
+                    st.success(f"✅ {selected_edit_client} を削除しました！")
+                    st.cache_data.clear()
+            except Exception as e:
+                st.error(f"❌ 削除エラー: {e}")
 
 # --- クライアント別リンク一覧 ---
 st.markdown("---")
