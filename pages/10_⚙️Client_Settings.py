@@ -11,7 +11,7 @@ st.title("⚙️ クライアント設定")
 
 # --- BigQuery 認証 ---
 info = dict(st.secrets["connections"]["bigquery"])
-info["private_key"] = info["private_key"].replace("\\n", "\n")
+info["private_key"] = info["private_key"].replace("\n", "\n")
 client = bigquery.Client.from_service_account_info(info)
 
 # --- テーブル情報 ---
@@ -115,6 +115,7 @@ if not settings_df.empty:
     st.markdown(f"#### 📝 このクライアントを編集・削除：{selected_name}")
 
     updated_client_name = st.text_input("👤 クライアント名", value=row["client_name"], key="name")
+    updated_client_id = st.text_input("🆔 クライアントID", value=row["client_id"], key="cid")
     updated_building_count = st.text_input("🏠 棟数", value=row["building_count"], key="building")
     updated_business_content = st.text_input("💼 事業内容", value=row["buisiness_content"], key="biz")
     updated_focus_level = st.text_input("🚀 注力度", value=row["focus_level"], key="focus")
@@ -123,6 +124,7 @@ if not settings_df.empty:
     with col1:
         if st.button("この内容で上書き保存", key="save"):
             settings_df.at[edit_index, "client_name"] = updated_client_name
+            settings_df.at[edit_index, "client_id"] = updated_client_id
             settings_df.at[edit_index, "building_count"] = updated_building_count
             settings_df.at[edit_index, "buisiness_content"] = updated_business_content
             settings_df.at[edit_index, "focus_level"] = updated_focus_level
