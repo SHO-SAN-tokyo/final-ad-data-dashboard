@@ -121,7 +121,9 @@ if not settings_df.empty:
     new_client_id = st.text_input("🆔 クライアントID", value=st.session_state["edit_client_id"], key="edit_client_id_input")
 
     if st.button("🔄 ランダム再生成"):
-        regenerated_id = generate_client_id(selected_edit_client)
+        current = st.session_state["edit_client_id"]
+        prefix = current.split('_')[0] if '_' in current else current
+        regenerated_id = generate_client_id(prefix)
         st.session_state["edit_client_id"] = regenerated_id
 
     updated_building_count = st.text_input("🏠 棟数", value=row["building_count"], key="edit_building_count")
