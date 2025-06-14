@@ -59,7 +59,7 @@ else:
         st.session_state["random_suffix"] = generate_random_suffix()
 
     st.markdown("📋 下のランダム文字列をコピーして、接頭辞の末尾に貼り付けてください：")
-    st.code(st.session_state["random_suffix"], language="plaintext")
+    st.code(f"_{st.session_state['random_suffix']}", language="plaintext")
 
     building_count = st.text_input("🏠 棟数")
     business_content = st.text_input("💼 事業内容")
