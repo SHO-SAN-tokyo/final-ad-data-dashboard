@@ -54,16 +54,21 @@ if unregistered_df.empty:
 else:
     selected_client = st.selectbox("👤 クライアント名を選択", unregistered_df["client_name"])
     client_id_prefix = st.text_input("🆔 クライアントIDの接頭辞を入力 (例: livebest)")
+
+    suggested_suffix = generate_random_suffix()
+    st.info(f"💡 生成されたIDの例: `{client_id_prefix}_{suggested_suffix}`")
+
+    client_id_input = st.text_input("🔐 実際に使うクライアントIDを貼り付けてください（上記を参考に）")
+
     building_count = st.text_input("🏠 棟数")
     business_content = st.text_input("💼 事業内容")
     focus_level = st.text_input("🚀 注力度")
 
     if st.button("＋ クライアントを登録"):
-        if selected_client and client_id_prefix:
-            client_id = f"{client_id_prefix}_{generate_random_suffix()}"
+        if selected_client and client_id_input:
             new_row = pd.DataFrame([{
                 "client_name": selected_client,
-                "client_id": client_id,
+                "client_id": client_id_input,
                 "building_count": building_count,
                 "buisiness_content": business_content,
                 "focus_level": focus_level,
@@ -92,7 +97,7 @@ else:
             except Exception as e:
                 st.error(f"❌ 保存エラー: {e}")
         else:
-            st.warning("⚠️ クライアントIDの接頭辞を入力してください")
+            st.warning("⚠️ クライアントIDを入力してください（接頭辞＋アンダーバー＋乱数）")
 
 # --- クライアント情報の編集 ---
 st.markdown("---")
@@ -122,17 +127,6 @@ else:
                     updated_focus_level
                 ]
                 with st.spinner("保存中..."):
-                    job_config = bigquery.LoadJobConfig(
-                        write_disposition="WRITE_TRUNCATE",
-                        schema=[
-                            bigquery.SchemaField("client_name", "STRING"),
-                            bigquery.SchemaField("client_id", "STRING"),
-                            bigquery.SchemaField("building_count", "STRING"),
-                            bigquery.SchemaField("buisiness_content", "STRING"),
-                            bigquery.SchemaField("focus_level", "STRING"),
-                            bigquery.SchemaField("created_at", "TIMESTAMP"),
-                        ]
-                    )
                     job = client.load_table_from_dataframe(settings_df, full_table, job_config=job_config)
                     job.result()
                     st.success("✅ 保存が完了しました！")
@@ -146,17 +140,6 @@ else:
             try:
                 settings_df = settings_df[settings_df["client_name"] != selected_name]
                 with st.spinner("削除中..."):
-                    job_config = bigquery.LoadJobConfig(
-                        write_disposition="WRITE_TRUNCATE",
-                        schema=[
-                            bigquery.SchemaField("client_name", "STRING"),
-                            bigquery.SchemaField("client_id", "STRING"),
-                            bigquery.SchemaField("building_count", "STRING"),
-                            bigquery.SchemaField("buisiness_content", "STRING"),
-                            bigquery.SchemaField("focus_level", "STRING"),
-                            bigquery.SchemaField("created_at", "TIMESTAMP"),
-                        ]
-                    )
                     job = client.load_table_from_dataframe(settings_df, full_table, job_config=job_config)
                     job.result()
                     st.success("🗑 削除が完了しました")
@@ -164,7 +147,7 @@ else:
             except Exception as e:
                 st.error(f"❌ 削除エラー: {e}")
 
-# --- クライアント別リンク一覧（全件ずらっと表示） ---
+# --- クライアント別リンク一覧 ---
 st.markdown("---")
 st.markdown("### 🔗 クライアント別ページリンク（一覧表示）")
 
@@ -195,7 +178,7 @@ else:
         cols[3].write(row["focus_level"])
         cols[4].markdown(
             f"""
-            <a href=\"{row['リンクURL']}\" target=\"_blank\" style=\"
+            <a href="{row['リンクURL']}" target="_blank" style="
                 text-decoration: none;
                 display: inline-block;
                 padding: 0.3em 0.8em;
@@ -203,7 +186,7 @@ else:
                 background-color: #4CAF50;
                 color: white;
                 font-weight: bold;
-            \">
+            ">
                 ▶ ページを開く
             </a>
             """,
