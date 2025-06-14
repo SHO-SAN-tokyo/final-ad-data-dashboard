@@ -11,7 +11,7 @@ st.title("⚙️ クライアント設定")
 
 # --- BigQuery 認証 ---
 info = dict(st.secrets["connections"]["bigquery"])
-info["private_key"] = info["private_key"].replace("\\n", "\n")
+info["private_key"] = info["private_key"].replace("\n", "\n")
 client = bigquery.Client.from_service_account_info(info)
 
 # --- テーブル情報 ---
@@ -97,7 +97,7 @@ else:
         else:
             st.warning("⚠️ クライアントIDを入力してください")
 
-# --- 既存登録クライアント一覧（確認のみ） ---
+# --- 登録済みクライアント一覧（確認のみ） ---
 st.markdown("---")
 st.markdown("### 📋 登録済みクライアント一覧（確認用）")
 
@@ -115,12 +115,14 @@ if not settings_df.empty:
     selected_edit_client = st.selectbox("✏️ 編集するクライアントを選択", edit_names)
     row = settings_df[settings_df["client_name"] == selected_edit_client].iloc[0]
 
-    # 入力欄
-    new_client_id = st.text_input("🆔 クライアントID", value=row["client_id"], key="edit_client_id")
-    if st.button("🔄 ランダム再生成", key="regenerate_id_btn"):
+    if "edit_client_id" not in st.session_state:
+        st.session_state["edit_client_id"] = row["client_id"]
+
+    new_client_id = st.text_input("🆔 クライアントID", value=st.session_state["edit_client_id"], key="edit_client_id_input")
+
+    if st.button("🔄 ランダム再生成"):
         regenerated_id = generate_client_id(selected_edit_client)
         st.session_state["edit_client_id"] = regenerated_id
-        new_client_id = regenerated_id
 
     updated_building_count = st.text_input("🏠 棟数", value=row["building_count"], key="edit_building_count")
     updated_business_content = st.text_input("💼 事業内容", value=row["buisiness_content"], key="edit_business_content")
@@ -129,7 +131,7 @@ if not settings_df.empty:
     if st.button("💾 編集内容を保存"):
         settings_df.loc[settings_df["client_name"] == selected_edit_client, [
             "client_id", "building_count", "buisiness_content", "focus_level"
-        ]] = [new_client_id, updated_building_count, updated_business_content, updated_focus_level]
+        ]] = [st.session_state["edit_client_id"], updated_building_count, updated_business_content, updated_focus_level]
 
         try:
             with st.spinner("保存中..."):
