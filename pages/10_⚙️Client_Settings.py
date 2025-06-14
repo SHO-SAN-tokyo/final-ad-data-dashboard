@@ -108,18 +108,20 @@ st.markdown("---")
 st.markdown("### 🛠 クライアント情報の編集（KPI Settings風）")
 
 if not settings_df.empty:
-    edit_index = st.number_input("編集する行番号を選択", min_value=0, max_value=len(settings_df)-1, step=1)
-    row = settings_df.iloc[edit_index]
-    st.markdown(f"#### 📝 この行を編集・削除（No.{edit_index + 1}）")
+    selected_name = st.selectbox("編集するクライアント名を選択", options=settings_df["client_name"].unique())
+    edit_index = settings_df[settings_df["client_name"] == selected_name].index[0]
+    row = settings_df.loc[edit_index]
 
-    updated_client_name = st.text_input("👤 クライアント名", value=row["client_name"])
-    updated_building_count = st.text_input("🏠 棟数", value=row["building_count"])
-    updated_business_content = st.text_input("💼 事業内容", value=row["buisiness_content"])
-    updated_focus_level = st.text_input("🚀 注力度", value=row["focus_level"])
+    st.markdown(f"#### 📝 このクライアントを編集・削除：{selected_name}")
+
+    updated_client_name = st.text_input("👤 クライアント名", value=row["client_name"], key="name")
+    updated_building_count = st.text_input("🏠 棟数", value=row["building_count"], key="building")
+    updated_business_content = st.text_input("💼 事業内容", value=row["buisiness_content"], key="biz")
+    updated_focus_level = st.text_input("🚀 注力度", value=row["focus_level"], key="focus")
 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("この内容で上書き保存"):
+        if st.button("この内容で上書き保存", key="save"):
             settings_df.at[edit_index, "client_name"] = updated_client_name
             settings_df.at[edit_index, "building_count"] = updated_building_count
             settings_df.at[edit_index, "buisiness_content"] = updated_business_content
@@ -147,7 +149,7 @@ if not settings_df.empty:
                 st.error(f"❌ 保存エラー: {e}")
 
     with col2:
-        if st.button("この行を削除する"):
+        if st.button("この行を削除する", key="delete"):
             settings_df = settings_df.drop(index=edit_index).reset_index(drop=True)
             try:
                 with st.spinner("削除中..."):
