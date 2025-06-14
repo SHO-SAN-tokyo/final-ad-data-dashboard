@@ -199,11 +199,18 @@ else:
 
     st.divider()
 
-    for idx, row in link_df.iterrows():
-        cols = st.columns([3, 2.5, 1.5, 1.5, 1.5])
-        cols[0].write(row["client_name"])
-        cols[1].markdown(
-            f"""
+row_height = "100px"  # 必要に応じて調整
+
+for idx, row in link_df.iterrows():
+    cols = st.columns([2, 1, 2, 1, 2])
+
+    cols[0].markdown(
+        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
+            {row['client_name']}
+        </div>""", unsafe_allow_html=True)
+
+    cols[1].markdown(
+        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
             <a href="{row['リンクURL']}" target="_blank" style="
                 text-decoration: none;
                 display: inline-block;
@@ -212,12 +219,20 @@ else:
                 background-color: #4CAF50;
                 color: white;
                 font-weight: bold;
-            ">
-                ▶ ページを開く
-            </a>
-            """,
-            unsafe_allow_html=True
-        )
-        cols[2].write(row["focus_level"])
-        cols[3].write(row["buisiness_content"])
-        cols[4].write(row["building_count"])
+            ">▶ ページを開く</a>
+        </div>""", unsafe_allow_html=True)
+
+    cols[2].markdown(
+        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
+            {row['focus_level']}
+        </div>""", unsafe_allow_html=True)
+
+    cols[3].markdown(
+        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
+            {row['buisiness_content']}
+        </div>""", unsafe_allow_html=True)
+
+    cols[4].markdown(
+        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
+            {row['building_count']}
+        </div>""", unsafe_allow_html=True)
