@@ -129,6 +129,17 @@ else:
                     updated_focus_level
                 ]
                 with st.spinner("保存中..."):
+                    job_config = bigquery.LoadJobConfig(
+                        write_disposition="WRITE_TRUNCATE",
+                        schema=[
+                            bigquery.SchemaField("client_name", "STRING"),
+                            bigquery.SchemaField("client_id", "STRING"),
+                            bigquery.SchemaField("building_count", "STRING"),
+                            bigquery.SchemaField("buisiness_content", "STRING"),
+                            bigquery.SchemaField("focus_level", "STRING"),
+                            bigquery.SchemaField("created_at", "TIMESTAMP"),
+                        ]
+                    )
                     job = client.load_table_from_dataframe(settings_df, full_table, job_config=job_config)
                     job.result()
                     st.success("✅ 保存が完了しました！")
@@ -142,12 +153,24 @@ else:
             try:
                 settings_df = settings_df[settings_df["client_name"] != selected_name]
                 with st.spinner("削除中..."):
+                    job_config = bigquery.LoadJobConfig(
+                        write_disposition="WRITE_TRUNCATE",
+                        schema=[
+                            bigquery.SchemaField("client_name", "STRING"),
+                            bigquery.SchemaField("client_id", "STRING"),
+                            bigquery.SchemaField("building_count", "STRING"),
+                            bigquery.SchemaField("buisiness_content", "STRING"),
+                            bigquery.SchemaField("focus_level", "STRING"),
+                            bigquery.SchemaField("created_at", "TIMESTAMP"),
+                        ]
+                    )
                     job = client.load_table_from_dataframe(settings_df, full_table, job_config=job_config)
                     job.result()
                     st.success("🗑 削除が完了しました")
                     st.cache_data.clear()
             except Exception as e:
                 st.error(f"❌ 削除エラー: {e}")
+
 
 # --- クライアント別リンク一覧 ---
 st.markdown("---")
