@@ -53,22 +53,27 @@ if unregistered_df.empty:
     st.info("✅ 登録可能な新規クライアントはありません")
 else:
     selected_client = st.selectbox("👤 クライアント名を選択", unregistered_df["client_name"])
-    client_id_prefix = st.text_input("🆔 クライアントIDの接頭辞を入力 (例: livebest)")
+    
+    client_id_prefix = st.text_input("🆔 クライアントIDの接頭辞を入力（例: livebest）")
+    
+    if "random_suffix" not in st.session_state:
+        st.session_state["random_suffix"] = generate_random_suffix()
 
-    suggested_suffix = generate_random_suffix()
-    st.info(f"💡 生成されたIDの例: `{client_id_prefix}_{suggested_suffix}`")
+    st.text_input("📋 末尾に追加する30桁ランダムID（コピーして使ってください）", 
+                  value=st.session_state["random_suffix"], disabled=True)
 
-    client_id_input = st.text_input("🔐 実際に使うクライアントIDを貼り付けてください（上記を参考に）")
+    st.markdown("⬆️ `client_id` は「接頭辞 + 上の文字列」を結合したものになります。")
 
     building_count = st.text_input("🏠 棟数")
     business_content = st.text_input("💼 事業内容")
     focus_level = st.text_input("🚀 注力度")
 
     if st.button("＋ クライアントを登録"):
-        if selected_client and client_id_input:
+        if selected_client and client_id_prefix:
+            client_id = f"{client_id_prefix}_{st.session_state['random_suffix']}"
             new_row = pd.DataFrame([{
                 "client_name": selected_client,
-                "client_id": client_id_input,
+                "client_id": client_id,
                 "building_count": building_count,
                 "buisiness_content": business_content,
                 "focus_level": focus_level,
@@ -94,10 +99,12 @@ else:
                     st.success(f"✅ {selected_client} を登録しました！")
                     st.cache_data.clear()
                     settings_df = load_client_settings()
+                    del st.session_state["random_suffix"]
             except Exception as e:
                 st.error(f"❌ 保存エラー: {e}")
         else:
-            st.warning("⚠️ クライアントIDを入力してください（接頭辞＋アンダーバー＋乱数）")
+            st.warning("⚠️ 接頭辞を入力してください")
+
 
 # --- クライアント情報の編集 ---
 st.markdown("---")
