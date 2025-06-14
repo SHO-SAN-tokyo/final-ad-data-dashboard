@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
+import secrets
+import string
 from google.cloud import bigquery
 from datetime import datetime
-import random
-import string
 
 # --- ページ設定 ---
 st.set_page_config(page_title="クライアント設定", layout="wide")
@@ -37,9 +37,6 @@ def load_client_settings():
     query = f"SELECT * FROM `{full_table}`"
     return client.query(query).to_dataframe()
 
-def generate_random_suffix(length=30):
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
-
 clients_df = load_clients()
 settings_df = load_client_settings()
 
@@ -47,20 +44,26 @@ settings_df = load_client_settings()
 registered_clients = set(settings_df["client_name"]) if not settings_df.empty else set()
 unregistered_df = clients_df[~clients_df["client_name"].isin(registered_clients)]
 
-# --- 新規登録 ---
+# --- クライアント登録エリア ---
 st.markdown("### ➕ 新しいクライアントを登録")
+
 if unregistered_df.empty:
     st.info("✅ 登録可能な新規クライアントはありません")
 else:
     selected_client = st.selectbox("👤 クライアント名を選択", unregistered_df["client_name"])
-    client_id_prefix = st.text_input("🆔 クライアントIDの接頭辞を入力 (例: livebest)")
+    prefix = st.text_input("🆔 クライアントIDのプレフィックスを入力")
+    if "random_suffix" not in st.session_state:
+        st.session_state["random_suffix"] = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(30))
+    suffix = st.session_state["random_suffix"]
+    st.text_input("🔐 ランダムID部分（自動生成）", value=f"_{suffix}", disabled=True)
+    client_id = f"{prefix}_{suffix}" if prefix else None
+
     building_count = st.text_input("🏠 棟数")
     business_content = st.text_input("💼 事業内容")
     focus_level = st.text_input("🚀 注力度")
 
     if st.button("＋ クライアントを登録"):
-        if selected_client and client_id_prefix:
-            client_id = f"{client_id_prefix}_{generate_random_suffix()}"
+        if selected_client and prefix:
             new_row = pd.DataFrame([{
                 "client_name": selected_client,
                 "client_id": client_id,
@@ -89,38 +92,35 @@ else:
                     st.success(f"✅ {selected_client} を登録しました！")
                     st.cache_data.clear()
                     settings_df = load_client_settings()
-            except Exception as e:
-                st.error(f"❌ 保存エラー: {e}")
+                    del st.session_state["random_suffix"]
         else:
-            st.warning("⚠️ クライアントIDの接頭辞を入力してください")
+            st.warning("⚠️ クライアントIDのプレフィックスを入力してください")
 
-# --- クライアント情報の編集 ---
+# --- 既存登録クライアント一覧・編集エリア ---
 st.markdown("---")
-st.markdown("### 📝 既存クライアントの編集")
+st.markdown("### 📝 既存クライアント情報の編集")
 
 if settings_df.empty:
     st.info("❗まだ登録されたクライアントはありません")
 else:
-    selected_name = st.selectbox("👤 編集するクライアントを選択", settings_df["client_name"])
-    row = settings_df[settings_df["client_name"] == selected_name].iloc[0]
+    selected_client_name = st.selectbox("👤 編集するクライアントを選択", settings_df["client_name"].unique())
+    row = settings_df[settings_df["client_name"] == selected_client_name].iloc[0]
 
-    with st.form("edit_form"):
-        updated_client_id = st.text_input("🆔 クライアントID", value=row["client_id"])
-        updated_building_count = st.text_input("🏠 棟数", value=row["building_count"])
-        updated_business_content = st.text_input("💼 事業内容", value=row["buisiness_content"])
-        updated_focus_level = st.text_input("🚀 注力度", value=row["focus_level"])
-        submitted = st.form_submit_button("💾 保存")
+    updated_client_id = st.text_input("🆔 クライアントID", value=row["client_id"])
+    updated_building_count = st.text_input("🏠 棟数", value=row["building_count"])
+    updated_business_content = st.text_input("💼 事業内容", value=row["buisiness_content"])
+    updated_focus_level = st.text_input("🚀 注力度", value=row["focus_level"])
 
-        if submitted:
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("💾 このクライアントを保存"):
+            updated_df = settings_df.copy()
+            updated_df.loc[updated_df["client_name"] == selected_client_name, [
+                "client_id", "building_count", "buisiness_content", "focus_level"
+            ]] = [
+                updated_client_id, updated_building_count, updated_business_content, updated_focus_level
+            ]
             try:
-                settings_df.loc[settings_df["client_name"] == selected_name, [
-                    "client_id", "building_count", "buisiness_content", "focus_level"
-                ]] = [
-                    updated_client_id,
-                    updated_building_count,
-                    updated_business_content,
-                    updated_focus_level
-                ]
                 with st.spinner("保存中..."):
                     job_config = bigquery.LoadJobConfig(
                         write_disposition="WRITE_TRUNCATE",
@@ -133,18 +133,17 @@ else:
                             bigquery.SchemaField("created_at", "TIMESTAMP"),
                         ]
                     )
-                    job = client.load_table_from_dataframe(settings_df, full_table, job_config=job_config)
+                    job = client.load_table_from_dataframe(updated_df, full_table, job_config=job_config)
                     job.result()
-                    st.success("✅ 保存が完了しました！")
+                    st.success("✅ 保存しました")
                     st.cache_data.clear()
-                    settings_df = load_client_settings()
             except Exception as e:
                 st.error(f"❌ 保存エラー: {e}")
 
-    with st.expander("🗑 このクライアント情報を削除"):
-        if st.button("❌ クライアントを削除"):
+    with col2:
+        if st.button("🗑️ このクライアントを削除"):
+            updated_df = settings_df[settings_df["client_name"] != selected_client_name]
             try:
-                settings_df = settings_df[settings_df["client_name"] != selected_name]
                 with st.spinner("削除中..."):
                     job_config = bigquery.LoadJobConfig(
                         write_disposition="WRITE_TRUNCATE",
@@ -157,9 +156,9 @@ else:
                             bigquery.SchemaField("created_at", "TIMESTAMP"),
                         ]
                     )
-                    job = client.load_table_from_dataframe(settings_df, full_table, job_config=job_config)
+                    job = client.load_table_from_dataframe(updated_df, full_table, job_config=job_config)
                     job.result()
-                    st.success("🗑 削除が完了しました")
+                    st.success("🗑️ 削除しました")
                     st.cache_data.clear()
             except Exception as e:
                 st.error(f"❌ 削除エラー: {e}")
