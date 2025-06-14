@@ -189,7 +189,7 @@ else:
 
     st.divider()
 
-    header_cols = st.columns([2.5, 2.5, 2, 1.5, 1.5])
+    header_cols = st.columns([3, 2.5, 1.5, 1.5, 1.5])
     header_cols[0].markdown("**クライアント名**")
     header_cols[1].markdown("**リンク**")
     header_cols[2].markdown("**注力度**")
@@ -200,7 +200,7 @@ else:
     st.divider()
 
     for idx, row in link_df.iterrows():
-        cols = st.columns([2.5, 2.5, 2, 1.5, 1.5])
+        cols = st.columns([3, 2.5, 1.5, 1.5, 1.5])
         cols[0].write(row["client_name"])
         cols[1].markdown(
             f"""
