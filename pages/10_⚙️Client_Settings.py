@@ -35,10 +35,15 @@ def load_clients():
 @st.cache_data(ttl=60)
 def load_client_settings():
     query = f"SELECT * FROM `{full_table}`"
-    return client.query(query).to_dataframe()
+    df = client.query(query).to_dataframe()
+    df["client_id"] = df["client_id"].astype(str)  # 文字列化
+    return df
 
 # --- ランダムなclient_id生成 ---
 def generate_client_id(prefix: str) -> str:
+    # 数字始まりを防止（英字強制）
+    if not prefix[0].isalpha():
+        prefix = "id_" + prefix
     rand_str = ''.join(random.choices(string.ascii_letters + string.digits, k=30))
     return f"{prefix}_{rand_str}"
 
@@ -127,7 +132,7 @@ if not settings_df.empty:
     row = settings_df[settings_df["client_name"] == selected_edit_client].iloc[0]
 
     if "edit_client_id" not in st.session_state:
-        st.session_state["edit_client_id"] = row["client_id"]
+        st.session_state["edit_client_id"] = str(row["client_id"])
 
     new_client_id = st.text_input("🆔 クライアントID", value=st.session_state["edit_client_id"], key="edit_client_id_input")
 
