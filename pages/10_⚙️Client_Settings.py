@@ -105,36 +105,67 @@ else:
 
 # --- 編集エリア（KPI Settings風） ---
 st.markdown("---")
-st.markdown("### 🛠 クライアント設定の編集（KPI Settings風）")
+st.markdown("### 🛠 クライアント情報の編集（KPI Settings風）")
 
-if settings_df.empty:
-    st.info("❗編集できるクライアント情報がありません")
-else:
-    editable_df = st.data_editor(
-        settings_df.sort_values("client_name"),
-        num_rows="dynamic",
-        use_container_width=True,
-        key="editable_client_settings"
-    )
+if not settings_df.empty:
+    edit_index = st.number_input("編集する行番号を選択", min_value=0, max_value=len(settings_df)-1, step=1)
+    row = settings_df.iloc[edit_index]
+    st.markdown(f"#### 📝 この行を編集・削除（No.{edit_index + 1}）")
 
-    if st.button("💾 編集内容を保存"):
-        try:
-            with st.spinner("保存中..."):
-                job_config = bigquery.LoadJobConfig(
-                    write_disposition="WRITE_TRUNCATE",
-                    schema=[
-                        bigquery.SchemaField("client_name", "STRING"),
-                        bigquery.SchemaField("client_id", "STRING"),
-                        bigquery.SchemaField("building_count", "STRING"),
-                        bigquery.SchemaField("buisiness_content", "STRING"),
-                        bigquery.SchemaField("focus_level", "STRING"),
-                        bigquery.SchemaField("created_at", "TIMESTAMP"),
-                    ]
-                )
-                job = client.load_table_from_dataframe(editable_df, full_table, job_config=job_config)
-                job.result()
-                st.success("✅ 編集内容を保存しました！")
-                st.cache_data.clear()
-                settings_df = load_client_settings()
-        except Exception as e:
-            st.error(f"❌ 保存エラー: {e}")
+    updated_client_name = st.text_input("👤 クライアント名", value=row["client_name"])
+    updated_building_count = st.text_input("🏠 棟数", value=row["building_count"])
+    updated_business_content = st.text_input("💼 事業内容", value=row["buisiness_content"])
+    updated_focus_level = st.text_input("🚀 注力度", value=row["focus_level"])
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("この内容で上書き保存"):
+            settings_df.at[edit_index, "client_name"] = updated_client_name
+            settings_df.at[edit_index, "building_count"] = updated_building_count
+            settings_df.at[edit_index, "buisiness_content"] = updated_business_content
+            settings_df.at[edit_index, "focus_level"] = updated_focus_level
+
+            try:
+                with st.spinner("保存中..."):
+                    job_config = bigquery.LoadJobConfig(
+                        write_disposition="WRITE_TRUNCATE",
+                        schema=[
+                            bigquery.SchemaField("client_name", "STRING"),
+                            bigquery.SchemaField("client_id", "STRING"),
+                            bigquery.SchemaField("building_count", "STRING"),
+                            bigquery.SchemaField("buisiness_content", "STRING"),
+                            bigquery.SchemaField("focus_level", "STRING"),
+                            bigquery.SchemaField("created_at", "TIMESTAMP"),
+                        ]
+                    )
+                    job = client.load_table_from_dataframe(settings_df, full_table, job_config=job_config)
+                    job.result()
+                    st.success("✅ 上書き保存が完了しました")
+                    st.cache_data.clear()
+                    settings_df = load_client_settings()
+            except Exception as e:
+                st.error(f"❌ 保存エラー: {e}")
+
+    with col2:
+        if st.button("この行を削除する"):
+            settings_df = settings_df.drop(index=edit_index).reset_index(drop=True)
+            try:
+                with st.spinner("削除中..."):
+                    job_config = bigquery.LoadJobConfig(
+                        write_disposition="WRITE_TRUNCATE",
+                        schema=[
+                            bigquery.SchemaField("client_name", "STRING"),
+                            bigquery.SchemaField("client_id", "STRING"),
+                            bigquery.SchemaField("building_count", "STRING"),
+                            bigquery.SchemaField("buisiness_content", "STRING"),
+                            bigquery.SchemaField("focus_level", "STRING"),
+                            bigquery.SchemaField("created_at", "TIMESTAMP"),
+                        ]
+                    )
+                    job = client.load_table_from_dataframe(settings_df, full_table, job_config=job_config)
+                    job.result()
+                    st.success("✅ 削除が完了しました")
+                    st.cache_data.clear()
+                    settings_df = load_client_settings()
+            except Exception as e:
+                st.error(f"❌ 削除エラー: {e}")
