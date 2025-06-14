@@ -202,10 +202,7 @@ else:
     for idx, row in link_df.iterrows():
         cols = st.columns([2, 1, 2, 1, 2])
         cols[0].write(row["client_name"])
-        cols[1].write(row["building_count"])
-        cols[2].write(row["buisiness_content"])
-        cols[3].write(row["focus_level"])
-        cols[4].markdown(
+        cols[1].markdown(
             f"""
             <a href="{row['リンクURL']}" target="_blank" style="
                 text-decoration: none;
@@ -221,3 +218,6 @@ else:
             """,
             unsafe_allow_html=True
         )
+        cols[2].write(row["focus_level"])
+        cols[3].write(row["buisiness_content"])
+        cols[4].write(row["building_count"])
