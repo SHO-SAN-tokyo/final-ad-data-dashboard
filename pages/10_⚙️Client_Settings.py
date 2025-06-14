@@ -53,7 +53,7 @@ if unregistered_df.empty:
     st.info("✅ 登録可能な新規クライアントはありません")
 else:
     selected_client = st.selectbox("👤 クライアント名を選択", unregistered_df["client_name"])
-    client_id_prefix = st.text_input("🆔 クライアントIDの接頭辞を入力 (例: livebest)")
+    client_id_prefix = st.text_input("🆔 クライアントIDを入力 (クライアントID完成例: livebest_ランダム文字列)")
 
     if "random_suffix" not in st.session_state:
         st.session_state["random_suffix"] = generate_random_suffix()
