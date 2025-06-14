@@ -41,9 +41,8 @@ def load_client_settings():
 
 # --- ランダムなclient_id生成 ---
 def generate_client_id(prefix: str) -> str:
-    # 数字始まりを防止（英字強制）
-    if not prefix[0].isalpha():
-        prefix = "id_" + prefix
+    if not prefix or not prefix[0].isalpha():
+        prefix = "id"
     rand_str = ''.join(random.choices(string.ascii_letters + string.digits, k=30))
     return f"{prefix}_{rand_str}"
 
@@ -128,11 +127,11 @@ st.markdown("### 🛠 クライアント情報の編集")
 
 if not settings_df.empty:
     edit_names = settings_df["client_name"].sort_values().tolist()
-    selected_edit_client = st.selectbox("✏️ 編集するクライアントを選択", edit_names)
+    selected_edit_client = st.selectbox("✏️ 編集するクライアントを選択", edit_names, key="selected_client_name")
     row = settings_df[settings_df["client_name"] == selected_edit_client].iloc[0]
 
-    if "edit_client_id" not in st.session_state:
-        st.session_state["edit_client_id"] = str(row["client_id"])
+    # クライアント切り替え時に即反映させる
+    st.session_state["edit_client_id"] = str(row["client_id"])
 
     new_client_id = st.text_input("🆔 クライアントID", value=st.session_state["edit_client_id"], key="edit_client_id_input")
 
