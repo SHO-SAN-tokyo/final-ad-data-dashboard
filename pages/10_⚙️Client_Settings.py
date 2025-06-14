@@ -20,7 +20,7 @@ dataset = "SHOSAN_Ad_Tokyo"
 table = "ClientSettings"
 full_table = f"{project_id}.{dataset}.{table}"
 
-# --- クライアント一覧取得 ---
+# --- データ取得 ---
 @st.cache_data(ttl=60)
 def load_clients():
     query = f"""
@@ -31,7 +31,6 @@ def load_clients():
     """
     return client.query(query).to_dataframe()
 
-# --- 登録済み設定取得 ---
 @st.cache_data(ttl=60)
 def load_client_settings():
     query = f"SELECT * FROM `{full_table}`"
@@ -40,30 +39,32 @@ def load_client_settings():
 clients_df = load_clients()
 settings_df = load_client_settings()
 
-# --- 未登録クライアント取得 ---
+# --- 新規登録 ---
+st.markdown("### ➕ 新しいクライアントを登録")
 registered_clients = set(settings_df["client_name"]) if not settings_df.empty else set()
 unregistered_df = clients_df[~clients_df["client_name"].isin(registered_clients)]
-
-# --- クライアント登録エリア ---
-st.markdown("### ➕ 新しいクライアントを登録")
 
 if unregistered_df.empty:
     st.info("✅ 登録可能な新規クライアントはありません")
 else:
     selected_client = st.selectbox("👤 クライアント名を選択", unregistered_df["client_name"])
-    prefix = st.text_input("🆔 クライアントIDのプレフィックスを入力")
-    if "random_suffix" not in st.session_state:
-        st.session_state["random_suffix"] = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(30))
-    suffix = st.session_state["random_suffix"]
-    st.text_input("🔐 ランダムID部分（自動生成）", value=f"_{suffix}", disabled=True)
-    client_id = f"{prefix}_{suffix}" if prefix else None
+    prefix = st.text_input("🆔 クライアントIDのプレフィックスを入力（例：livebest）")
+
+    if prefix:
+        if "random_suffix" not in st.session_state:
+            st.session_state["random_suffix"] = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(30))
+        suffix = st.session_state["random_suffix"]
+        client_id = f"{prefix}_{suffix}"
+        st.text_input("🔐 自動生成されたクライアントID", value=client_id, disabled=True)
+    else:
+        client_id = ""
 
     building_count = st.text_input("🏠 棟数")
     business_content = st.text_input("💼 事業内容")
     focus_level = st.text_input("🚀 注力度")
 
     if st.button("＋ クライアントを登録"):
-        if selected_client and prefix:
+        if selected_client and client_id:
             new_row = pd.DataFrame([{
                 "client_name": selected_client,
                 "client_id": client_id,
@@ -91,17 +92,18 @@ else:
                     job.result()
                     st.success(f"✅ {selected_client} を登録しました！")
                     st.cache_data.clear()
-                    settings_df = load_client_settings()
                     del st.session_state["random_suffix"]
+            except Exception as e:
+                st.error(f"❌ 保存エラー: {e}")
         else:
-            st.warning("⚠️ クライアントIDのプレフィックスを入力してください")
+            st.warning("⚠️ プレフィックスを入力してください")
 
-# --- 既存登録クライアント一覧・編集エリア ---
+# --- 編集エリア ---
 st.markdown("---")
-st.markdown("### 📝 既存クライアント情報の編集")
+st.markdown("### 📝 クライアント情報を編集・削除")
 
 if settings_df.empty:
-    st.info("❗まだ登録されたクライアントはありません")
+    st.info("❗ 登録されたクライアントがありません")
 else:
     selected_client_name = st.selectbox("👤 編集するクライアントを選択", settings_df["client_name"].unique())
     row = settings_df[settings_df["client_name"] == selected_client_name].iloc[0]
@@ -111,7 +113,7 @@ else:
     updated_business_content = st.text_input("💼 事業内容", value=row["buisiness_content"])
     updated_focus_level = st.text_input("🚀 注力度", value=row["focus_level"])
 
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns(2)
     with col1:
         if st.button("💾 このクライアントを保存"):
             updated_df = settings_df.copy()
@@ -163,12 +165,12 @@ else:
             except Exception as e:
                 st.error(f"❌ 削除エラー: {e}")
 
-# --- クライアント別リンク一覧（全件ずらっと表示） ---
+# --- リンク一覧 ---
 st.markdown("---")
 st.markdown("### 🔗 クライアント別ページリンク（一覧表示）")
 
 if settings_df.empty:
-    st.info("❗登録されたクライアントがありません")
+    st.info("❗ 登録されたクライアントがありません")
 else:
     link_df = settings_df[["client_name", "building_count", "buisiness_content", "focus_level", "client_id"]].copy()
     link_df["リンクURL"] = link_df["client_id"].apply(
@@ -186,7 +188,7 @@ else:
 
     st.divider()
 
-    for idx, row in link_df.iterrows():
+    for _, row in link_df.iterrows():
         cols = st.columns([2, 1, 2, 1, 2])
         cols[0].write(row["client_name"])
         cols[1].write(row["building_count"])
