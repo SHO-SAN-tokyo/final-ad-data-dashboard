@@ -11,7 +11,7 @@ st.title("⚙️ クライアント設定")
 
 # --- BigQuery 認証 ---
 info = dict(st.secrets["connections"]["bigquery"])
-info["private_key"] = info["private_key"].replace("\n", "\n")
+info["private_key"] = info["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info)
 
 # --- テーブル情報 ---
@@ -36,10 +36,10 @@ def load_clients():
 def load_client_settings():
     query = f"SELECT * FROM `{full_table}`"
     df = client.query(query).to_dataframe()
-    df["client_id"] = df["client_id"].astype(str)  # 文字列化
+    df["client_id"] = df["client_id"].astype(str)
     return df
 
-# --- ランダムなclient_id生成 ---
+# --- ランダムな client_id 生成 ---
 def generate_client_id(prefix: str) -> str:
     if not prefix or not prefix[0].isalpha():
         prefix = "id"
@@ -53,22 +53,18 @@ settings_df = load_client_settings()
 registered_clients = set(settings_df["client_name"]) if not settings_df.empty else set()
 unregistered_df = clients_df[~clients_df["client_name"].isin(registered_clients)]
 
-# --- クライアント登録エリア ---
+# === 新規登録 ===
 st.markdown("### ➕ 新しいクライアントを登録")
-
 if unregistered_df.empty:
     st.info("✅ 登録可能な新規クライアントはありません")
 else:
     selected_client = st.selectbox("👤 クライアント名を選択", unregistered_df["client_name"])
-
     if "register_client_id" not in st.session_state:
         st.session_state["register_client_id"] = generate_client_id(selected_client)
-
     input_id = st.text_input("🆔 クライアント固有IDを入力", value=st.session_state["register_client_id"], key="register_id")
 
     if st.button("🔄 ランダム再生成（登録用）"):
-        current = st.session_state["register_client_id"]
-        prefix = current.split('_')[0] if '_' in current else current
+        prefix = input_id.split("_")[0] if "_" in input_id else input_id
         regenerated_id = generate_client_id(prefix)
         st.session_state["register_client_id"] = regenerated_id
         input_id = regenerated_id
@@ -88,7 +84,6 @@ else:
                 "created_at": datetime.now()
             }])
             updated_df = pd.concat([settings_df, new_row], ignore_index=True)
-
             try:
                 with st.spinner("保存中..."):
                     job_config = bigquery.LoadJobConfig(
@@ -106,39 +101,32 @@ else:
                     job.result()
                     st.success(f"✅ {selected_client} を登録しました！")
                     st.cache_data.clear()
-                    settings_df = load_client_settings()
+                    st.experimental_rerun()
             except Exception as e:
                 st.error(f"❌ 保存エラー: {e}")
-        else:
-            st.warning("⚠️ クライアントIDを入力してください")
 
-# --- 登録済みクライアント一覧（確認のみ） ---
+# === 登録済み確認用 ===
 st.markdown("---")
 st.markdown("### 📋 登録済みクライアント一覧（確認用）")
-
-if settings_df.empty:
-    st.info("❗まだ登録されたクライアントはありません")
-else:
+if not settings_df.empty:
     st.dataframe(settings_df.sort_values("client_name"), use_container_width=True)
 
-# --- 編集エリア ---
+# === 編集エリア ===
 st.markdown("---")
 st.markdown("### 🛠 クライアント情報の編集")
-
 if not settings_df.empty:
     edit_names = settings_df["client_name"].sort_values().tolist()
     selected_edit_client = st.selectbox("✏️ 編集するクライアントを選択", edit_names, key="selected_client_name")
     row = settings_df[settings_df["client_name"] == selected_edit_client].iloc[0]
-
     st.session_state["edit_client_id"] = str(row["client_id"])
 
     new_client_id = st.text_input("🆔 クライアントID", value=st.session_state["edit_client_id"], key="edit_client_id_input")
 
     if st.button("🔄 ランダム再生成"):
-        current = st.session_state["edit_client_id"]
-        prefix = current.split('_')[0] if '_' in current else current
-        regenerated_id = generate_client_id(prefix)
-        st.session_state["edit_client_id"] = regenerated_id
+        prefix = new_client_id.split("_")[0] if "_" in new_client_id else new_client_id
+        regenerated = generate_client_id(prefix)
+        st.session_state["edit_client_id"] = regenerated
+        new_client_id = regenerated
 
     updated_building_count = st.text_input("🏠 棟数", value=row["building_count"], key="edit_building_count")
     updated_business_content = st.text_input("💼 事業内容", value=row["buisiness_content"], key="edit_business_content")
@@ -148,7 +136,6 @@ if not settings_df.empty:
         settings_df.loc[settings_df["client_name"] == selected_edit_client, [
             "client_id", "building_count", "buisiness_content", "focus_level"
         ]] = [st.session_state["edit_client_id"], updated_building_count, updated_business_content, updated_focus_level]
-
         try:
             with st.spinner("保存中..."):
                 job_config = bigquery.LoadJobConfig(
@@ -166,10 +153,12 @@ if not settings_df.empty:
                 job.result()
                 st.success("✅ 編集内容を保存しました！")
                 st.cache_data.clear()
+                st.experimental_rerun()
         except Exception as e:
             st.error(f"❌ 保存エラー: {e}")
 
-    if st.button("🗑 このクライアント情報を削除"):
+    # --- 削除処理 ---
+    with st.expander("🗑 このクライアント情報を削除", expanded=False):
         confirm = st.radio("⚠️ 本当に削除しますか？", ["キャンセル", "削除する"], horizontal=True, key="delete_confirm")
         if confirm == "削除する":
             settings_df = settings_df[settings_df["client_name"] != selected_edit_client]
@@ -190,19 +179,18 @@ if not settings_df.empty:
                     job.result()
                     st.success(f"✅ {selected_edit_client} を削除しました！")
                     st.cache_data.clear()
+                    st.experimental_rerun()
             except Exception as e:
                 st.error(f"❌ 削除エラー: {e}")
 
-# --- クライアント別リンク一覧 ---
+# === リンク表示 ===
 st.markdown("---")
 st.markdown("### 🔗 クライアント別ページリンク")
-
 if not settings_df.empty:
     link_df = settings_df[["client_name", "building_count", "buisiness_content", "focus_level", "client_id"]].copy()
     link_df["リンクURL"] = link_df["client_id"].apply(
         lambda cid: f"https://{st.secrets['app_domain']}/Ad_Drive?client_id={cid}"
     )
-
     for _, row in link_df.iterrows():
         cols = st.columns([2, 1, 2, 1, 2])
         cols[0].write(row["client_name"])
@@ -211,7 +199,7 @@ if not settings_df.empty:
         cols[3].write(row["focus_level"])
         cols[4].markdown(
             f"""
-            <a href=\"{row['リンクURL']}\" target=\"_blank\" style=\"
+            <a href="{row['リンクURL']}" target="_blank" style="
                 text-decoration: none;
                 display: inline-block;
                 padding: 0.3em 0.8em;
@@ -219,7 +207,7 @@ if not settings_df.empty:
                 background-color: #4CAF50;
                 color: white;
                 font-weight: bold;
-            \">
+            ">
                 ▶ ページを開く
             </a>
             """,
