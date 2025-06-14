@@ -199,7 +199,7 @@ else:
 
     st.divider()
 
-row_height = "100px"  # 必要に応じて調整
+row_height = "70px"
 
 for idx, row in link_df.iterrows():
     cols = st.columns([2, 1, 2, 1, 2])
@@ -219,7 +219,9 @@ for idx, row in link_df.iterrows():
                 background-color: #4CAF50;
                 color: white;
                 font-weight: bold;
-            ">▶ ページを開く</a>
+            ">
+                ▶ ページを開く
+            </a>
         </div>""", unsafe_allow_html=True)
 
     cols[2].markdown(
