@@ -101,7 +101,7 @@ else:
                     job.result()
                     st.success(f"✅ {selected_client} を登録しました！")
                     st.cache_data.clear()
-                    st.experimental_rerun()
+                    st.rerun()
             except Exception as e:
                 st.error(f"❌ 保存エラー: {e}")
 
@@ -153,7 +153,7 @@ if not settings_df.empty:
                 job.result()
                 st.success("✅ 編集内容を保存しました！")
                 st.cache_data.clear()
-                st.experimental_rerun()
+                st.rerun()
         except Exception as e:
             st.error(f"❌ 保存エラー: {e}")
 
@@ -179,7 +179,7 @@ if not settings_df.empty:
                     job.result()
                     st.success(f"✅ {selected_edit_client} を削除しました！")
                     st.cache_data.clear()
-                    st.experimental_rerun()
+                    st.rerun()
             except Exception as e:
                 st.error(f"❌ 削除エラー: {e}")
 
