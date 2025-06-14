@@ -196,21 +196,15 @@ else:
     header_cols[3].markdown("**事業内容**")
     header_cols[4].markdown("**棟数**")
 
-
     st.divider()
 
     row_height = "70px"
 
-for idx, row in link_df.iterrows():
-    cols = st.columns([2, 1, 2, 1, 2])
+    for idx, row in link_df.iterrows():
+        cols = st.columns([3, 2.5, 1.5, 1.5, 1.5])
+        cols[0].markdown(safe_cell_html(row["client_name"], row_height), unsafe_allow_html=True)
 
-    cols[0].markdown(
-        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
-            {row['client_name']}
-        </div>""", unsafe_allow_html=True)
-
-    cols[1].markdown(
-        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
+        link_html = f"""
             <a href="{row['リンクURL']}" target="_blank" style="
                 text-decoration: none;
                 display: inline-block;
@@ -218,23 +212,11 @@ for idx, row in link_df.iterrows():
                 border-radius: 6px;
                 background-color: #4CAF50;
                 color: white;
-                font-weight: bold;
-            ">
+                font-weight: bold;">
                 ▶ ページを開く
-            </a>
-        </div>""", unsafe_allow_html=True)
+            </a>"""
+        cols[1].markdown(safe_cell_html(link_html, row_height), unsafe_allow_html=True)
 
-    cols[2].markdown(
-        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
-            {row['focus_level']}
-        </div>""", unsafe_allow_html=True)
-
-    cols[3].markdown(
-        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
-            {row['buisiness_content']}
-        </div>""", unsafe_allow_html=True)
-
-    cols[4].markdown(
-        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
-            {row['building_count']}
-        </div>""", unsafe_allow_html=True)
+        cols[2].markdown(safe_cell_html(row["focus_level"], row_height), unsafe_allow_html=True)
+        cols[3].markdown(safe_cell_html(row["buisiness_content"], row_height), unsafe_allow_html=True)
+        cols[4].markdown(safe_cell_html(row["building_count"], row_height), unsafe_allow_html=True)
