@@ -199,7 +199,7 @@ else:
 
     st.divider()
 
-row_height = "70px"
+    row_height = "70px"
 
 for idx, row in link_df.iterrows():
     cols = st.columns([2, 1, 2, 1, 2])
