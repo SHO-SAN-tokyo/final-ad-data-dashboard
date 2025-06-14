@@ -56,8 +56,19 @@ if unregistered_df.empty:
     st.info("✅ 登録可能な新規クライアントはありません")
 else:
     selected_client = st.selectbox("👤 クライアント名を選択", unregistered_df["client_name"])
-    auto_generated_id = generate_client_id(selected_client)
-    input_id = st.text_input("🆔 クライアント固有IDを入力", value=auto_generated_id, key="register_id")
+
+    if "register_client_id" not in st.session_state:
+        st.session_state["register_client_id"] = generate_client_id(selected_client)
+
+    input_id = st.text_input("🆔 クライアント固有IDを入力", value=st.session_state["register_client_id"], key="register_id")
+
+    if st.button("🔄 ランダム再生成（登録用）"):
+        current = st.session_state["register_client_id"]
+        prefix = current.split('_')[0] if '_' in current else current
+        regenerated_id = generate_client_id(prefix)
+        st.session_state["register_client_id"] = regenerated_id
+        input_id = regenerated_id
+
     building_count = st.text_input("🏠 棟数")
     business_content = st.text_input("💼 事業内容")
     focus_level = st.text_input("🚀 注力度")
