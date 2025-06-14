@@ -191,10 +191,11 @@ else:
 
     header_cols = st.columns([2, 1, 2, 1, 2])
     header_cols[0].markdown("**クライアント名**")
-    header_cols[1].markdown("**棟数**")
-    header_cols[2].markdown("**事業内容**")
-    header_cols[3].markdown("**注力度**")
-    header_cols[4].markdown("**リンク**")
+    header_cols[1].markdown("**リンク**")
+    header_cols[21].markdown("**棟数**")
+    header_cols[3].markdown("**事業内容**")
+    header_cols[4].markdown("**注力度**")
+
 
     st.divider()
 
