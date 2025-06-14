@@ -25,7 +25,7 @@ full_table = f"{project_id}.{dataset}.{table}"
 def load_clients():
     query = f"""
     SELECT DISTINCT client_name 
-    FROM `{project_id}.{dataset}.Final_Ad_Data`
+    FROM {project_id}.{dataset}.Final_Ad_Data
     WHERE client_name IS NOT NULL AND client_name != ''
     ORDER BY client_name
     """
@@ -34,7 +34,7 @@ def load_clients():
 # --- 登録済み設定取得 ---
 @st.cache_data(ttl=60)
 def load_client_settings():
-    query = f"SELECT * FROM `{full_table}`"
+    query = f"SELECT * FROM {full_table}"
     return client.query(query).to_dataframe()
 
 def generate_random_suffix(length=30):
@@ -196,15 +196,21 @@ else:
     header_cols[3].markdown("**事業内容**")
     header_cols[4].markdown("**棟数**")
 
+
     st.divider()
 
     row_height = "70px"
 
-    for idx, row in link_df.iterrows():
-        cols = st.columns([3, 2.5, 1.5, 1.5, 1.5])
-        cols[0].markdown(safe_cell_html(row["client_name"], row_height), unsafe_allow_html=True)
+for idx, row in link_df.iterrows():
+    cols = st.columns([2, 1, 2, 1, 2])
 
-        link_html = f"""
+    cols[0].markdown(
+        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
+            {row['client_name']}
+        </div>""", unsafe_allow_html=True)
+
+    cols[1].markdown(
+        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
             <a href="{row['リンクURL']}" target="_blank" style="
                 text-decoration: none;
                 display: inline-block;
@@ -212,11 +218,23 @@ else:
                 border-radius: 6px;
                 background-color: #4CAF50;
                 color: white;
-                font-weight: bold;">
+                font-weight: bold;
+            ">
                 ▶ ページを開く
-            </a>"""
-        cols[1].markdown(safe_cell_html(link_html, row_height), unsafe_allow_html=True)
+            </a>
+        </div>""", unsafe_allow_html=True)
 
-        cols[2].markdown(safe_cell_html(row["focus_level"], row_height), unsafe_allow_html=True)
-        cols[3].markdown(safe_cell_html(row["buisiness_content"], row_height), unsafe_allow_html=True)
-        cols[4].markdown(safe_cell_html(row["building_count"], row_height), unsafe_allow_html=True)
+    cols[2].markdown(
+        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
+            {row['focus_level']}
+        </div>""", unsafe_allow_html=True)
+
+    cols[3].markdown(
+        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
+            {row['buisiness_content']}
+        </div>""", unsafe_allow_html=True)
+
+    cols[4].markdown(
+        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
+            {row['building_count']}
+        </div>""", unsafe_allow_html=True)
