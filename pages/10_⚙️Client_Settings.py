@@ -189,7 +189,7 @@ else:
 
     st.divider()
 
-    header_cols = st.columns([3, 2.5, 1.5, 1.5, 1.5])
+    header_cols = st.columns([2, 1, 2, 1, 2])
     header_cols[0].markdown("**クライアント名**")
     header_cols[1].markdown("**リンク**")
     header_cols[2].markdown("**注力度**")
@@ -199,18 +199,11 @@ else:
 
     st.divider()
 
-    row_height = "70px"
-
-for idx, row in link_df.iterrows():
-    cols = st.columns([2, 1, 2, 1, 2])
-
-    cols[0].markdown(
-        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
-            {row['client_name']}
-        </div>""", unsafe_allow_html=True)
-
-    cols[1].markdown(
-        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
+    for idx, row in link_df.iterrows():
+        cols = st.columns([2, 1, 2, 1, 2])
+        cols[0].write(row["client_name"])
+        cols[1].markdown(
+            f"""
             <a href="{row['リンクURL']}" target="_blank" style="
                 text-decoration: none;
                 display: inline-block;
@@ -222,19 +215,9 @@ for idx, row in link_df.iterrows():
             ">
                 ▶ ページを開く
             </a>
-        </div>""", unsafe_allow_html=True)
-
-    cols[2].markdown(
-        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
-            {row['focus_level']}
-        </div>""", unsafe_allow_html=True)
-
-    cols[3].markdown(
-        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
-            {row['buisiness_content']}
-        </div>""", unsafe_allow_html=True)
-
-    cols[4].markdown(
-        f"""<div style="display: table-cell; vertical-align: middle; height: {row_height};">
-            {row['building_count']}
-        </div>""", unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True
+        )
+        cols[2].write(row["focus_level"])
+        cols[3].write(row["buisiness_content"])
+        cols[4].write(row["building_count"])
