@@ -117,15 +117,14 @@ else:
 
     # ヘッダー
     header_cols = st.columns([2, 2, 1, 1.5, 1.5])
-    header_cols[0].markdown("クライアント名")
-    header_cols[1].markdown("リンク")
-    header_cols[2].markdown("注力度")
-    header_cols[3].markdown("事業内容")
-    header_cols[4].markdown("棟数")
+    header_cols[0].markdown("**クライアント名**")
+    header_cols[1].markdown("**リンク**")
+    header_cols[2].markdown("**注力度**")
+    header_cols[3].markdown("**事業内容**")
+    header_cols[4].markdown("**棟数**")
 
     st.divider()
 
-    # 中央寄せユーティリティ
     def vertical_center(content, height="70px"):
         safe_content = content if pd.notna(content) and str(content).strip() != "" else "&nbsp;"
         return f"""
@@ -134,28 +133,16 @@ else:
         </div>
         """
 
-    # 各行（ボーダー付き）
     for _, row in link_df.iterrows():
-        with st.container():
-            st.markdown(
-                """
-                <style>
-                .row-border {
-                    border-bottom: 1px solid #ddd;
-                    padding-bottom: 4px;
-                    margin-bottom: 4px;
-                }
-                </style>
-                """, unsafe_allow_html=True
-            )
-            st.markdown('<div class="row-border">', unsafe_allow_html=True)
+        cols = st.columns([2, 2, 1, 1.5, 1.5])
 
-            cols = st.columns([2, 2, 1, 1.5, 1.5])
+        row_height = "70px"
+        row_style = f"border-bottom: 1px solid #ddd; height: {row_height}; min-height: {row_height}; display: flex; align-items: center;"
 
-            # クライアント名
-            cols[0].markdown(vertical_center(row["client_name"]), unsafe_allow_html=True)
+        with cols[0]:
+            st.markdown(f'<div style="{row_style}">{row["client_name"]}</div>', unsafe_allow_html=True)
 
-            # リンクボタン
+        with cols[1]:
             button_html = f"""
             <a href="{row['リンクURL']}" target="_blank" style="
                 text-decoration: none;
@@ -168,14 +155,17 @@ else:
                 ▶ ページを開く
             </a>
             """
-            cols[1].markdown(vertical_center(button_html), unsafe_allow_html=True)
+            st.markdown(f'<div style="{row_style}">{button_html}</div>', unsafe_allow_html=True)
 
-            # 残りの列
-            cols[2].markdown(vertical_center(row["focus_level"]), unsafe_allow_html=True)
-            cols[3].markdown(vertical_center(row["buisiness_content"]), unsafe_allow_html=True)
-            cols[4].markdown(vertical_center(row["building_count"]), unsafe_allow_html=True)
+        with cols[2]:
+            st.markdown(f'<div style="{row_style}">{row["focus_level"] or "&nbsp;"}</div>', unsafe_allow_html=True)
 
-            st.markdown('</div>', unsafe_allow_html=True)
+        with cols[3]:
+            st.markdown(f'<div style="{row_style}">{row["buisiness_content"] or "&nbsp;"}</div>', unsafe_allow_html=True)
+
+        with cols[4]:
+            st.markdown(f'<div style="{row_style}">{row["building_count"] or "&nbsp;"}</div>', unsafe_allow_html=True)
+
 
 
 
