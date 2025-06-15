@@ -115,15 +115,17 @@ else:
 
     st.divider()
 
+    # ヘッダー
     header_cols = st.columns([2, 2, 1, 1.5, 1.5])
-    header_cols[0].markdown("**クライアント名**")
-    header_cols[1].markdown("**リンク**")
-    header_cols[2].markdown("**注力度**")
-    header_cols[3].markdown("**事業内容**")
-    header_cols[4].markdown("**棟数**")
+    header_cols[0].markdown("クライアント名")
+    header_cols[1].markdown("リンク")
+    header_cols[2].markdown("注力度")
+    header_cols[3].markdown("事業内容")
+    header_cols[4].markdown("棟数")
 
     st.divider()
 
+    # 中央寄せユーティリティ
     def vertical_center(content, height="70px"):
         safe_content = content if pd.notna(content) and str(content).strip() != "" else "&nbsp;"
         return f"""
@@ -132,31 +134,48 @@ else:
         </div>
         """
 
+    # 各行（ボーダー付き）
     for _, row in link_df.iterrows():
-        cols = st.columns([2, 2, 1, 1.5, 1.5])
+        with st.container():
+            st.markdown(
+                """
+                <style>
+                .row-border {
+                    border-bottom: 1px solid #ddd;
+                    padding-bottom: 4px;
+                    margin-bottom: 4px;
+                }
+                </style>
+                """, unsafe_allow_html=True
+            )
+            st.markdown('<div class="row-border">', unsafe_allow_html=True)
 
-        # クライアント名
-        cols[0].markdown(vertical_center(row["client_name"]), unsafe_allow_html=True)
+            cols = st.columns([2, 2, 1, 1.5, 1.5])
 
-        # リンクボタン
-        button_html = f"""
-        <a href="{row['リンクURL']}" target="_blank" style="
-            text-decoration: none;
-            display: inline-block;
-            padding: 0.3em 0.8em;
-            border-radius: 6px;
-            background-color: #4CAF50;
-            color: white;
-            font-weight: bold;">
-            ▶ ページを開く
-        </a>
-        """
-        cols[1].markdown(vertical_center(button_html), unsafe_allow_html=True)
+            # クライアント名
+            cols[0].markdown(vertical_center(row["client_name"]), unsafe_allow_html=True)
 
-        # 残りの列（縦中央）
-        cols[2].markdown(vertical_center(row["focus_level"]), unsafe_allow_html=True)
-        cols[3].markdown(vertical_center(row["buisiness_content"]), unsafe_allow_html=True)
-        cols[4].markdown(vertical_center(row["building_count"]), unsafe_allow_html=True)
+            # リンクボタン
+            button_html = f"""
+            <a href="{row['リンクURL']}" target="_blank" style="
+                text-decoration: none;
+                display: inline-block;
+                padding: 0.3em 0.8em;
+                border-radius: 6px;
+                background-color: #4CAF50;
+                color: white;
+                font-weight: bold;">
+                ▶ ページを開く
+            </a>
+            """
+            cols[1].markdown(vertical_center(button_html), unsafe_allow_html=True)
+
+            # 残りの列
+            cols[2].markdown(vertical_center(row["focus_level"]), unsafe_allow_html=True)
+            cols[3].markdown(vertical_center(row["buisiness_content"]), unsafe_allow_html=True)
+            cols[4].markdown(vertical_center(row["building_count"]), unsafe_allow_html=True)
+
+            st.markdown('</div>', unsafe_allow_html=True)
 
 
 
