@@ -115,9 +115,16 @@ else:
 
     st.divider()
 
-    row_height = "70px"
+    header_cols = st.columns([2, 2, 1, 1.5, 1.5])
+    header_cols[0].markdown("**クライアント名**")
+    header_cols[1].markdown("**リンク**")
+    header_cols[2].markdown("**注力度**")
+    header_cols[3].markdown("**事業内容**")
+    header_cols[4].markdown("**棟数**")
 
-    def vertical_center(content, height=row_height):
+    st.divider()
+
+    def vertical_center(content, height="70px"):
         safe_content = content if pd.notna(content) and str(content).strip() != "" else "&nbsp;"
         return f"""
         <div style="display: flex; align-items: center; height: {height}; min-height: {height};">
@@ -125,20 +132,13 @@ else:
         </div>
         """
 
-    # --- ヘッダー
-    header_cols = st.columns([2, 2, 1, 1.5, 1.5])
-    headers = ["クライアント名", "リンク", "注力度", "事業内容", "棟数"]
-    for col, text in zip(header_cols, headers):
-        col.markdown(vertical_center(f"**{text}**"), unsafe_allow_html=True)
-
-    st.divider()
-
-    # --- 本体行
     for _, row in link_df.iterrows():
         cols = st.columns([2, 2, 1, 1.5, 1.5])
 
+        # クライアント名
         cols[0].markdown(vertical_center(row["client_name"]), unsafe_allow_html=True)
 
+        # リンクボタン
         button_html = f"""
         <a href="{row['リンクURL']}" target="_blank" style="
             text-decoration: none;
@@ -153,6 +153,7 @@ else:
         """
         cols[1].markdown(vertical_center(button_html), unsafe_allow_html=True)
 
+        # 残りの列（縦中央）
         cols[2].markdown(vertical_center(row["focus_level"]), unsafe_allow_html=True)
         cols[3].markdown(vertical_center(row["buisiness_content"]), unsafe_allow_html=True)
         cols[4].markdown(vertical_center(row["building_count"]), unsafe_allow_html=True)
