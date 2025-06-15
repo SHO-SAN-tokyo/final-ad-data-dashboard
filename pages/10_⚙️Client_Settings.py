@@ -198,33 +198,38 @@ else:
 
     st.divider()
 
-    def vertical_center_cell(content, height="70px"):
-        value = content if pd.notna(content) and str(content).strip() != "" else "&nbsp;"
+    def vertical_center(content, height="70px"):
+        safe_content = content if pd.notna(content) and str(content).strip() != "" else "&nbsp;"
         return f"""
-        <div style="display: flex; align-items: center; min-height: {height}; height: {height};">
-            {value}
+        <div style="display: flex; align-items: center; height: {height}; min-height: {height};">
+            {safe_content}
         </div>
         """
 
-    for idx, row in link_df.iterrows():
+    for _, row in link_df.iterrows():
         cols = st.columns([2, 2, 1, 1.5, 1.5])
 
-        cols[0].markdown(vertical_center_cell(row["client_name"]), unsafe_allow_html=True)
+        # クライアント名
+        cols[0].markdown(vertical_center(row["client_name"]), unsafe_allow_html=True)
 
-        link_html = f"""
-            <a href="{row['リンクURL']}" target="_blank" style="
-                text-decoration: none;
-                display: inline-block;
-                padding: 0.3em 0.8em;
-                border-radius: 6px;
-                background-color: #4CAF50;
-                color: white;
-                font-weight: bold;">
-                ▶ ページを開く
-            </a>"""
-        cols[1].markdown(vertical_center_cell(link_html), unsafe_allow_html=True)
+        # リンクボタン
+        button_html = f"""
+        <a href="{row['リンクURL']}" target="_blank" style="
+            text-decoration: none;
+            display: inline-block;
+            padding: 0.3em 0.8em;
+            border-radius: 6px;
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;">
+            ▶ ページを開く
+        </a>
+        """
+        cols[1].markdown(vertical_center(button_html), unsafe_allow_html=True)
 
-        cols[2].markdown(vertical_center_cell(row["focus_level"]), unsafe_allow_html=True)
-        cols[3].markdown(vertical_center_cell(row["buisiness_content"]), unsafe_allow_html=True)
-        cols[4].markdown(vertical_center_cell(row["building_count"]), unsafe_allow_html=True)
+        # 残りの列（縦中央）
+        cols[2].markdown(vertical_center(row["focus_level"]), unsafe_allow_html=True)
+        cols[3].markdown(vertical_center(row["buisiness_content"]), unsafe_allow_html=True)
+        cols[4].markdown(vertical_center(row["building_count"]), unsafe_allow_html=True)
+
 
