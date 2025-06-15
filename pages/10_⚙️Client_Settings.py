@@ -99,7 +99,7 @@ else:
             except Exception as e:
                 st.error(f"❌ 保存エラー: {e}")
         else:
-            st.warning("⚠️ クライアントIDの接頭辞を入力してください")
+            st.warning("⚠️ クライアントIDを入力してください")
 
 
 # --- クライアント情報の編集 ---
