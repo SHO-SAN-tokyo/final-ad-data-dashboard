@@ -149,7 +149,7 @@ else:
                 display: inline-block;
                 padding: 0.3em 0.8em;
                 border-radius: 6px;
-                background-color: #4CAF50;
+                background-color: rgb(53, 169, 195);
                 color: white;
                 font-weight: bold;">
                 ▶ ページを開く
