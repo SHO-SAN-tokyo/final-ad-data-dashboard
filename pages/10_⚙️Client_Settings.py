@@ -58,7 +58,7 @@ else:
     if "random_suffix" not in st.session_state:
         st.session_state["random_suffix"] = generate_random_suffix()
 
-    st.markdown("📋 下のランダム文字列をコピーして、接頭辞の末尾に貼り付けてください：")
+    st.markdown("📋 下のランダム文字列をコピーして、クライアントIDの末尾に貼り付ける：")
     st.code(f"_{st.session_state['random_suffix']}", language="plaintext")
 
     building_count = st.text_input("🏠 棟数")
