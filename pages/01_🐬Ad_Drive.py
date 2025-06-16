@@ -227,12 +227,12 @@ for i, card in enumerate(row2):
 # ──────────────────────────────────────────────
 st.subheader("💠 配信バナー")
 st.write("###### ※一度に表示できる配信バナーの表示は最大100件です")
-order = st.radio("🐬並び替え基準", ["広告番号順", "CV数の多い順", "CPAの低い順"])
+order = st.radio("🐬並び替え基準", ["広告番号順", "コンバージョン数の多い順", "CPA金額の安い順"])
 
 df_banner_sorted = df_banner_filt.copy()
-if order == "CV数の多い順":
+if order == "コンバージョン数の多い順":
     df_banner_sorted = df_banner_sorted.sort_values("conv_banner", ascending=False)
-elif order == "CPAの低い順":
+elif order == "CPA金額の安い順":
     df_banner_sorted = df_banner_sorted[df_banner_sorted["CPA"].notna()].sort_values("CPA")
 elif order == "広告番号順":
     if "banner_number" in df_banner_sorted.columns:
