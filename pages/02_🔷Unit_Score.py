@@ -23,75 +23,77 @@ df = load_data()
 
 # 日付型の変換（配信開始日/終了日はDATE型なのでこのままでOK）
 
-# 📅 配信月フィルター 
+# 📅 配信月（multiselectに変更）
 month_options = sorted(df["配信月"].dropna().unique())
-selected_month = st.selectbox("📅 配信月", ["すべて"] + month_options)
-if selected_month != "すべて":
-    df = df[df["配信月"] == selected_month]
+sel_month = st.multiselect("📅 配信月", month_options, placeholder="すべて")
+if sel_month:
+    df = df[df["配信月"].isin(sel_month)]
 
-# 所属・担当者・フロント・雇用形態・注力度・カテゴリフィルター
+# 所属・担当者・フロント・雇用形態・注力度・カテゴリ
 latest = df.copy()
 numeric_cols = latest.select_dtypes(include=["number"]).columns
 latest[numeric_cols] = latest[numeric_cols].replace([np.inf, -np.inf], 0).fillna(0)
 latest = latest[latest["所属"].notna()]
 latest = latest[latest["所属"].apply(lambda x: isinstance(x, str))]
 
-unit_options = latest["所属"].dropna().unique()
-person_options = latest["担当者"].dropna().astype(str).unique()
-front_options = latest["フロント"].dropna().astype(str).unique()
-employment_options = latest["雇用形態"].dropna().astype(str).unique()
-focus_options = latest["注力度"].dropna().astype(str).unique()  # 🆕 注力度
-maincat_options = latest["メインカテゴリ"].dropna().astype(str).unique()  # 🆕 メインカテゴリ
-subcat_options = latest["サブカテゴリ"].dropna().astype(str).unique()    # 🆕 サブカテゴリ
+unit_options = sorted(latest["所属"].dropna().unique())
+person_options = sorted(latest["担当者"].dropna().astype(str).unique())
+front_options = sorted(latest["フロント"].dropna().astype(str).unique())
+employment_options = sorted(latest["雇用形態"].dropna().astype(str).unique())
+focus_options = sorted(latest["注力度"].dropna().astype(str).unique())
+maincat_options = sorted(latest["メインカテゴリ"].dropna().astype(str).unique())
+subcat_options = sorted(latest["サブカテゴリ"].dropna().astype(str).unique())
 
-f1, f2, f3, f4 = st.columns([2, 2, 2, 2])
+# UIの並び
+f1, f2, f3, f4 = st.columns(4)
 with f1:
-    unit_filter = st.selectbox("🏷️ Unit", ["すべて"] + sorted(unit_options))
+    unit_filter = st.multiselect("🏷️ Unit", unit_options, placeholder="すべて")
 with f2:
-    person_filter = st.selectbox("👤 担当者", ["すべて"] + sorted(person_options))
+    person_filter = st.multiselect("👤 担当者", person_options, placeholder="すべて")
 with f3:
-    front_filter = st.selectbox("👤 フロント", ["すべて"] + sorted(front_options))
+    front_filter = st.multiselect("👤 フロント", front_options, placeholder="すべて")
 with f4:
-    employment_filter = st.selectbox("🏢 雇用形態", ["すべて"] + sorted(employment_options), key="employment_type")
+    employment_filter = st.multiselect("🏢 雇用形態", employment_options, placeholder="すべて", key="employment_type")
 
-f5, f6, f7 = st.columns([2, 2, 2])
+f5, f6, f7 = st.columns(3)
 with f5:
-    focus_filter = st.selectbox("📌 注力度", ["すべて"] + sorted(focus_options))
+    focus_filter = st.multiselect("📌 注力度", focus_options, placeholder="すべて")
 with f6:
-    maincat_filter = st.selectbox("📁 メインカテゴリ", ["すべて"] + sorted(maincat_options))
+    maincat_filter = st.multiselect("📁 メインカテゴリ", maincat_options, placeholder="すべて")
 with f7:
-    subcat_filter = st.selectbox("📂 サブカテゴリ", ["すべて"] + sorted(subcat_options))
+    subcat_filter = st.multiselect("📂 サブカテゴリ", subcat_options, placeholder="すべて")
 
-# --- フィルター選択状況を1行で表示 ---
+# --- 状況表示
 st.markdown(f"""
 <div style='padding: 0.8rem 0 1.2rem 0; font-size: 0.9rem; border-radius: 0.5rem;'>
-📅 配信月: <b>{selected_month}</b>　
-|　🏷️Unit: <b>{unit_filter}</b>　
-|　👤担当者: <b>{person_filter}</b>　
-|　👤フロント: <b>{front_filter}</b>　
-|　🏢雇用形態: <b>{employment_filter}</b>　
-|　📌注力度: <b>{focus_filter}</b>　
-|　📁メインカテゴリ: <b>{maincat_filter}</b>　
-|　📂サブカテゴリ: <b>{subcat_filter}</b>
+📅 配信月: <b>{sel_month or 'すべて'}</b>　
+|　🏷️Unit: <b>{unit_filter or 'すべて'}</b>　
+|　👤担当者: <b>{person_filter or 'すべて'}</b>　
+|　👤フロント: <b>{front_filter or 'すべて'}</b>　
+|　🏢雇用形態: <b>{employment_filter or 'すべて'}</b>　
+|　📌注力度: <b>{focus_filter or 'すべて'}</b>　
+|　📁メインカテゴリ: <b>{maincat_filter or 'すべて'}</b>　
+|　📂サブカテゴリ: <b>{subcat_filter or 'すべて'}</b>
 </div>
 """, unsafe_allow_html=True)
 
-# --- フィルター適用 ---
+# --- フィルター適用（複数選択対応）
 df_filtered = latest.copy()
-if unit_filter != "すべて":
-    df_filtered = df_filtered[df_filtered["所属"] == unit_filter]
-if person_filter != "すべて":
-    df_filtered = df_filtered[df_filtered["担当者"] == person_filter]
-if front_filter != "すべて":
-    df_filtered = df_filtered[df_filtered["フロント"] == front_filter]
-if employment_filter != "すべて":
-    df_filtered = df_filtered[df_filtered["雇用形態"] == employment_filter]
-if focus_filter != "すべて":
-    df_filtered = df_filtered[df_filtered["注力度"] == focus_filter]
-if maincat_filter != "すべて":
-    df_filtered = df_filtered[df_filtered["メインカテゴリ"] == maincat_filter]
-if subcat_filter != "すべて":
-    df_filtered = df_filtered[df_filtered["サブカテゴリ"] == subcat_filter]
+if unit_filter:
+    df_filtered = df_filtered[df_filtered["所属"].isin(unit_filter)]
+if person_filter:
+    df_filtered = df_filtered[df_filtered["担当者"].isin(person_filter)]
+if front_filter:
+    df_filtered = df_filtered[df_filtered["フロント"].isin(front_filter)]
+if employment_filter:
+    df_filtered = df_filtered[df_filtered["雇用形態"].isin(employment_filter)]
+if focus_filter:
+    df_filtered = df_filtered[df_filtered["注力度"].isin(focus_filter)]
+if maincat_filter:
+    df_filtered = df_filtered[df_filtered["メインカテゴリ"].isin(maincat_filter)]
+if subcat_filter:
+    df_filtered = df_filtered[df_filtered["サブカテゴリ"].isin(subcat_filter)]
+
 
 # 集計用定義（CPA 0割り対策も込み）
 def safe_cpa(cost, cv):
