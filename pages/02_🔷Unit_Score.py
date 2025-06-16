@@ -253,8 +253,8 @@ if "達成状況" in df_filtered.columns:
     else:
         st.info("達成キャンペーンがありません。")
 
-# コンテンツ前にスペースを追加
-st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
+    # コンテンツ前にスペースを追加
+    st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
     # --- 未達成キャンペーン一覧 ---
     st.write("### 💤 未達成キャンペーン一覧")
