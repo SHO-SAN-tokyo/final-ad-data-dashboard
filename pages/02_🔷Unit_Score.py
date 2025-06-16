@@ -207,7 +207,7 @@ if "達成状況" in df_filtered.columns:
             """, unsafe_allow_html=True)
 
 # コンテンツ前にスペースを追加
-st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
 # ▼ キャンペーン一覧（必要なカラム全て追加＆整形）
 st.write("#### 📋 配信キャンペーン一覧（最大1,000件）")
@@ -233,7 +233,7 @@ styled_table = df_filtered[columns_to_show].head(1000).style.format({
 st.dataframe(styled_table, use_container_width=True)
 
 # コンテンツ前にスペースを追加
-st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
 # --- 達成キャンペーン一覧 ---
 if "達成状況" in df_filtered.columns:
@@ -252,6 +252,9 @@ if "達成状況" in df_filtered.columns:
         )
     else:
         st.info("達成キャンペーンがありません。")
+
+# コンテンツ前にスペースを追加
+st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
     # --- 未達成キャンペーン一覧 ---
     st.write("### 💤 未達成キャンペーン一覧")
