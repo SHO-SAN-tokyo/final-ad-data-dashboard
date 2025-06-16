@@ -53,7 +53,10 @@ with f2:
 with f3:
     front_filter = st.multiselect("👤 フロント", front_options, placeholder="すべて")
 with f4:
-    employment_filter = st.multiselect("🏢 雇用形態", employment_options, placeholder="すべて", key="employment_type")
+    default_employment = [x for x in employment_options if x in ["社員", "インターン"]]
+    employment_filter = st.multiselect(
+        "🏢 雇用形態", employment_options, default=default_employment, key="employment_type"
+    )
 
 f5, f6, f7 = st.columns(3)
 with f5:
