@@ -29,7 +29,7 @@ selected_month = st.selectbox("📅 配信月", ["すべて"] + month_options)
 if selected_month != "すべて":
     df = df[df["配信月"] == selected_month]
 
-# 所属・担当者・フロント・雇用形態フィルター
+# 所属・担当者・フロント・雇用形態・注力度・カテゴリフィルター
 latest = df.copy()
 numeric_cols = latest.select_dtypes(include=["number"]).columns
 latest[numeric_cols] = latest[numeric_cols].replace([np.inf, -np.inf], 0).fillna(0)
@@ -40,6 +40,9 @@ unit_options = latest["所属"].dropna().unique()
 person_options = latest["担当者"].dropna().astype(str).unique()
 front_options = latest["フロント"].dropna().astype(str).unique()
 employment_options = latest["雇用形態"].dropna().astype(str).unique()
+focus_options = latest["focus_level"].dropna().astype(str).unique()  # 🆕 注力度
+maincat_options = latest["メインカテゴリ"].dropna().astype(str).unique()  # 🆕 メインカテゴリ
+subcat_options = latest["サブカテゴリ"].dropna().astype(str).unique()    # 🆕 サブカテゴリ
 
 f1, f2, f3, f4 = st.columns([2, 2, 2, 2])
 with f1:
@@ -51,14 +54,25 @@ with f3:
 with f4:
     employment_filter = st.selectbox("🏢 雇用形態", ["すべて"] + sorted(employment_options), key="employment_type")
 
+f5, f6, f7 = st.columns([2, 2, 2])
+with f5:
+    focus_filter = st.selectbox("📌 注力度", ["すべて"] + sorted(focus_options))
+with f6:
+    maincat_filter = st.selectbox("📁 メインカテゴリ", ["すべて"] + sorted(maincat_options))
+with f7:
+    subcat_filter = st.selectbox("📂 サブカテゴリ", ["すべて"] + sorted(subcat_options))
+
 # --- フィルター選択状況を1行で表示 ---
 st.markdown(f"""
 <div style='padding: 0.8rem 0 1.2rem 0; font-size: 0.9rem; border-radius: 0.5rem;'>
-    📅 配信月: <b>{selected_month}</b>　
-    |　🏷️Unit: <b>{unit_filter}</b>　
-    |　👤担当者: <b>{person_filter}</b>　
-    |　👤フロント: <b>{front_filter}</b>　
-    |　🏢雇用形態: <b>{employment_filter}</b>
+📅 配信月: <b>{selected_month}</b>　
+|　🏷️Unit: <b>{unit_filter}</b>　
+|　👤担当者: <b>{person_filter}</b>　
+|　👤フロント: <b>{front_filter}</b>　
+|　🏢雇用形態: <b>{employment_filter}</b>　
+|　📌注力度: <b>{focus_filter}</b>　
+|　📁メインカテゴリ: <b>{maincat_filter}</b>　
+|　📂サブカテゴリ: <b>{subcat_filter}</b>
 </div>
 """, unsafe_allow_html=True)
 
@@ -72,10 +86,17 @@ if front_filter != "すべて":
     df_filtered = df_filtered[df_filtered["フロント"] == front_filter]
 if employment_filter != "すべて":
     df_filtered = df_filtered[df_filtered["雇用形態"] == employment_filter]
+if focus_filter != "すべて":
+    df_filtered = df_filtered[df_filtered["focus_level"] == focus_filter]
+if maincat_filter != "すべて":
+    df_filtered = df_filtered[df_filtered["メインカテゴリ"] == maincat_filter]
+if subcat_filter != "すべて":
+    df_filtered = df_filtered[df_filtered["サブカテゴリ"] == subcat_filter]
 
 # 集計用定義（CPA 0割り対策も込み）
 def safe_cpa(cost, cv):
     return cost / cv if cv > 0 else np.nan
+
 
 # Unitごとのサマリー
 unit_summary = df_filtered.groupby("所属", dropna=False).agg({
