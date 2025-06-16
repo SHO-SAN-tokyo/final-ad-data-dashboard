@@ -165,9 +165,9 @@ for idx, row in person_summary.iterrows():
             <div style='font-size: 1.3rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
             <div style='font-size: 0.9rem; margin-top: 0.5rem;'>
                 キャンペーン数: {int(row['CampaignId'])}<br>
-                予算: ¥{int(row['予算'])}<br>
-                消化金額: ¥{int(row['消化金額'])}<br>
-                フィー: ¥{int(row['フィー'])}<br>
+                予算: ¥{int(row['予算']):,}<br>
+                消化金額: ¥{int(row['消化金額']):,}<br>
+                フィー: ¥{int(row['フィー']):,}<br>
                 CV: {int(row['コンバージョン数'])}
             </div>
         </div>
