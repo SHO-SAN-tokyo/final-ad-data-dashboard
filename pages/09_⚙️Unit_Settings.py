@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime
 
 st.set_page_config(page_title="Unit設定", layout="wide")
-st.title("⚙️ Unit設定（履歴対応版）")
+st.title("⚙️ Unit設定")
 
 # --- BigQuery接続 ---
 info_dict = dict(st.secrets["connections"]["bigquery"])
