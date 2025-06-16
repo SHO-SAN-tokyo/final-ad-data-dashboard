@@ -123,7 +123,7 @@ unit_color_map = {unit: unit_colors[i % len(unit_colors)] for i, unit in enumera
 
 
 # コンテンツ前にスペースを追加
-st.markdown("<div style='margin-top: 3rem;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
 # --- Unitカード ---
 st.write("#### 🍋🍋‍🟩 Unitごとのスコア 🍒🍏")
