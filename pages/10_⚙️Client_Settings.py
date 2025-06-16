@@ -43,6 +43,13 @@ def generate_random_suffix(length=30):
 clients_df = load_clients()
 settings_df = load_client_settings()
 
+# 👇ここにデバッグコードを追加
+diff = set(clients_df["client_name"].str.strip()) - set(settings_df["client_name"].str.strip())
+if diff:
+    st.warning("⚠️ 未登録扱いになっているクライアント名（文字一致せず）:")
+    for name in diff:
+        st.markdown(f"- `{name}`")
+
 # --- 未登録クライアント取得 ---
 registered_clients = set(settings_df["client_name"]) if not settings_df.empty else set()
 unregistered_df = clients_df[~clients_df["client_name"].isin(registered_clients)]
