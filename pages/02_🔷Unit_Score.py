@@ -23,7 +23,7 @@ df = load_data()
 
 # 日付型の変換（配信開始日/終了日はDATE型なのでこのままでOK）
 
-# 📅 配信月フィルター
+# 📅 配信月フィルター 
 month_options = sorted(df["配信月"].dropna().unique())
 selected_month = st.selectbox("📅 配信月", ["すべて"] + month_options)
 if selected_month != "すべて":
