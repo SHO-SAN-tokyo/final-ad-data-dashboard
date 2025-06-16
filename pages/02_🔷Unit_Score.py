@@ -40,7 +40,7 @@ unit_options = latest["所属"].dropna().unique()
 person_options = latest["担当者"].dropna().astype(str).unique()
 front_options = latest["フロント"].dropna().astype(str).unique()
 employment_options = latest["雇用形態"].dropna().astype(str).unique()
-focus_options = latest["focus_level"].dropna().astype(str).unique()  # 🆕 注力度
+focus_options = latest["注力度"].dropna().astype(str).unique()  # 🆕 注力度
 maincat_options = latest["メインカテゴリ"].dropna().astype(str).unique()  # 🆕 メインカテゴリ
 subcat_options = latest["サブカテゴリ"].dropna().astype(str).unique()    # 🆕 サブカテゴリ
 
@@ -87,7 +87,7 @@ if front_filter != "すべて":
 if employment_filter != "すべて":
     df_filtered = df_filtered[df_filtered["雇用形態"] == employment_filter]
 if focus_filter != "すべて":
-    df_filtered = df_filtered[df_filtered["focus_level"] == focus_filter]
+    df_filtered = df_filtered[df_filtered["注力度"] == focus_filter]
 if maincat_filter != "すべて":
     df_filtered = df_filtered[df_filtered["メインカテゴリ"] == maincat_filter]
 if subcat_filter != "すべて":
