@@ -68,17 +68,18 @@ with f7:
 
 # --- 状況表示
 st.markdown(f"""
-<div style='padding: 0.8rem 0 1.2rem 0; font-size: 0.9rem; border-radius: 0.5rem;'>
-📅 配信月: <b>{sel_month or 'すべて'}</b>　
-|　🏷️Unit: <b>{unit_filter or 'すべて'}</b>　
-|　👤担当者: <b>{person_filter or 'すべて'}</b>　
-|　👤フロント: <b>{front_filter or 'すべて'}</b>　
-|　🏢雇用形態: <b>{employment_filter or 'すべて'}</b>　
-|　📌注力度: <b>{focus_filter or 'すべて'}</b>　
-|　📁メインカテゴリ: <b>{maincat_filter or 'すべて'}</b>　
-|　📂サブカテゴリ: <b>{subcat_filter or 'すべて'}</b>
+<div style='font-size: 0.9rem; line-height: 1.8;'>
+📅 配信月: <b>{sel_month or 'すべて'}</b><br>
+🏷️Unit: <b>{unit_filter or 'すべて'}</b><br>
+👤担当者: <b>{person_filter or 'すべて'}</b><br>
+👤フロント: <b>{front_filter or 'すべて'}</b><br>
+🏢雇用形態: <b>{employment_filter or 'すべて'}</b><br>
+📌注力度: <b>{focus_filter or 'すべて'}</b><br>
+📁メインカテゴリ: <b>{maincat_filter or 'すべて'}</b><br>
+📂サブカテゴリ: <b>{subcat_filter or 'すべて'}</b>
 </div>
 """, unsafe_allow_html=True)
+
 
 # --- フィルター適用（複数選択対応）
 df_filtered = latest.copy()
