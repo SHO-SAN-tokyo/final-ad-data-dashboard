@@ -185,8 +185,8 @@ for idx, row in person_summary.iterrows():
 st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
 
 # 達成率スコアカード
+st.write("### 👨‍💼 担当者ごとの達成率")
 if "達成状況" in df_filtered.columns:
-    st.write("### 👨‍💼 担当者ごとの達成率")
     person_agg = df_filtered.groupby("担当者", dropna=False).agg(
         campaign_count=("CampaignId", "nunique"),
         達成件数=("達成状況", lambda x: (x == "達成").sum())
