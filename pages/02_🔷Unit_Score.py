@@ -185,7 +185,7 @@ for idx, row in person_summary.iterrows():
 st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
 
 # 達成率スコアカード
-st.write("### 👨‍💼 担当者ごとの達成率")
+st.write("#### 👨‍💼 担当者ごとの達成率")
 if "達成状況" in df_filtered.columns:
     person_agg = df_filtered.groupby("担当者", dropna=False).agg(
         campaign_count=("CampaignId", "nunique"),
@@ -237,7 +237,7 @@ st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
 # --- 達成キャンペーン一覧 ---
 if "達成状況" in df_filtered.columns:
-    st.write("### 👍 達成キャンペーン一覧")
+    st.write("#### 👍 達成キャンペーン一覧")
     achieved = df_filtered[df_filtered["達成状況"] == "達成"]
     if not achieved.empty:
         st.dataframe(
@@ -257,7 +257,7 @@ if "達成状況" in df_filtered.columns:
     st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
     # --- 未達成キャンペーン一覧 ---
-    st.write("### 💤 未達成キャンペーン一覧")
+    st.write("#### 💤 未達成キャンペーン一覧")
     missed = df_filtered[df_filtered["達成状況"] == "未達成"]
     if not missed.empty:
         st.dataframe(
