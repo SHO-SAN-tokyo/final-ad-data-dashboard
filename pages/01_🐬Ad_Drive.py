@@ -81,19 +81,30 @@ with col2:
     if sel_client:
         filtered = filtered[filtered["client_name"].isin(sel_client)]
 
-# --- 2段目: カテゴリ・媒体・広告目的 ---
-col3, col4, col5 = st.columns(3)
+# --- 2段目: メインカテゴリ・サブカテゴリ・広告媒体・広告目的（まとめて1列） ---
+col3 = st.columns(1)[0]
 with col3:
+    st.markdown("##### 🎯 詳細属性フィルター")
+
+    # メインカテゴリ
     cat_options = sorted(filtered["メインカテゴリ"].dropna().unique())
     sel_cat = st.multiselect("📁 メインカテゴリ", cat_options, placeholder="すべて")
     if sel_cat:
         filtered = filtered[filtered["メインカテゴリ"].isin(sel_cat)]
-with col4:
+
+    # サブカテゴリ
+    subcat_options = sorted(filtered["サブカテゴリ"].dropna().unique())
+    sel_subcat = st.multiselect("📂 サブカテゴリ", subcat_options, placeholder="すべて")
+    if sel_subcat:
+        filtered = filtered[filtered["サブカテゴリ"].isin(sel_subcat)]
+
+    # 広告媒体
     media_options = sorted(filtered["広告媒体"].dropna().unique())
-    sel_media = st.multiselect("📡 媒体", media_options, placeholder="すべて")
+    sel_media = st.multiselect("📡 広告媒体", media_options, placeholder="すべて")
     if sel_media:
-        filtered = filtered[filtered["ServiceNameJA"].isin(sel_media)]
-with col5:
+        filtered = filtered[filtered["広告媒体"].isin(sel_media)]
+
+    # 広告目的
     goal_options = sorted(filtered["広告目的"].dropna().unique())
     sel_goal = st.multiselect("🎯 広告目的", goal_options, placeholder="すべて")
     if sel_goal:
@@ -120,13 +131,16 @@ def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
         cond &= df["配信月"].isin(sel_month)
     if "メインカテゴリ" in df.columns and sel_cat:
         cond &= df["メインカテゴリ"].isin(sel_cat)
+    if "サブカテゴリ" in df.columns and sel_subcat:
+        cond &= df["サブカテゴリ"].isin(sel_subcat)
     if "広告目的" in df.columns and sel_goal:
         cond &= df["広告目的"].isin(sel_goal)
-    if "ServiceNameJA" in df.columns and sel_media:
-        cond &= df["ServiceNameJA"].isin(sel_media)
+    if "広告媒体" in df.columns and sel_media:
+        cond &= df["広告媒体"].isin(sel_media)
     if "キャンペーン名" in df.columns and sel_campaign:
         cond &= df["キャンペーン名"].isin(sel_campaign)
     return df.loc[cond].copy()
+
 
 df_num_filt    = apply_filters(df_num)
 df_banner_filt = apply_filters(df_banner)
