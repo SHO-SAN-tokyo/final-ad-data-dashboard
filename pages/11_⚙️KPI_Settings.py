@@ -57,28 +57,29 @@ if "kpi_df" not in st.session_state:
     st.session_state.kpi_df = load_target_data()
 kpi_df = st.session_state.kpi_df
 
-# --- 追加フォーム ---
-st.markdown("### 🎯 新しいKPIを追加")
-# --- ユニークな組み合わせから既存を除外する ---
-all_combinations = pd.DataFrame([
-    (m, main, sub, obj)
-    for m in 広告媒体一覧
-    for main in メインカテゴリ一覧
-    for sub in サブカテゴリ一覧
-    for obj in 広告目的一覧
-], columns=["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"])
+# --- 利用可能な組み合わせを取得（未登録分のみ） ---
+from itertools import product
 
-# 既存と重複しない組み合わせを抽出
-existing_keys = set(tuple(x) for x in kpi_df[["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"]].values)
-available_combinations = all_combinations[~all_combinations.apply(tuple, axis=1).isin(existing_keys)]
+all_combinations = pd.DataFrame(
+    list(product(広告媒体一覧, メインカテゴリ一覧, サブカテゴリ一覧, 広告目的一覧)),
+    columns=["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"]
+)
 
-# 空なら警告
+existing_combinations = kpi_df[["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"]]
+available_combinations = pd.merge(
+    all_combinations, existing_combinations,
+    on=["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"],
+    how="left", indicator=True
+).query('_merge == "left_only"').drop(columns=['_merge'])
+
+# --- KPI追加フォーム（未登録の組み合わせだけ表示） ---
 if available_combinations.empty:
     st.info("✅ すべての組み合わせが登録済みです。")
 else:
     st.markdown("### 🎯 新しいKPIを追加")
     with st.form("add_kpi_form"):
         col1, col2, col3, col4 = st.columns(4)
+
         ad_media = col1.selectbox("広告媒体", available_combinations["広告媒体"].unique())
         filtered_maincat = available_combinations[available_combinations["広告媒体"] == ad_media]["メインカテゴリ"].unique()
         main_cat = col2.selectbox("メインカテゴリ", filtered_maincat)
@@ -96,37 +97,29 @@ else:
         ]["広告目的"].unique()
         obj = col4.selectbox("広告目的", filtered_obj)
 
+        st.markdown("#### 指標値をすべて入力")
+        cols = st.columns(9)
+        cpa_best = cols[0].number_input("CPA_best", min_value=0.0, step=1.0, format="%.0f")
+        cpa_good = cols[1].number_input("CPA_good", min_value=0.0, step=1.0, format="%.0f")
+        cpa_min = cols[2].number_input("CPA_min", min_value=0.0, step=1.0, format="%.0f")
+        cvr_best = cols[3].number_input("CVR_best", min_value=0.0, step=0.01, format="%.2f")
+        cvr_good = cols[4].number_input("CVR_good", min_value=0.0, step=0.01, format="%.2f")
+        cvr_min = cols[5].number_input("CVR_min", min_value=0.0, step=0.01, format="%.2f")
+        ctr_best = cols[6].number_input("CTR_best", min_value=0.0, step=0.01, format="%.2f")
+        ctr_good = cols[7].number_input("CTR_good", min_value=0.0, step=0.01, format="%.2f")
+        ctr_min = cols[8].number_input("CTR_min", min_value=0.0, step=0.01, format="%.2f")
 
-    st.markdown("#### 指標値をすべて入力")
-    cols = st.columns(9)
-    cpa_best = cols[0].number_input("CPA_best", min_value=0.0, step=1.0, format="%.0f", key="add_cpa_best")
-    cpa_good = cols[1].number_input("CPA_good", min_value=0.0, step=1.0, format="%.0f", key="add_cpa_good")
-    cpa_min = cols[2].number_input("CPA_min", min_value=0.0, step=1.0, format="%.0f", key="add_cpa_min")
-    cvr_best = cols[3].number_input("CVR_best", min_value=0.0, step=0.01, format="%.2f", key="add_cvr_best")
-    cvr_good = cols[4].number_input("CVR_good", min_value=0.0, step=0.01, format="%.2f", key="add_cvr_good")
-    cvr_min = cols[5].number_input("CVR_min", min_value=0.0, step=0.01, format="%.2f", key="add_cvr_min")
-    ctr_best = cols[6].number_input("CTR_best", min_value=0.0, step=0.01, format="%.2f", key="add_ctr_best")
-    ctr_good = cols[7].number_input("CTR_good", min_value=0.0, step=0.01, format="%.2f", key="add_ctr_good")
-    ctr_min = cols[8].number_input("CTR_min", min_value=0.0, step=0.01, format="%.2f", key="add_ctr_min")
-    cols2 = st.columns(9)
-    cpc_best = cols2[0].number_input("CPC_best", min_value=0.0, step=1.0, format="%.0f", key="add_cpc_best")
-    cpc_good = cols2[1].number_input("CPC_good", min_value=0.0, step=1.0, format="%.0f", key="add_cpc_good")
-    cpc_min = cols2[2].number_input("CPC_min", min_value=0.0, step=1.0, format="%.0f", key="add_cpc_min")
-    cpm_best = cols2[3].number_input("CPM_best", min_value=0.0, step=1.0, format="%.0f", key="add_cpm_best")
-    cpm_good = cols2[4].number_input("CPM_good", min_value=0.0, step=1.0, format="%.0f", key="add_cpm_good")
-    cpm_min = cols2[5].number_input("CPM_min", min_value=0.0, step=1.0, format="%.0f", key="add_cpm_min")
+        cols2 = st.columns(9)
+        cpc_best = cols2[0].number_input("CPC_best", min_value=0.0, step=1.0, format="%.0f")
+        cpc_good = cols2[1].number_input("CPC_good", min_value=0.0, step=1.0, format="%.0f")
+        cpc_min = cols2[2].number_input("CPC_min", min_value=0.0, step=1.0, format="%.0f")
+        cpm_best = cols2[3].number_input("CPM_best", min_value=0.0, step=1.0, format="%.0f")
+        cpm_good = cols2[4].number_input("CPM_good", min_value=0.0, step=1.0, format="%.0f")
+        cpm_min = cols2[5].number_input("CPM_min", min_value=0.0, step=1.0, format="%.0f")
 
-    submitted = st.form_submit_button("追加")
-    if submitted:
-        is_dup = (
-            (kpi_df["広告媒体"] == ad_media) &
-            (kpi_df["メインカテゴリ"] == main_cat) &
-            (kpi_df["サブカテゴリ"] == sub_cat) &
-            (kpi_df["広告目的"] == obj)
-        ).any()
-        if is_dup:
-            st.warning("⚠️ この組み合わせは既に登録されています。")
-        else:
+        # ✅ Submit ボタンをフォーム内に配置
+        submitted = st.form_submit_button("追加")
+        if submitted:
             new_row = pd.DataFrame([{
                 "広告媒体": ad_media,
                 "メインカテゴリ": main_cat,
@@ -138,7 +131,7 @@ else:
                 "CPC_best": cpc_best, "CPC_good": cpc_good, "CPC_min": cpc_min,
                 "CPM_best": cpm_best, "CPM_good": cpm_good, "CPM_min": cpm_min,
             }])
-            st.session_state.kpi_df = pd.concat([kpi_df, new_row], ignore_index=True)
+            st.session_state.kpi_df = pd.concat([st.session_state.kpi_df, new_row], ignore_index=True)
             st.success("✅ 新しいKPIを追加しました（※保存は下のボタンで）")
 
 # --- 編集対象選択 ---
