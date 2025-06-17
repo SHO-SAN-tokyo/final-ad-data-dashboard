@@ -60,20 +60,28 @@ kpi_df = st.session_state.kpi_df
 # --- 利用可能な組み合わせを取得（未登録分のみ） ---
 from itertools import product
 
+# ✅ None, "None", 空白を除去したユニーク値を再定義
+def clean(values):
+    return sorted(v for v in values if v and str(v).strip().lower() != "none")
+
+広告媒体一覧 = clean(広告媒体一覧)
+メインカテゴリ一覧 = clean(メインカテゴリ一覧)
+サブカテゴリ一覧 = clean(サブカテゴリ一覧)
+広告目的一覧 = clean(広告目的一覧)
+
+# 全組み合わせ生成（product）
 all_combinations = pd.DataFrame(
     list(product(広告媒体一覧, メインカテゴリ一覧, サブカテゴリ一覧, 広告目的一覧)),
     columns=["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"]
 )
 
+# 既存との突合（未登録のものだけ残す）
 existing_combinations = kpi_df[["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"]]
 available_combinations = pd.merge(
     all_combinations, existing_combinations,
     on=["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"],
     how="left", indicator=True
 ).query('_merge == "left_only"').drop(columns=['_merge'])
-
-# ✅ None（または NaN）を含む組み合わせを除外
-available_combinations = available_combinations.dropna()
 
 # --- KPI追加フォーム（未登録の組み合わせだけ選ばせる） ---
 if available_combinations.empty:
@@ -129,6 +137,7 @@ else:
             }])
             st.session_state.kpi_df = pd.concat([st.session_state.kpi_df, new_row], ignore_index=True)
             st.success("✅ 新しいKPIを追加しました（※保存は下のボタンで）")
+
 
 
 # --- 編集対象選択 ---
