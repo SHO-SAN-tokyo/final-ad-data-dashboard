@@ -72,30 +72,24 @@ available_combinations = pd.merge(
     how="left", indicator=True
 ).query('_merge == "left_only"').drop(columns=['_merge'])
 
-# --- KPI追加フォーム（未登録の組み合わせだけ表示） ---
+# --- KPI追加フォーム（未登録の組み合わせだけ選ばせる） ---
 if available_combinations.empty:
     st.info("✅ すべての組み合わせが登録済みです。")
 else:
     st.markdown("### 🎯 新しいKPIを追加")
     with st.form("add_kpi_form"):
-        col1, col2, col3, col4 = st.columns(4)
+        combo_labels = available_combinations.apply(
+            lambda row: f"{row['広告媒体']} | {row['メインカテゴリ']} | {row['サブカテゴリ']} | {row['広告目的']}",
+            axis=1
+        )
+        selected_label = st.selectbox("📦 KPIを追加する組み合わせを選択", options=combo_labels)
 
-        ad_media = col1.selectbox("広告媒体", available_combinations["広告媒体"].unique())
-        filtered_maincat = available_combinations[available_combinations["広告媒体"] == ad_media]["メインカテゴリ"].unique()
-        main_cat = col2.selectbox("メインカテゴリ", filtered_maincat)
-
-        filtered_subcat = available_combinations[
-            (available_combinations["広告媒体"] == ad_media) &
-            (available_combinations["メインカテゴリ"] == main_cat)
-        ]["サブカテゴリ"].unique()
-        sub_cat = col3.selectbox("サブカテゴリ", filtered_subcat)
-
-        filtered_obj = available_combinations[
-            (available_combinations["広告媒体"] == ad_media) &
-            (available_combinations["メインカテゴリ"] == main_cat) &
-            (available_combinations["サブカテゴリ"] == sub_cat)
-        ]["広告目的"].unique()
-        obj = col4.selectbox("広告目的", filtered_obj)
+        # 選ばれた行を取得
+        selected_row = available_combinations.iloc[combo_labels.tolist().index(selected_label)]
+        ad_media = selected_row["広告媒体"]
+        main_cat = selected_row["メインカテゴリ"]
+        sub_cat = selected_row["サブカテゴリ"]
+        obj = selected_row["広告目的"]
 
         st.markdown("#### 指標値をすべて入力")
         cols = st.columns(9)
@@ -117,7 +111,6 @@ else:
         cpm_good = cols2[4].number_input("CPM_good", min_value=0.0, step=1.0, format="%.0f")
         cpm_min = cols2[5].number_input("CPM_min", min_value=0.0, step=1.0, format="%.0f")
 
-        # ✅ Submit ボタンをフォーム内に配置
         submitted = st.form_submit_button("追加")
         if submitted:
             new_row = pd.DataFrame([{
@@ -133,6 +126,7 @@ else:
             }])
             st.session_state.kpi_df = pd.concat([st.session_state.kpi_df, new_row], ignore_index=True)
             st.success("✅ 新しいKPIを追加しました（※保存は下のボタンで）")
+
 
 # --- 編集対象選択 ---
 st.markdown("### 🛠 KPI編集／削除")
