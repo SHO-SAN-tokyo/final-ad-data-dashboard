@@ -138,7 +138,7 @@ already_assigned = set(current_df["担当者"].dropna())
 unassigned_df = all_tantousha_df[~all_tantousha_df["担当者"].isin(already_assigned)]
 
 if unassigned_df.empty:
-    st.info("✨ すべての担当者がUnitに登録されています。")
+    st.info("✨ CVリスト送信済みのすべての担当者はUnitに登録されています。")
 else:
     selected_person = st.selectbox("👤 担当者を選択", unassigned_df["担当者"])
     input_unit = st.text_input("🏷️ 所属Unit名")
