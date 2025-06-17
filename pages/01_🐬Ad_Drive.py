@@ -81,43 +81,33 @@ with col2:
     if sel_client:
         filtered = filtered[filtered["client_name"].isin(sel_client)]
 
-# --- 2段目: メインカテゴリ・サブカテゴリ・広告媒体・広告目的（まとめて1列） ---
-col3 = st.columns(1)[0]
-with col3:
-    st.markdown("##### 🎯 詳細属性フィルター")
+# --- 2段目: メインカテゴリ・サブカテゴリ・広告媒体・広告目的（横並び） ---
+col3, col4, col5, col6 = st.columns(4)
 
-    # メインカテゴリ
+with col3:
     cat_options = sorted(filtered["メインカテゴリ"].dropna().unique())
     sel_cat = st.multiselect("📁 メインカテゴリ", cat_options, placeholder="すべて")
     if sel_cat:
         filtered = filtered[filtered["メインカテゴリ"].isin(sel_cat)]
 
-    # サブカテゴリ
+with col4:
     subcat_options = sorted(filtered["サブカテゴリ"].dropna().unique())
     sel_subcat = st.multiselect("📂 サブカテゴリ", subcat_options, placeholder="すべて")
     if sel_subcat:
         filtered = filtered[filtered["サブカテゴリ"].isin(sel_subcat)]
 
-    # 広告媒体
+with col5:
     media_options = sorted(filtered["広告媒体"].dropna().unique())
     sel_media = st.multiselect("📡 広告媒体", media_options, placeholder="すべて")
     if sel_media:
         filtered = filtered[filtered["広告媒体"].isin(sel_media)]
 
-    # 広告目的
+with col6:
     goal_options = sorted(filtered["広告目的"].dropna().unique())
     sel_goal = st.multiselect("🎯 広告目的", goal_options, placeholder="すべて")
     if sel_goal:
         filtered = filtered[filtered["広告目的"].isin(sel_goal)]
 
-# --- 下段: キャンペーン名 ---
-camp_options = sorted(filtered["キャンペーン名"].dropna().unique())
-sel_campaign = st.multiselect("📣 キャンペーン名", camp_options, placeholder="すべて")
-if sel_campaign:
-    filtered = filtered[filtered["キャンペーン名"].isin(sel_campaign)]
-
-# 以降、filteredを df_num_filt として以降で使う
-df_num_filt = filtered
 
 
 # ──────────────────────────────────────────────
