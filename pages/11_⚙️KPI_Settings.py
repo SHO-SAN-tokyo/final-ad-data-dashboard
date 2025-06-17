@@ -72,6 +72,9 @@ available_combinations = pd.merge(
     how="left", indicator=True
 ).query('_merge == "left_only"').drop(columns=['_merge'])
 
+# ✅ None（または NaN）を含む組み合わせを除外
+available_combinations = available_combinations.dropna()
+
 # --- KPI追加フォーム（未登録の組み合わせだけ選ばせる） ---
 if available_combinations.empty:
     st.info("✅ すべての組み合わせが登録済みです。")
