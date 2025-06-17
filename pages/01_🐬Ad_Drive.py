@@ -108,7 +108,10 @@ with col6:
     if sel_goal:
         filtered = filtered[filtered["広告目的"].isin(sel_goal)]
 
-
+camp_options = sorted(filtered["キャンペーン名"].dropna().unique())
+sel_campaign = st.multiselect("📣 キャンペーン名", camp_options, placeholder="すべて")
+if sel_campaign:
+    filtered = filtered[filtered["キャンペーン名"].isin(sel_campaign)]
 
 # ──────────────────────────────────────────────
 # ④ フィルター関数（キャンペーン / バナー両方へ適用）
