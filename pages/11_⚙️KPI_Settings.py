@@ -69,11 +69,22 @@ def clean(values):
 サブカテゴリ一覧 = clean(サブカテゴリ一覧)
 広告目的一覧 = clean(広告目的一覧)
 
-# 全組み合わせ生成（product）
-all_combinations = pd.DataFrame(
-    list(product(広告媒体一覧, メインカテゴリ一覧, サブカテゴリ一覧, 広告目的一覧)),
-    columns=["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"]
-)
+# --- 実データ上に存在するユニークな組み合わせのみ取得 ---
+@st.cache_data(ttl=60)
+def get_available_combinations():
+    query = f"""
+        SELECT DISTINCT `広告媒体`, `メインカテゴリ`, `サブカテゴリ`, `広告目的`
+        FROM `{project_id}.{source_table}`
+        WHERE `広告媒体` IS NOT NULL
+          AND `メインカテゴリ` IS NOT NULL
+          AND `サブカテゴリ` IS NOT NULL
+          AND `広告目的` IS NOT NULL
+    """
+    return client.query(query).to_dataframe()
+
+# 全候補を実データから取得
+all_combinations = get_available_combinations()
+
 
 # 既存との突合（未登録のものだけ残す）
 existing_combinations = kpi_df[["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"]]
