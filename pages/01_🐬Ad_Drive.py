@@ -161,11 +161,13 @@ st.markdown(
     f"📅 配信月：{delivery_range}　"
     f"👤 クライアント：{sel_client or 'すべて'}<br>"
     f"📁 メインカテゴリ：{sel_cat or 'すべて'}　"
-    f"📡 媒体：{sel_media or 'すべて'}　"
+    f"📂 サブカテゴリ：{sel_subcat or 'すべて'}　"
+    f"📡 広告媒体：{sel_media or 'すべて'}　"
     f"🎯 広告目的：{sel_goal or 'すべて'}<br>"
     f"📣 キャンペーン名：{sel_campaign or 'すべて'}",
     unsafe_allow_html=True
 )
+
 
 
 # ──────────────────────────────────────────────
