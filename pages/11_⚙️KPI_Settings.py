@@ -85,6 +85,13 @@ def get_available_combinations():
 # 全候補を実データから取得
 all_combinations = get_available_combinations()
 
+# 👇 ここに追加（空文字・"None"文字列の除去）
+def is_valid_combination(row):
+    return all(v and str(v).strip().lower() != "none" for v in row)
+
+all_combinations = all_combinations[all_combinations.apply(is_valid_combination, axis=1)].reset_index(drop=True)
+
+
 
 # 既存との突合（未登録のものだけ残す）
 existing_combinations = kpi_df[["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"]]
