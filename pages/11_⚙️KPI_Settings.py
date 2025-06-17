@@ -59,12 +59,43 @@ kpi_df = st.session_state.kpi_df
 
 # --- 追加フォーム ---
 st.markdown("### 🎯 新しいKPIを追加")
-with st.form("add_kpi_form"):
-    col1, col2, col3, col4 = st.columns(4)
-    ad_media = col1.selectbox("広告媒体", options=広告媒体一覧, key="add_media")
-    main_cat = col2.selectbox("メインカテゴリ", options=メインカテゴリ一覧, key="add_maincat")
-    sub_cat = col3.selectbox("サブカテゴリ", options=サブカテゴリ一覧, key="add_subcat")
-    obj = col4.selectbox("広告目的", options=広告目的一覧, key="add_obj")
+# --- ユニークな組み合わせから既存を除外する ---
+all_combinations = pd.DataFrame([
+    (m, main, sub, obj)
+    for m in 広告媒体一覧
+    for main in メインカテゴリ一覧
+    for sub in サブカテゴリ一覧
+    for obj in 広告目的一覧
+], columns=["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"])
+
+# 既存と重複しない組み合わせを抽出
+existing_keys = set(tuple(x) for x in kpi_df[["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"]].values)
+available_combinations = all_combinations[~all_combinations.apply(tuple, axis=1).isin(existing_keys)]
+
+# 空なら警告
+if available_combinations.empty:
+    st.info("✅ すべての組み合わせが登録済みです。")
+else:
+    st.markdown("### 🎯 新しいKPIを追加")
+    with st.form("add_kpi_form"):
+        col1, col2, col3, col4 = st.columns(4)
+        ad_media = col1.selectbox("広告媒体", available_combinations["広告媒体"].unique())
+        filtered_maincat = available_combinations[available_combinations["広告媒体"] == ad_media]["メインカテゴリ"].unique()
+        main_cat = col2.selectbox("メインカテゴリ", filtered_maincat)
+
+        filtered_subcat = available_combinations[
+            (available_combinations["広告媒体"] == ad_media) &
+            (available_combinations["メインカテゴリ"] == main_cat)
+        ]["サブカテゴリ"].unique()
+        sub_cat = col3.selectbox("サブカテゴリ", filtered_subcat)
+
+        filtered_obj = available_combinations[
+            (available_combinations["広告媒体"] == ad_media) &
+            (available_combinations["メインカテゴリ"] == main_cat) &
+            (available_combinations["サブカテゴリ"] == sub_cat)
+        ]["広告目的"].unique()
+        obj = col4.selectbox("広告目的", filtered_obj)
+
 
     st.markdown("#### 指標値をすべて入力")
     cols = st.columns(9)
