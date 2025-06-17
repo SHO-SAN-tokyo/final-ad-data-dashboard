@@ -159,7 +159,6 @@ if not kpi_df.empty:
     edit_row = show_df.iloc[edit_idx - 1]
 
     with st.expander(f"📝 この行を編集・削除（No.{edit_idx}）", expanded=False):
-        # 編集フォーム
         col1, col2, col3, col4 = st.columns(4)
         edit_media = col1.selectbox("広告媒体", options=広告媒体一覧, index=広告媒体一覧.index(edit_row["広告媒体"]), key="edit_media")
         edit_main_cat = col2.selectbox("メインカテゴリ", options=メインカテゴリ一覧, index=メインカテゴリ一覧.index(edit_row["メインカテゴリ"]), key="edit_maincat")
@@ -167,37 +166,35 @@ if not kpi_df.empty:
         edit_obj = col4.selectbox("広告目的", options=広告目的一覧, index=広告目的一覧.index(edit_row["広告目的"]), key="edit_obj")
 
         cols = st.columns(9)
-        edit_cpa_best = cols[0].number_input("CPA_best", min_value=0.0, step=1.0, format="%.0f", value=edit_row["CPA_best"], key="edit_cpa_best")
-        edit_cpa_good = cols[1].number_input("CPA_good", min_value=0.0, step=1.0, format="%.0f", value=edit_row["CPA_good"], key="edit_cpa_good")
-        edit_cpa_min = cols[2].number_input("CPA_min", min_value=0.0, step=1.0, format="%.0f", value=edit_row["CPA_min"], key="edit_cpa_min")
-        edit_cvr_best = cols[3].number_input("CVR_best", min_value=0.0, step=0.01, format="%.2f", value=edit_row["CVR_best"], key="edit_cvr_best")
-        edit_cvr_good = cols[4].number_input("CVR_good", min_value=0.0, step=0.01, format="%.2f", value=edit_row["CVR_good"], key="edit_cvr_good")
-        edit_cvr_min = cols[5].number_input("CVR_min", min_value=0.0, step=0.01, format="%.2f", value=edit_row["CVR_min"], key="edit_cvr_min")
-        edit_ctr_best = cols[6].number_input("CTR_best", min_value=0.0, step=0.01, format="%.2f", value=edit_row["CTR_best"], key="edit_ctr_best")
-        edit_ctr_good = cols[7].number_input("CTR_good", min_value=0.0, step=0.01, format="%.2f", value=edit_row["CTR_good"], key="edit_ctr_good")
-        edit_ctr_min = cols[8].number_input("CTR_min", min_value=0.0, step=0.01, format="%.2f", value=edit_row["CTR_min"], key="edit_ctr_min")
-        cols2 = st.columns(9)
-        edit_cpc_best = cols2[0].number_input("CPC_best", min_value=0.0, step=1.0, format="%.0f", value=edit_row["CPC_best"], key="edit_cpc_best")
-        edit_cpc_good = cols2[1].number_input("CPC_good", min_value=0.0, step=1.0, format="%.0f", value=edit_row["CPC_good"], key="edit_cpc_good")
-        edit_cpc_min = cols2[2].number_input("CPC_min", min_value=0.0, step=1.0, format="%.0f", value=edit_row["CPC_min"], key="edit_cpc_min")
-        edit_cpm_best = cols2[3].number_input("CPM_best", min_value=0.0, step=1.0, format="%.0f", value=edit_row["CPM_best"], key="edit_cpm_best")
-        edit_cpm_good = cols2[4].number_input("CPM_good", min_value=0.0, step=1.0, format="%.0f", value=edit_row["CPM_good"], key="edit_cpm_good")
-        edit_cpm_min = cols2[5].number_input("CPM_min", min_value=0.0, step=1.0, format="%.0f", value=edit_row["CPM_min"], key="edit_cpm_min")
+        edit_cpa_best = cols[0].number_input("CPA_best", value=edit_row["CPA_best"], min_value=0.0, step=1.0, format="%.0f", key="edit_cpa_best")
+        edit_cpa_good = cols[1].number_input("CPA_good", value=edit_row["CPA_good"], min_value=0.0, step=1.0, format="%.0f", key="edit_cpa_good")
+        edit_cpa_min = cols[2].number_input("CPA_min", value=edit_row["CPA_min"], min_value=0.0, step=1.0, format="%.0f", key="edit_cpa_min")
+        edit_cvr_best = cols[3].number_input("CVR_best", value=edit_row["CVR_best"], min_value=0.0, step=0.01, format="%.2f", key="edit_cvr_best")
+        edit_cvr_good = cols[4].number_input("CVR_good", value=edit_row["CVR_good"], min_value=0.0, step=0.01, format="%.2f", key="edit_cvr_good")
+        edit_cvr_min = cols[5].number_input("CVR_min", value=edit_row["CVR_min"], min_value=0.0, step=0.01, format="%.2f", key="edit_cvr_min")
+        edit_ctr_best = cols[6].number_input("CTR_best", value=edit_row["CTR_best"], min_value=0.0, step=0.01, format="%.2f", key="edit_ctr_best")
+        edit_ctr_good = cols[7].number_input("CTR_good", value=edit_row["CTR_good"], min_value=0.0, step=0.01, format="%.2f", key="edit_ctr_good")
+        edit_ctr_min = cols[8].number_input("CTR_min", value=edit_row["CTR_min"], min_value=0.0, step=0.01, format="%.2f", key="edit_ctr_min")
 
-        # 編集ボタン
+        cols2 = st.columns(9)
+        edit_cpc_best = cols2[0].number_input("CPC_best", value=edit_row["CPC_best"], min_value=0.0, step=1.0, format="%.0f", key="edit_cpc_best")
+        edit_cpc_good = cols2[1].number_input("CPC_good", value=edit_row["CPC_good"], min_value=0.0, step=1.0, format="%.0f", key="edit_cpc_good")
+        edit_cpc_min = cols2[2].number_input("CPC_min", value=edit_row["CPC_min"], min_value=0.0, step=1.0, format="%.0f", key="edit_cpc_min")
+        edit_cpm_best = cols2[3].number_input("CPM_best", value=edit_row["CPM_best"], min_value=0.0, step=1.0, format="%.0f", key="edit_cpm_best")
+        edit_cpm_good = cols2[4].number_input("CPM_good", value=edit_row["CPM_good"], min_value=0.0, step=1.0, format="%.0f", key="edit_cpm_good")
+        edit_cpm_min = cols2[5].number_input("CPM_min", value=edit_row["CPM_min"], min_value=0.0, step=1.0, format="%.0f", key="edit_cpm_min")
+
+        # 上書き保存
         if st.button("この内容で上書き保存", key="edit_save_btn"):
-            # 重複チェック（同じ組み合わせが他にないか）
             is_dup = (
                 (kpi_df["広告媒体"] == edit_media) &
                 (kpi_df["メインカテゴリ"] == edit_main_cat) &
                 (kpi_df["サブカテゴリ"] == edit_sub_cat) &
                 (kpi_df["広告目的"] == edit_obj)
             )
-            # 自分自身の行だけ許容
             if is_dup.sum() > 1:
                 st.warning("⚠️ この組み合わせは既に他の行で登録されています。")
             else:
-                # 行を上書き
                 kpi_df.iloc[edit_idx - 1] = [
                     edit_media, edit_main_cat, edit_sub_cat, edit_obj,
                     edit_cpa_best, edit_cpa_good, edit_cpa_min,
@@ -209,18 +206,24 @@ if not kpi_df.empty:
                 st.session_state.kpi_df = kpi_df
                 st.success("✅ 行を編集しました（※保存は下のボタンで）")
 
-        # 削除ボタン
-        if st.button("この行を削除する", key="del_btn"):
-            confirm = st.checkbox("本当に削除しますか？（チェックで有効）", key="del_confirm")
-            if confirm:
-                kpi_df = kpi_df.drop(kpi_df.index[edit_idx - 1]).reset_index(drop=True)
-                st.session_state.kpi_df = kpi_df
-                st.success("✅ 行を削除しました（※保存は下のボタンで）")
+        # 削除チェック → セッションに削除マークを残す（保存ボタンで反映）
+        if st.checkbox("本当に削除しますか？（チェックで有効）", key="del_confirm"):
+            if st.button("この行を削除する", key="del_btn"):
+                st.session_state["delete_index"] = edit_idx - 1
+                st.success("🗑 削除の準備ができました（保存ボタンで反映）")
 
-# --- 保存 ---
+# --- 保存ボタン ---
 if st.button("💾 保存する"):
     with st.spinner("保存中..."):
         try:
+            # 削除対象がある場合、事前に削除
+            if "delete_index" in st.session_state:
+                idx_to_del = st.session_state.pop("delete_index")
+                st.session_state.kpi_df = st.session_state.kpi_df.drop(
+                    st.session_state.kpi_df.index[idx_to_del]
+                ).reset_index(drop=True)
+                st.success("🗑 対象行を削除しました")
+
             save_columns = [
                 "広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的",
                 "CPA_best", "CPA_good", "CPA_min",
@@ -241,3 +244,4 @@ if st.button("💾 保存する"):
         except Exception as e:
             st.error("❌ 保存に失敗しました。エラー内容を確認してください。")
             st.exception(e)
+
