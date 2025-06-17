@@ -113,7 +113,13 @@ with col6:
 # ──────────────────────────────────────────────
 # ④ フィルター関数（キャンペーン / バナー両方へ適用）
 # ──────────────────────────────────────────────
-def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
+def apply_filters(
+    df: pd.DataFrame,
+    sel_client=None, sel_month=None,
+    sel_cat=None, sel_subcat=None,
+    sel_goal=None, sel_media=None,
+    sel_campaign=None
+) -> pd.DataFrame:
     cond = pd.Series(True, index=df.index)
     if "client_name" in df.columns and sel_client:
         cond &= df["client_name"].isin(sel_client)
