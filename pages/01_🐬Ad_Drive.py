@@ -141,8 +141,28 @@ def apply_filters(
     return df.loc[cond].copy()
 
 
-df_num_filt    = apply_filters(df_num)
-df_banner_filt = apply_filters(df_banner)
+df_num_filt = apply_filters(
+    df_num,
+    sel_client=sel_client,
+    sel_month=sel_month,
+    sel_cat=sel_cat,
+    sel_subcat=sel_subcat,
+    sel_goal=sel_goal,
+    sel_media=sel_media,
+    sel_campaign=sel_campaign
+)
+
+df_banner_filt = apply_filters(
+    df_banner,
+    sel_client=sel_client,
+    sel_month=sel_month,
+    sel_cat=sel_cat,
+    sel_subcat=sel_subcat,
+    sel_goal=sel_goal,
+    sel_media=sel_media,
+    sel_campaign=sel_campaign
+)
+
 
 # バナーは画像 URL がある行だけを軽量表示 (最大 100 件)
 df_banner_disp = df_banner_filt[df_banner_filt["CloudStorageUrl"].notna()].head(100) if "CloudStorageUrl" in df_banner_filt.columns else df_banner_filt.head(100)
