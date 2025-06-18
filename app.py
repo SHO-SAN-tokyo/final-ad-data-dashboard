@@ -1,7 +1,7 @@
 import streamlit as st
 
 st.set_page_config(page_title="HOME", layout="wide")
-st.title("🏠 HOME - ダッシュボード入口")
+st.title("🏠 HOME")
 
 st.markdown("### 🔗 ページ一覧")
 
