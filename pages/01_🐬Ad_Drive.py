@@ -347,6 +347,7 @@ st.markdown("""
 <style>
   h3.top {
     margin: .4rem auto 1rem auto !important;
+    font-size: 1.5rem;
   }
   h3 {
     background-color: #ddedfc;
