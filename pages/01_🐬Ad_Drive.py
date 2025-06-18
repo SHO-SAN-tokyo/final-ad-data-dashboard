@@ -217,7 +217,7 @@ for i, card in enumerate(row1):
             <div class="scorecard" style="
                 background:{card['bg']};
                 border-radius: 11px;
-                padding: 1.1rem .8rem .8rem .8rem;
+                padding: .8rem;
                 margin-bottom: 0.8rem;
                 box-shadow: 0 2px 6px rgba(50,60,80,.04);
                 border:1px solid #e4e4e4;">
@@ -244,7 +244,7 @@ for i, card in enumerate(row2):
             <div class="scorecard" style="
                 background:{card['bg']};
                 border-radius: 11px;
-                padding: 1.1rem .8rem .8rem .8rem;
+                padding: .8rem;
                 margin-bottom: 0.8rem;
                 box-shadow: 0 2px 6px rgba(50,60,80,.04);
                 border:1px solid #e4e4e4;">
