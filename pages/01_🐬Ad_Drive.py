@@ -224,7 +224,7 @@ for i, card in enumerate(row1):
               <div class="scorecard-label" style="font-size:12px; color:#111; margin-bottom:2px;">
                 {card['label']}
               </div>
-              <div class="scorecard-value" style="font-size:1.6rem; font-weight:600; color:#111; letter-spacing:0.01em; margin-bottom: 0.8rem !important;">
+              <div class="scorecard-value" style="font-size:1.35rem; font-weight:600; color:#111; letter-spacing:0.01em; margin-bottom: 0.6rem !important;">
                 {card['value']}
               </div>
             </div>
@@ -251,7 +251,7 @@ for i, card in enumerate(row2):
               <div class="scorecard-label" style="font-size:12px; color:#111; margin-bottom:2px;">
                 {card['label']}
               </div>
-              <div class="scorecard-value" style="font-size:1.6rem; font-weight:600; color:#111; letter-spacing:0.01em; margin-bottom: 0.8rem !important;">
+              <div class="scorecard-value" style="font-size:1.35rem; font-weight:600; color:#111; letter-spacing:0.01em; margin-bottom: 0.6rem !important;">
                 {card['value']}
               </div>
             </div>
