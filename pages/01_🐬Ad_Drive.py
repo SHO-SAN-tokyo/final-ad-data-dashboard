@@ -329,7 +329,7 @@ for i, (_, row) in enumerate(df_banner_disp.iterrows()):
         <div class='banner-caption'>{"<br>".join(caption)}</div>
       </div>
     """
-    with cols[i % 5]:
+    with cols[i % 4]:
         st.markdown(card_html, unsafe_allow_html=True)
 
 
