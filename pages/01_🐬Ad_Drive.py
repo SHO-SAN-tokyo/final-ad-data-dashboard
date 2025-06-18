@@ -290,7 +290,7 @@ def split_urls(raw):
     urls = [u.strip() for u in urls if u.strip().startswith("http")]
     return urls
 
-cols = st.columns(5, gap="small")
+cols = st.columns(4, gap="small")
 for i, (_, row) in enumerate(df_banner_disp.iterrows()):
     cost = row.get("Cost", 0)
     imp  = row.get("Impressions", 0)
