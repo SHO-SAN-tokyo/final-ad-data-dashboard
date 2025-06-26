@@ -20,7 +20,7 @@ cred["private_key"] = cred["private_key"].replace("\\n", "\n")
 bq = bigquery.Client.from_service_account_info(cred)
 
 # --- データ取得 ---
-query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data"
+query = "SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data_Last"
 with st.spinner("🔄 データを取得中..."):
     df = bq.query(query).to_dataframe()
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
