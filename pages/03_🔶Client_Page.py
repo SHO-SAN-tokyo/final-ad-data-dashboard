@@ -88,8 +88,6 @@ st.markdown("""
 <style>
 .table-row-text {
     font-size: 13px !important;
-    color: #2d3142;
-    font-family: 'Inter', 'Meiryo', 'sans-serif';
     letter-spacing: 0.02em;
 }
 </style>
