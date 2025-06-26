@@ -3,6 +3,15 @@ from google.cloud import bigquery
 import pandas as pd
 from datetime import datetime
 
+# ──────────────────────────────────────────────
+# ログイン認証
+# ──────────────────────────────────────────────
+from auth import require_login
+require_login()
+
+# ──────────────────────────────────────────────
+# Unit設定
+# ──────────────────────────────────────────────
 st.set_page_config(page_title="Unit設定", layout="wide")
 st.title("⚙️ Unit設定")
 
