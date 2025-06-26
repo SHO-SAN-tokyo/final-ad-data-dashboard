@@ -71,48 +71,56 @@ def make_link(url):
         f'{esc_url}</a></div>'
     )
 
+# --- フィルターリスト ---
+client_opts = sorted(df["client_name"].dropna().unique())
+media_opts = sorted(df["広告媒体"].dropna().unique())
+main_cat_opts = sorted(df["メインカテゴリ"].dropna().unique())
+sub_cat_opts = sorted(df["サブカテゴリ"].dropna().unique())
+purpose_opts = sorted(df["広告目的"].dropna().unique())
 
-# --- フィルター ---
-client_opts = ["すべて"] + sorted(df["client_name"].dropna().unique())
-main_cat_opts = ["すべて"] + sorted(df["メインカテゴリ"].dropna().unique())
-sub_cat_opts = ["すべて"] + sorted(df["サブカテゴリ"].dropna().unique())
-purpose_opts = ["すべて"] + sorted(df["広告目的"].dropna().unique())
-media_opts = ["すべて"] + sorted(df["広告媒体"].dropna().unique())
+# --- フィルターUI（1段目: クライアント名・広告媒体） ---
+row1_1, row1_2 = st.columns([2, 2])
+with row1_1:
+    sel_client = st.multiselect("👤 クライアント名", client_opts, placeholder="すべて")
+with row1_2:
+    sel_media = st.multiselect("📡 広告媒体", media_opts, placeholder="すべて")
 
-col1, col2, col3, col4, col5 = st.columns(5)
-sel_client = col1.selectbox("クライアント名", client_opts, index=0)
-sel_main = col2.selectbox("メインカテゴリ", main_cat_opts, index=0)
-sel_sub = col3.selectbox("サブカテゴリ", sub_cat_opts, index=0)
-sel_purpose = col4.selectbox("広告目的", purpose_opts, index=0)
-sel_media = col5.selectbox("広告媒体", media_opts, index=0)
+# --- フィルターUI（2段目: メインカテゴリ・サブカテゴリ・広告目的） ---
+row2_1, row2_2, row2_3 = st.columns(3)
+with row2_1:
+    sel_main = st.multiselect("📁 メインカテゴリ", main_cat_opts, placeholder="すべて")
+with row2_2:
+    sel_sub = st.multiselect("📂 サブカテゴリ", sub_cat_opts, placeholder="すべて")
+with row2_3:
+    sel_purpose = st.multiselect("🎯 広告目的", purpose_opts, placeholder="すべて")
 
 # --- フィルタリング ---
 filtered = df.copy()
-if sel_client != "すべて":
-    filtered = filtered[filtered["client_name"] == sel_client]
-if sel_main != "すべて":
-    filtered = filtered[filtered["メインカテゴリ"] == sel_main]
-if sel_sub != "すべて":
-    filtered = filtered[filtered["サブカテゴリ"] == sel_sub]
-if sel_purpose != "すべて":
-    filtered = filtered[filtered["広告目的"] == sel_purpose]
-if sel_media != "すべて":
-    filtered = filtered[filtered["広告媒体"] == sel_media]
+if sel_client:
+    filtered = filtered[filtered["client_name"].isin(sel_client)]
+if sel_media:
+    filtered = filtered[filtered["広告媒体"].isin(sel_media)]
+if sel_main:
+    filtered = filtered[filtered["メインカテゴリ"].isin(sel_main)]
+if sel_sub:
+    filtered = filtered[filtered["サブカテゴリ"].isin(sel_sub)]
+if sel_purpose:
+    filtered = filtered[filtered["広告目的"].isin(sel_purpose)]
 
-# --- フィルター結果サマリー ---
+# --- フィルター結果サマリー（フィルターごとに改行） ---
 def join_or_all(val):
     if isinstance(val, list):
         return "、".join(val) if val else "すべて"
-    return val if val and val != "すべて" else "すべて"
+    return val if val else "すべて"
 
 st.markdown(
     f"""
     <div style="font-size:13px; margin: 0 0 18px 0; color:#15519d; padding:8px 12px 7px 12px; border-radius:8px; background: #f4f7fa; border:1px solid #dbeafe;">
-        👤 クライアント名：<b>{join_or_all([sel_client])}</b>　
-        📁 メインカテゴリ：<b>{join_or_all([sel_main])}</b>　
-        📂 サブカテゴリ：<b>{join_or_all([sel_sub])}</b>　
-        🎯 広告目的：<b>{join_or_all([sel_purpose])}</b>　
-        📡 広告媒体：<b>{join_or_all([sel_media])}</b>
+        👤 クライアント名：<b>{join_or_all(sel_client)}</b><br>
+        📡 広告媒体：<b>{join_or_all(sel_media)}</b><br>
+        📁 メインカテゴリ：<b>{join_or_all(sel_main)}</b><br>
+        📂 サブカテゴリ：<b>{join_or_all(sel_sub)}</b><br>
+        🎯 広告目的：<b>{join_or_all(sel_purpose)}</b>
     </div>
     """,
     unsafe_allow_html=True,
