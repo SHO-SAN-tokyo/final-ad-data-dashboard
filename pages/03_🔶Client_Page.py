@@ -32,29 +32,48 @@ def load_client_view():
 
 df = load_client_view()
 
-# --- フィルターリスト ---
-current_tanto_list = sorted(set(df['現在の担当者'].dropna().unique()))
-front_list = sorted(set(df['フロント'].dropna().unique()))
-client_list = sorted(df['client_name'].unique())
-focus_list = sorted(df['focus_level'].dropna().unique())
+# --- 多段連動フィルター用: 初期値セット ---
+if "sel_tanto" not in st.session_state: st.session_state["sel_tanto"] = []
+if "sel_front" not in st.session_state: st.session_state["sel_front"] = []
+if "sel_client" not in st.session_state: st.session_state["sel_client"] = []
+if "sel_focus" not in st.session_state: st.session_state["sel_focus"] = []
+
+def filter_df(df):
+    out = df.copy()
+    if st.session_state["sel_tanto"]:
+        out = out[out["現在の担当者"].isin(st.session_state["sel_tanto"])]
+    if st.session_state["sel_front"]:
+        out = out[out["フロント"].isin(st.session_state["sel_front"])]
+    if st.session_state["sel_client"]:
+        out = out[out["client_name"].isin(st.session_state["sel_client"])]
+    if st.session_state["sel_focus"]:
+        out = out[out["focus_level"].isin(st.session_state["sel_focus"])]
+    return out
+
+filtered_df = filter_df(df)
+
+# --- 各フィルターの選択肢を「現状のfiltered_df」から生成 ---
+current_tanto_list = sorted(set(filtered_df['現在の担当者'].dropna().unique()))
+front_list = sorted(set(filtered_df['フロント'].dropna().unique()))
+client_list = sorted(filtered_df['client_name'].unique())
+focus_list = sorted(filtered_df['focus_level'].dropna().unique())
 
 cols = st.columns(4)
-sel_tanto = cols[0].multiselect("現在の担当者", current_tanto_list, placeholder="すべて")
-sel_front = cols[1].multiselect("フロント", front_list, placeholder="すべて")
-sel_client = cols[2].multiselect("クライアント名", client_list, placeholder="すべて")
-sel_focus = cols[3].multiselect("注力度", focus_list, placeholder="すべて")
+st.session_state["sel_tanto"] = cols[0].multiselect(
+    "現在の担当者", current_tanto_list, default=[v for v in st.session_state["sel_tanto"] if v in current_tanto_list], placeholder="すべて"
+)
+st.session_state["sel_front"] = cols[1].multiselect(
+    "フロント", front_list, default=[v for v in st.session_state["sel_front"] if v in front_list], placeholder="すべて"
+)
+st.session_state["sel_client"] = cols[2].multiselect(
+    "クライアント名", client_list, default=[v for v in st.session_state["sel_client"] if v in client_list], placeholder="すべて"
+)
+st.session_state["sel_focus"] = cols[3].multiselect(
+    "注力度", focus_list, default=[v for v in st.session_state["sel_focus"] if v in focus_list], placeholder="すべて"
+)
 
-# --- フィルター適用 ---
-filtered_df = df.copy()
-if sel_tanto:
-    filtered_df = filtered_df[filtered_df["現在の担当者"].isin(sel_tanto)]
-if sel_front:
-    filtered_df = filtered_df[filtered_df["フロント"].isin(sel_front)]
-if sel_client:
-    filtered_df = filtered_df[filtered_df["client_name"].isin(sel_client)]
-if sel_focus:
-    filtered_df = filtered_df[filtered_df["focus_level"].isin(sel_focus)]
-
+# 再度フィルタリング
+filtered_df = filter_df(df)
 
 # --- リンクURL生成 ---
 filtered_df["リンクURL"] = filtered_df["client_id"].apply(
