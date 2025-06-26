@@ -38,27 +38,23 @@ front_list = sorted(set(df['フロント'].dropna().unique()))
 client_list = sorted(df['client_name'].unique())
 focus_list = sorted(df['focus_level'].dropna().unique())
 
-with st.form("filter_form"):
-    cols = st.columns(4)
-    sel_tanto = cols[0].multiselect("現在の担当者", current_tanto_list, placeholder="すべて")
-    sel_front = cols[1].multiselect("フロント", front_list, placeholder="すべて")
-    sel_client = cols[2].multiselect("クライアント名", client_list, placeholder="すべて")
-    sel_focus = cols[3].multiselect("注力度", focus_list, placeholder="すべて")
-    submitted = st.form_submit_button("フィルター適用")
+cols = st.columns(4)
+sel_tanto = cols[0].multiselect("現在の担当者", current_tanto_list, placeholder="すべて")
+sel_front = cols[1].multiselect("フロント", front_list, placeholder="すべて")
+sel_client = cols[2].multiselect("クライアント名", client_list, placeholder="すべて")
+sel_focus = cols[3].multiselect("注力度", focus_list, placeholder="すべて")
 
-if "filtered" not in st.session_state or submitted:
-    filtered_df = df.copy()
-    if sel_tanto:
-        filtered_df = filtered_df[filtered_df["現在の担当者"].isin(sel_tanto)]
-    if sel_front:
-        filtered_df = filtered_df[filtered_df["フロント"].isin(sel_front)]
-    if sel_client:
-        filtered_df = filtered_df[filtered_df["client_name"].isin(sel_client)]
-    if sel_focus:
-        filtered_df = filtered_df[filtered_df["focus_level"].isin(sel_focus)]
-    st.session_state["filtered"] = filtered_df
-else:
-    filtered_df = st.session_state["filtered"]
+# --- フィルター適用 ---
+filtered_df = df.copy()
+if sel_tanto:
+    filtered_df = filtered_df[filtered_df["現在の担当者"].isin(sel_tanto)]
+if sel_front:
+    filtered_df = filtered_df[filtered_df["フロント"].isin(sel_front)]
+if sel_client:
+    filtered_df = filtered_df[filtered_df["client_name"].isin(sel_client)]
+if sel_focus:
+    filtered_df = filtered_df[filtered_df["focus_level"].isin(sel_focus)]
+
 
 # --- リンクURL生成 ---
 filtered_df["リンクURL"] = filtered_df["client_id"].apply(
