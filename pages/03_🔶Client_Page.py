@@ -62,7 +62,7 @@ else:
 
 # --- リンクURL生成 ---
 filtered_df["リンクURL"] = filtered_df["client_id"].apply(
-    lambda cid: f"https://sho-san-client-ad-score.streamlit.app/Daily_Score?client_id={cid}"
+    lambda cid: f"https://sho-san-client-ad-score.streamlit.app/?client_id={cid}"
 )
 
 st.divider()
