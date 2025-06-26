@@ -10,6 +10,8 @@ import openai
 from auth import require_login
 require_login()
 
+st.markdown("###### じゅんびちゅうです。")
+
 # openai.api_key = st.secrets["openai"]["api_key"]
 
 # st.set_page_config(page_title="広告AI分析室", layout="wide")
