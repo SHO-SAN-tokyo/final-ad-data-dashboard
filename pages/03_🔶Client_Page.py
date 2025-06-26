@@ -22,7 +22,7 @@ st.markdown("""
     color: #2455c2;
     font-weight: bold;
 ">
-    クライアントに共有可能なリンク一覧です。
+    クライアントに共有可能なリンク一覧です。そのクライアントのみの広告スコアが表示されるので安全です。
 </div>
 <div style="
     margin-bottom: 28px;
@@ -31,7 +31,7 @@ st.markdown("""
 ">
     アイパスを添えて共有してください<br>
     <span style="font-weight:600;color:#1d7290;">ユーザーID: adscore</span>　
-    <span style="font-weight:600;color:#b65916;">パスワード: 7n2wb86v</span>
+    <span style="font-weight:600;color:#b65916;">パスワード: 7n2wb86vkw</span>
 </div>
 """, unsafe_allow_html=True)
 
