@@ -15,8 +15,26 @@ require_login()
 st.set_page_config(page_title="クライアント別ページリンク一覧", layout="wide")
 st.title("🔗 クライアント別ページリンク一覧")
 
-st.write("###### クライアントに共有可能なリンク一覧です。")
-st.write("###### アイパスを添えて共有してください➡️ユーザーID: adscore  パスワード: 7n2wb86v")
+st.markdown("""
+<div style="
+    margin: 16px 0 8px 0;
+    font-size: 15px;
+    color: #2455c2;
+    font-weight: bold;
+">
+    クライアントに共有可能なリンク一覧です。
+</div>
+<div style="
+    margin-bottom: 28px;
+    font-size: 13px;
+    color: #444;
+">
+    アイパスを添えて共有してください<br>
+    <span style="font-weight:600;color:#1d7290;">ユーザーID: adscore</span>　
+    <span style="font-weight:600;color:#b65916;">パスワード: 7n2wb86v</span>
+</div>
+""", unsafe_allow_html=True)
+
 
 # --- BigQuery認証 ---
 info = dict(st.secrets["connections"]["bigquery"])
