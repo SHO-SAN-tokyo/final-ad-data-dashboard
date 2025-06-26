@@ -141,7 +141,7 @@ for idx, row in unit_summary.iterrows():
     with unit_cols[idx % 3]:
         st.markdown(f"""
         <div style='background-color: {unit_color_map.get(row["所属"], "#f0f0f0")}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
-            <div style='font-size: 1.3rem; font-weight: bold; text-align: center;'>{row['所属']}</div>
+            <div style='font-size: 1.6rem; font-weight: bold; text-align: center;'>{row['所属']}</div>
             <div style='font-size: 1.3rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
             <div style='font-size: 0.9rem; margin-top: 0.5rem;'>
                 キャンペーン数: {int(row['CampaignId'])}<br>
