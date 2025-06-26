@@ -40,7 +40,7 @@ def load_lp_data():
           CPM,
           CVR,
           CTR
-        FROM careful-chess-406412.SHOSAN_Ad_Tokyo.LP_Score_Ready
+        FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.LP_Score_Ready`
         ORDER BY Cost DESC
     """
     return bq.query(query).to_dataframe()
