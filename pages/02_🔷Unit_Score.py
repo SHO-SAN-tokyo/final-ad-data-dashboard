@@ -207,7 +207,7 @@ if "達成状況" in df_filtered.columns:
         with person_cols[idx % 5]:
             st.markdown(f"""
             <div style='background-color: #f0f5eb; padding: 1rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
-                <h5 style="font-size: 1.2rem; padding: 10px 0px 10px 15px !important;">{row["担当者"]}</h5>
+                <h5 style='font-size: 1.2rem; padding: 10px 0px 10px 15px;'>{row["担当者"]}</h5>
                 <div style='font-size: 1.2rem; font-weight: bold;'>{row["達成率"]:.0%}</div>
                 <div style='font-size: 0.9rem;'>
                     達成数: {int(row["達成件数"])} / {int(row["campaign_count"])}
