@@ -29,7 +29,7 @@ st.markdown("""
     font-size: 13px;
     color: #444;
 ">
-    各リンクにアイパスを添えて共有してください。⚠️間違えて他のクライアントのリンクを送らないように注意<br>
+    各リンクにアイパスを添えて共有してください。<br>⚠️間違えて他のクライアントのリンクを送らないように注意！<br>
     <span style="font-weight:600;color:#1d7290;">ユーザーID: adscore</span>　
     <span style="font-weight:600;color:#b65916;">パスワード: 7n2wb86vkw</span>
 </div>
