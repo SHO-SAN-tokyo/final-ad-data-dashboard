@@ -3,6 +3,16 @@ import pandas as pd
 from google.cloud import bigquery
 from google.oauth2 import service_account
 
+# ──────────────────────────────────────────────
+# ログイン認証
+# ──────────────────────────────────────────────
+from auth import require_login
+require_login()
+
+
+# ──────────────────────────────────────────────
+# KPI設定
+# ──────────────────────────────────────────────
 # --- 認証 ---
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
