@@ -83,6 +83,18 @@ filtered_df["リンクURL"] = filtered_df["client_id"].apply(
 
 st.divider()
 
+# --- CSS追加（テーブル行のテキストサイズを小さく） ---
+st.markdown("""
+<style>
+.table-row-text {
+    font-size: 13px !important;
+    color: #2d3142;
+    font-family: 'Inter', 'Meiryo', 'sans-serif';
+    letter-spacing: 0.02em;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # --- ヘッダー ---
 header_cols = st.columns([2, 1.5, 2, 2, 2, 1.5])
 header_cols[0].markdown("**クライアント名**")
@@ -97,7 +109,7 @@ st.divider()
 def vertical_center(content, height="70px"):
     safe_content = content if pd.notna(content) and str(content).strip() != "" else "&nbsp;"
     return f"""
-    <div style="display: flex; align-items: center; height: {height}; min-height: {height};">
+    <div class="table-row-text" style="display: flex; align-items: center; height: {height}; min-height: {height};">
         {html.escape(safe_content) if safe_content != "&nbsp;" else safe_content}
     </div>
     """
@@ -117,7 +129,9 @@ for _, row in filtered_df.iterrows():
             border-radius: 6px;
             background-color: rgb(53, 169, 195);
             color: white;
-            font-weight: bold;">
+            font-weight: bold;
+            font-size: 13px;   /* ここで小さく */
+        ">
             ▶ ページを開く
         </a>
         """
@@ -130,3 +144,4 @@ for _, row in filtered_df.iterrows():
         st.markdown(f'<div style="{row_style}">{vertical_center(row["フロント"])}</div>', unsafe_allow_html=True)
     with cols[5]:
         st.markdown(f'<div style="{row_style}">{vertical_center(row["focus_level"])}</div>', unsafe_allow_html=True)
+
