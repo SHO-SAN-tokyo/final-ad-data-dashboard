@@ -25,7 +25,7 @@ client = bigquery.Client.from_service_account_info(info)
 def load_client_view():
     query = """
     SELECT 
-        client_name, client_id, focus_level, 現在の担当者, 過去の担当者, フロント
+        client_name, client_id, focus_level, `現在の担当者`, `過去の担当者`, `フロント`
     FROM SHOSAN_Ad_Tokyo.Client_List_For_Page
     """
     return client.query(query).to_dataframe()
