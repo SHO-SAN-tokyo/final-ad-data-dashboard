@@ -178,8 +178,8 @@ for idx, row in person_summary.iterrows():
     with person_cols[idx % 5]:
         st.markdown(f"""
         <div style='background-color: {color}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
-            <h4 style='margin-bottom: 0.3rem;'>{row['担当者']}</h4>
-            <div style='font-size: 1.3rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
+            <h4 style='font-size: 1.2rem; margin-bottom: 0.3rem;'>{row['担当者']}</h4>
+            <div style='font-size: 1.2rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
             <div style='font-size: 0.9rem; margin-top: 0.5rem;'>
                 キャンペーン数: {int(row['CampaignId'])}<br>
                 予算: ¥{int(row['予算']):,}<br>
