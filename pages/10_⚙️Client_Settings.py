@@ -184,7 +184,7 @@ if settings_df.empty:
 else:
     link_df = settings_df[["client_name", "building_count", "buisiness_content", "focus_level", "client_id"]].copy()
     link_df["リンクURL"] = link_df["client_id"].apply(
-        lambda cid: f"https://sho-san-client-ad-score.streamlit.app/Daily_Score?client_id={cid}"
+        lambda cid: f"https://sho-san-client-ad-score.streamlit.app/?client_id={cid}"
     )
 
     st.divider()
