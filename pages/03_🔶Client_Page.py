@@ -15,6 +15,8 @@ require_login()
 st.set_page_config(page_title="クライアント別ページリンク一覧", layout="wide")
 st.title("🔗 クライアント別ページリンク一覧")
 
+st.subheader("クライアントに共有可能なリンク一覧です。アイパスを添えて共有してください➡️ユーザーID: adscore  パスワード: 7n2wb86v")
+
 # --- BigQuery認証 ---
 info = dict(st.secrets["connections"]["bigquery"])
 info["private_key"] = info["private_key"].replace("\\n", "\n")
