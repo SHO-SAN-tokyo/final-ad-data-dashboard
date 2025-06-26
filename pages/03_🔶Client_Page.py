@@ -40,10 +40,10 @@ focus_list = sorted(df['focus_level'].dropna().unique())
 
 with st.form("filter_form"):
     cols = st.columns(4)
-    sel_tanto = cols[0].multiselect("現在の担当者", current_tanto_list)
-    sel_front = cols[1].multiselect("フロント", front_list)
-    sel_client = cols[2].multiselect("クライアント名", client_list)
-    sel_focus = cols[3].multiselect("注力度", focus_list)
+    sel_tanto = cols[0].multiselect("現在の担当者", current_tanto_list, placeholder="すべて")
+    sel_front = cols[1].multiselect("フロント", front_list, placeholder="すべて")
+    sel_client = cols[2].multiselect("クライアント名", client_list, placeholder="すべて")
+    sel_focus = cols[3].multiselect("注力度", focus_list, placeholder="すべて")
     submitted = st.form_submit_button("フィルター適用")
 
 if "filtered" not in st.session_state or submitted:
