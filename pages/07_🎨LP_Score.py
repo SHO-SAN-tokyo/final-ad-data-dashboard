@@ -2,6 +2,12 @@ import streamlit as st
 from google.cloud import bigquery
 import pandas as pd, numpy as np
 
+# ──────────────────────────────────────────────
+# ログイン認証
+# ──────────────────────────────────────────────
+from auth import require_login
+require_login()
+
 # --- ページ設定 ---
 st.set_page_config(page_title="LP_Drive", layout="wide")
 st.title("🎨 LP Score")
