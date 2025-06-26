@@ -64,7 +64,13 @@ def make_link(url):
     if pd.isna(url) or not str(url).startswith("http"):
         return "-"
     esc_url = html.escape(url)
-    return f'<a href="{esc_url}" target="_blank">{esc_url}</a>'
+    return (
+        f'<div style="max-width:640px; overflow-x:auto;">'
+        f'<a href="{esc_url}" target="_blank" '
+        f'style="display:inline-block; word-break:break-all; font-size:13px;">'
+        f'{esc_url}</a></div>'
+    )
+
 
 # --- フィルター ---
 client_opts = ["すべて"] + sorted(df["client_name"].dropna().unique())
