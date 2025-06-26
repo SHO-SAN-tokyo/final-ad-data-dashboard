@@ -5,6 +5,16 @@ from datetime import datetime
 import random
 import string
 
+# ──────────────────────────────────────────────
+# ログイン認証
+# ──────────────────────────────────────────────
+from auth import require_login
+require_login()
+
+
+# ──────────────────────────────────────────────
+# クライアント設定
+# ──────────────────────────────────────────────
 # --- ページ設定 ---
 st.set_page_config(page_title="クライアント設定", layout="wide")
 st.title("⚙️ クライアント設定")
