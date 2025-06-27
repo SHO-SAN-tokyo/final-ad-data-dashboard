@@ -22,4 +22,4 @@ section("LP_Score", "🎨 LP Score", "LP・HPなど広告配信したURLごと�
 section("AI_Insight", "🧠 AI Insight", "準備中です。AIによる広告パフォーマンスの分析・改善提案")
 section("Unit_Settings", "⚙️ Unit設定", "ユニット情報の設定・編集")
 section("Client_Settings", "⚙️ Client設定", "クライアント情報情報の設定・編集")
-section("KPI_Settings", "⚙️ KPI設定", "カテゴリ・広告目的ごとの目標指標を登録・編集")
+section("KPI_Settings", "⚙️ KPI設定", "カテゴリ・広告目的ごとの広告目標指標を登録・編集")
