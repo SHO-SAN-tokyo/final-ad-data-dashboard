@@ -150,6 +150,7 @@ for 指標 in 指標群:
         f"<span style='font-size:12px; color:#666;'>{filter_text}</span>",
         unsafe_allow_html=True
     )
+    # --- 以下グラフ処理 ---
     df_plot = (
         df_filtered.groupby("配信月_dt")
           .agg(実績値=(指標, "mean"))
