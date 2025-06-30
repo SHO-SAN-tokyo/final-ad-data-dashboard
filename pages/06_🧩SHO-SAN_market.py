@@ -34,8 +34,8 @@ df = load_data()
 df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
 df["配信月"] = df["配信月_dt"].dt.strftime("%Y/%m")
 
-# CVR_best, CTR_best補正（1.0超なら/100）
-for col in ["CVR_best", "CTR_best"]:
+# CVR_good, CTR_good補正（1.0超なら/100）
+for col in ["CVR_good", "CTR_good"]:
     if col in df.columns:
         df[col] = df[col].apply(lambda x: x / 100 if pd.notna(x) and x > 1 else x)
 
@@ -63,7 +63,7 @@ def option_list(colname):
     vals = df_disp[colname].dropna()
     return vals.value_counts().index.tolist()  # 件数順
 
-col1, col2, col3, col4, col5, col6 = st.columns(6)
+col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     main_cat_opts = option_list("メインカテゴリ")
     main_cat = st.multiselect(
@@ -107,18 +107,18 @@ if obj:
 st.markdown("### 📋 達成率一覧")
 表示列 = [
     "配信月", "都道府県", "地方", "メインカテゴリ", "サブカテゴリ", "広告目的", "キャンペーン名",
-    "CPA", "CPA_best", "CPA_評価",
-    "CVR", "CVR_best", "CVR_評価",
-    "CTR", "CTR_best", "CTR_評価",
-    "CPC", "CPC_best", "CPC_評価",
-    "CPM", "CPM_best", "CPM_評価",
+    "CPA", "CPA_good", "CPA_評価",
+    "CVR", "CVR_good", "CVR_評価",
+    "CTR", "CTR_good", "CTR_評価",
+    "CPC", "CPC_good", "CPC_評価",
+    "CPM", "CPM_good", "CPM_評価",
     "目標CPA", "目標CPA評価"
 ]
 
 df_fmt = df_filtered[表示列].copy()
-for col in ["CVR", "CVR_best", "CTR", "CTR_best"]:
+for col in ["CVR", "CVR_good", "CTR", "CTR_good"]:
     df_fmt[col] = df_fmt[col].apply(lambda x: f"{x:.1%}" if pd.notna(x) else "")
-for col in ["CPA", "CPA_best", "CPC", "CPC_best", "CPM", "CPM_best", "目標CPA"]:
+for col in ["CPA", "CPA_good", "CPC", "CPC_good", "CPM", "CPM_good", "目標CPA"]:
     df_fmt[col] = df_fmt[col].apply(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "")
 
 st.dataframe(
@@ -136,9 +136,18 @@ for 指標 in 指標群:
           .agg(実績値=(指標, "mean"), 目標値=(f"{指標}_good", "mean"))
           .reset_index()
     )
-    df_plot["実績値_label"] = df_plot["実績値"].apply(
-        lambda x: f"¥{x:,.0f}" if 指標 in ["CPA", "CPC", "CPM"] else f"{x:.1%}"
-    )
+
+    def get_label(val):
+        if pd.isna(val):
+            return ""
+        if 指標 in ["CPA", "CPC", "CPM"]:
+            return f"¥{val:,.0f}"
+        else:
+            return f"{val:.1%}"
+
+    df_plot["実績値_label"] = df_plot["実績値"].apply(get_label)
+    df_plot["目標値_label"] = df_plot["目標値"].apply(get_label)
+
     import plotly.graph_objects as go
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -148,14 +157,18 @@ for 指標 in 指標群:
         name="実績値",
         text=df_plot["実績値_label"],
         textposition="top center",
-        line=dict(color="blue")
+        line=dict(color="blue"),
+        hovertemplate="%{x|%Y/%m}<br>実績値：%{text}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
         x=df_plot["配信月_dt"],
         y=df_plot["目標値"],
-        mode="lines+markers",
+        mode="lines+markers+text",
         name="目標値",
-        line=dict(color="gray", dash="dash")
+        text=df_plot["目標値_label"],
+        textposition="top center",
+        line=dict(color="gray", dash="dash"),
+        hovertemplate="%{x|%Y/%m}<br>目標値：%{text}<extra></extra>",
     ))
     fig.update_layout(
         yaxis_title=指標,
