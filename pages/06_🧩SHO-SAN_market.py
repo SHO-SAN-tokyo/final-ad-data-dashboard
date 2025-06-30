@@ -3,102 +3,81 @@ import pandas as pd
 import plotly.express as px
 from google.cloud import bigquery
 
-# ──────────────────────────────────────────────
+# ─────────────────────────────
 # ログイン認証
-# ──────────────────────────────────────────────
+# ─────────────────────────────
 from auth import require_login
 require_login()
 
-# ──────────────────────────────────────────────
+# ─────────────────────────────
 # コンテンツ
-# ──────────────────────────────────────────────
+# ─────────────────────────────
 st.set_page_config(page_title="カテゴリ×都道府県 達成率モニター", layout="wide")
 st.title("🧩 SHO‑SAN market")
 st.subheader("📊 カテゴリ × 都道府県 キャンペーン達成率モニター")
 
-# 1. データ読み込み
 cred = dict(st.secrets["connections"]["bigquery"])
 cred["private_key"] = cred["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(cred)
 
 @st.cache_data(show_spinner=False)
 def load_data():
-    query = """
-        SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Market_Monthly_Evaluated_View`
-    """
+    query = "SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Market_Monthly_Evaluated_View`"
     return client.query(query).to_dataframe()
 
 @st.cache_data(show_spinner=False)
 def load_kpi_settings():
-    query = """
-        SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Target_Indicators_Meta`
-    """
+    query = "SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Target_Indicators_Meta`"
     return client.query(query).to_dataframe()
 
 df = load_data()
 df_kpi = load_kpi_settings()
 
-# 2. 前処理
 df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
 df["配信月"] = df["配信月_dt"].dt.strftime("%Y/%m")
-
-# CVR_good, CTR_good補正（1.0超なら/100）
 for col in ["CVR_good", "CTR_good"]:
     if col in df.columns:
         df[col] = df[col].apply(lambda x: x / 100 if pd.notna(x) and x > 1 else x)
 
-# 目標CPA評価（goodで比較例。goodの閾値が無い場合は×を返す）
-if "目標CPA_good" in df.columns:
-    df["目標CPA評価"] = df.apply(
-        lambda row: "◎" if pd.notna(row["目標CPA"]) and pd.notna(row["CPA"]) and row["CPA"] <= row["目標CPA"]
-        else "○" if pd.notna(row["目標CPA_good"]) and pd.notna(row["CPA"]) and row["CPA"] <= row["目標CPA_good"]
-        else "×",
-        axis=1
-    )
-else:
-    df["目標CPA評価"] = df.apply(
-        lambda row: "◎" if pd.notna(row["目標CPA"]) and pd.notna(row["CPA"]) and row["CPA"] <= row["目標CPA"] else "×",
-        axis=1
-    )
+# ▼ KPIは常に完全固定
+kpi_row = df_kpi[
+    (df_kpi["メインカテゴリ"] == "注文住宅･規格住宅") &
+    (df_kpi["サブカテゴリ"] == "完成見学会") &
+    (df_kpi["広告目的"] == "コンバージョン")
+].iloc[0]
+kpi_dict = {
+    "CPA": kpi_row["CPA_good"],
+    "CVR": kpi_row["CVR_good"],
+    "CTR": kpi_row["CTR_good"],
+    "CPC": kpi_row["CPC_good"],
+    "CPM": kpi_row["CPM_good"],
+}
 
-# 1キャンペーン1行に集約
 df_disp = df.drop_duplicates(
     subset=["配信月", "キャンペーン名", "メインカテゴリ", "サブカテゴリ", "広告目的"]
 )
 
-# フィルター（複数選択＋件数順＋初期は未選択）
 def option_list(colname):
     vals = df_disp[colname].dropna()
-    return vals.value_counts().index.tolist()  # 件数順
+    return vals.value_counts().index.tolist()
 
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     main_cat_opts = option_list("メインカテゴリ")
-    main_cat = st.multiselect(
-        "📁 メインカテゴリ", main_cat_opts, default=[], placeholder="すべて"
-    )
+    main_cat = st.multiselect("📁 メインカテゴリ", main_cat_opts, default=[], placeholder="すべて")
 with col2:
     sub_cat_opts = option_list("サブカテゴリ")
-    sub_cat = st.multiselect(
-        "🗂️ サブカテゴリ", sub_cat_opts, default=[], placeholder="すべて"
-    )
+    sub_cat = st.multiselect("🗂️ サブカテゴリ", sub_cat_opts, default=[], placeholder="すべて")
 with col3:
     area_opts = option_list("地方")
-    area = st.multiselect(
-        "🌏 地方", area_opts, default=[], placeholder="すべて"
-    )
+    area = st.multiselect("🌏 地方", area_opts, default=[], placeholder="すべて")
 with col4:
     pref_opts = option_list("都道府県")
-    pref = st.multiselect(
-        "🗾 都道府県", pref_opts, default=[], placeholder="すべて"
-    )
+    pref = st.multiselect("🗾 都道府県", pref_opts, default=[], placeholder="すべて")
 with col5:
     obj_opts = option_list("広告目的")
-    obj = st.multiselect(
-        "🎯 広告目的", obj_opts, default=[], placeholder="すべて"
-    )
+    obj = st.multiselect("🎯 広告目的", obj_opts, default=[], placeholder="すべて")
 
-# フィルター適用（何も選択されていなければ全件）
 df_filtered = df_disp.copy()
 if main_cat:
     df_filtered = df_filtered[df_filtered["メインカテゴリ"].isin(main_cat)]
@@ -111,33 +90,6 @@ if pref:
 if obj:
     df_filtered = df_filtered[df_filtered["広告目的"].isin(obj)]
 
-# KPI取得関数（フィルターに合わせて唯一値を取得）
-def get_current_kpi(colname):
-    kpi = None
-    try:
-        mask = pd.Series([True] * len(df_kpi))
-        if main_cat:
-            mask &= df_kpi["メインカテゴリ"].isin(main_cat)
-        if obj:
-            mask &= df_kpi["広告目的"].isin(obj)
-        # 該当なければnan
-        if mask.any():
-            kpi = df_kpi.loc[mask, colname].iloc[0]
-        else:
-            kpi = float("nan")
-    except Exception:
-        kpi = float("nan")
-    return kpi
-
-kpi_dict = {
-    "CPA": get_current_kpi("CPA_good"),
-    "CVR": get_current_kpi("CVR_good"),
-    "CTR": get_current_kpi("CTR_good"),
-    "CPC": get_current_kpi("CPC_good"),
-    "CPM": get_current_kpi("CPM_good"),
-}
-
-# 4. 表示テーブル
 st.markdown("### 📋 達成率一覧")
 表示列 = [
     "配信月", "都道府県", "地方", "メインカテゴリ", "サブカテゴリ", "広告目的", "キャンペーン名",
@@ -146,21 +98,18 @@ st.markdown("### 📋 達成率一覧")
     "CTR", "CTR_good", "CTR_評価",
     "CPC", "CPC_good", "CPC_評価",
     "CPM", "CPM_good", "CPM_評価",
-    "目標CPA", "目標CPA評価"
+    "目標CPA"
 ]
-
 df_fmt = df_filtered[表示列].copy()
 for col in ["CVR", "CVR_good", "CTR", "CTR_good"]:
     df_fmt[col] = df_fmt[col].apply(lambda x: f"{x:.1%}" if pd.notna(x) else "")
 for col in ["CPA", "CPA_good", "CPC", "CPC_good", "CPM", "CPM_good", "目標CPA"]:
     df_fmt[col] = df_fmt[col].apply(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "")
-
 st.dataframe(
     df_fmt.sort_values(["配信月", "都道府県", "メインカテゴリ", "サブカテゴリ", "キャンペーン名"]),
     use_container_width=True, hide_index=True
 )
 
-# 5. 月別推移グラフ（指標ごとに分けて表示・実績値表示付き）
 st.markdown("### 📈 月別推移グラフ（指標別）")
 指標群 = ["CPA", "CVR", "CTR", "CPC", "CPM"]
 for 指標 in 指標群:
@@ -170,7 +119,6 @@ for 指標 in 指標群:
           .agg(実績値=(指標, "mean"))
           .reset_index()
     )
-
     def get_label(val):
         if pd.isna(val):
             return ""
@@ -178,13 +126,11 @@ for 指標 in 指標群:
             return f"¥{val:,.0f}"
         else:
             return f"{val:.1%}"
-
     df_plot["実績値_label"] = df_plot["実績値"].apply(get_label)
     kpi_value = kpi_dict[指標]
     kpi_label = get_label(kpi_value)
     df_plot["目標値"] = kpi_value
     df_plot["目標値_label"] = kpi_label
-
     import plotly.graph_objects as go
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -215,7 +161,6 @@ for 指標 in 指標群:
         hovermode="x unified"
     )
     st.plotly_chart(fig, use_container_width=True)
-
 # 6. 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別タブ）
 st.markdown("### 📈 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別）")
 指標リスト = ["CPA", "CVR", "CPC", "CPM"]
