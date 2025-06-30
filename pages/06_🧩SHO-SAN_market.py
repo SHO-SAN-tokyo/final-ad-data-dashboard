@@ -40,24 +40,38 @@ df["目標CPA評価"] = df.apply(
 )
 
 # 3. フィルター
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    main_cat = st.selectbox("📁 メインカテゴリ", ["すべて"] + sorted(df["メインカテゴリ"].dropna().unique()))
-with col2:
-    sub_cat = st.selectbox("🗂️ サブカテゴリ", ["すべて"] + sorted(df["サブカテゴリ"].dropna().unique()))
-with col3:
-    pref = st.selectbox("🗾 都道府県", ["すべて"] + sorted(df["都道府県"].dropna().unique()))
-with col4:
-    obj = st.selectbox("🎯 広告目的", ["すべて"] + sorted(df["広告目的"].dropna().unique()))
+def option_list(colname):
+    # 件数順、NaN除外
+    return df[colname].dropna().value_counts().index.tolist()
 
-if main_cat != "すべて":
-    df = df[df["メインカテゴリ"] == main_cat]
-if sub_cat != "すべて":
-    df = df[df["サブカテゴリ"] == sub_cat]
-if pref != "すべて":
-    df = df[df["都道府県"] == pref]
-if obj != "すべて":
-    df = df[df["広告目的"] == obj]
+col1, col2, col3, col4, col5 = st.columns(5)
+with col1:
+    main_cat_opts = option_list("メインカテゴリ")
+    main_cat = st.multiselect("📁 メインカテゴリ", main_cat_opts, default=main_cat_opts)
+with col2:
+    sub_cat_opts = option_list("サブカテゴリ")
+    sub_cat = st.multiselect("🗂️ サブカテゴリ", sub_cat_opts, default=sub_cat_opts)
+with col3:
+    area_opts = option_list("地方")
+    area = st.multiselect("🌏 地方", area_opts, default=area_opts)
+with col4:
+    pref_opts = option_list("都道府県")
+    pref = st.multiselect("🗾 都道府県", pref_opts, default=pref_opts)
+with col5:
+    obj_opts = option_list("広告目的")
+    obj = st.multiselect("🎯 広告目的", obj_opts, default=obj_opts)
+
+# フィルター適用
+if main_cat and main_cat != main_cat_opts:
+    df = df[df["メインカテゴリ"].isin(main_cat)]
+if sub_cat and sub_cat != sub_cat_opts:
+    df = df[df["サブカテゴリ"].isin(sub_cat)]
+if area and area != area_opts:
+    df = df[df["地方"].isin(area)]
+if pref and pref != pref_opts:
+    df = df[df["都道府県"].isin(pref)]
+if obj and obj != obj_opts:
+    df = df[df["広告目的"].isin(obj)]
 
 # 4. 表示テーブル
 st.markdown("### 📋 達成率一覧")
