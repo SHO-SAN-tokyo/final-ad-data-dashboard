@@ -130,6 +130,28 @@ st.dataframe(
 
 # 5. 月別推移グラフ（指標ごとに分けて表示・実績値表示付き）
 st.markdown("### 📈 月別推移グラフ（指標別）")
+
+# --- ここからフィルター結果 ---
+def filter_text(title, selected_list):
+    if not selected_list:
+        return f"<span style='color:#666;'>{title}：すべて</span>"
+    else:
+        return f"<span style='color:#666;'>{title}：" + " / ".join(selected_list) + "</span>"
+
+filter_items = [
+    ("メインカテゴリ", main_cat),
+    ("サブカテゴリ", sub_cat),
+    ("地方", area),
+    ("都道府県", pref),
+    ("広告目的", obj)
+]
+filter_markdown = "<div style='font-size:12px;line-height:1.7;text-align:left;'>"
+filter_markdown += "<br>".join([filter_text(label, vals) for label, vals in filter_items])
+filter_markdown += "</div>"
+
+st.markdown(filter_markdown, unsafe_allow_html=True)
+# --- フィルター結果ここまで ---
+
 指標群 = ["CPA", "CVR", "CTR", "CPC", "CPM"]
 for 指標 in 指標群:
     st.markdown(f"#### 📉 {指標} 推移")
