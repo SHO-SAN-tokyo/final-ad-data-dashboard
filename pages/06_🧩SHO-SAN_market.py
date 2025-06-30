@@ -28,7 +28,15 @@ def load_data():
     """
     return client.query(query).to_dataframe()
 
+@st.cache_data(show_spinner=False)
+def load_kpi_settings():
+    query = """
+        SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Target_Indicators_Meta`
+    """
+    return client.query(query).to_dataframe()
+
 df = load_data()
+df_kpi = load_kpi_settings()
 
 # 2. 前処理
 df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
@@ -103,6 +111,32 @@ if pref:
 if obj:
     df_filtered = df_filtered[df_filtered["広告目的"].isin(obj)]
 
+# KPI取得関数（フィルターに合わせて唯一値を取得）
+def get_current_kpi(colname):
+    kpi = None
+    try:
+        mask = pd.Series([True] * len(df_kpi))
+        if main_cat:
+            mask &= df_kpi["メインカテゴリ"].isin(main_cat)
+        if obj:
+            mask &= df_kpi["広告目的"].isin(obj)
+        # 該当なければnan
+        if mask.any():
+            kpi = df_kpi.loc[mask, colname].iloc[0]
+        else:
+            kpi = float("nan")
+    except Exception:
+        kpi = float("nan")
+    return kpi
+
+kpi_dict = {
+    "CPA": get_current_kpi("CPA_good"),
+    "CVR": get_current_kpi("CVR_good"),
+    "CTR": get_current_kpi("CTR_good"),
+    "CPC": get_current_kpi("CPC_good"),
+    "CPM": get_current_kpi("CPM_good"),
+}
+
 # 4. 表示テーブル
 st.markdown("### 📋 達成率一覧")
 表示列 = [
@@ -133,7 +167,7 @@ for 指標 in 指標群:
     st.markdown(f"#### 📉 {指標} 推移")
     df_plot = (
         df_filtered.groupby("配信月_dt")
-          .agg(実績値=(指標, "mean"), 目標値=(f"{指標}_good", "mean"))
+          .agg(実績値=(指標, "mean"))
           .reset_index()
     )
 
@@ -146,7 +180,10 @@ for 指標 in 指標群:
             return f"{val:.1%}"
 
     df_plot["実績値_label"] = df_plot["実績値"].apply(get_label)
-    df_plot["目標値_label"] = df_plot["目標値"].apply(get_label)
+    kpi_value = kpi_dict[指標]
+    kpi_label = get_label(kpi_value)
+    df_plot["目標値"] = kpi_value
+    df_plot["目標値_label"] = kpi_label
 
     import plotly.graph_objects as go
     fig = go.Figure()
@@ -165,7 +202,7 @@ for 指標 in 指標群:
         y=df_plot["目標値"],
         mode="lines+markers+text",
         name="目標値",
-        text=df_plot["目標値_label"],
+        text=[kpi_label]*len(df_plot),
         textposition="top center",
         line=dict(color="gray", dash="dash"),
         hovertemplate="%{x|%Y/%m}<br>目標値：%{text}<extra></extra>",
