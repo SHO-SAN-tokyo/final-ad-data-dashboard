@@ -34,17 +34,36 @@ df = load_data()
 df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
 df["配信月"] = df["配信月_dt"].dt.strftime("%Y/%m")
 
-df["目標CPA評価"] = df.apply(
-    lambda row: "◎" if pd.notna(row["目標CPA"]) and pd.notna(row["CPA"]) and row["CPA"] <= row["目標CPA"] else "×",
-    axis=1
+# CVR_best, CTR_best補正（1.0超なら/100）
+for col in ["CVR_best", "CTR_best"]:
+    if col in df.columns:
+        df[col] = df[col].apply(lambda x: x / 100 if pd.notna(x) and x > 1 else x)
+
+# 目標CPA評価（goodで比較例。goodの閾値が無い場合は×を返す）
+if "目標CPA_good" in df.columns:
+    df["目標CPA評価"] = df.apply(
+        lambda row: "◎" if pd.notna(row["目標CPA"]) and pd.notna(row["CPA"]) and row["CPA"] <= row["目標CPA"]
+        else "○" if pd.notna(row["目標CPA_good"]) and pd.notna(row["CPA"]) and row["CPA"] <= row["目標CPA_good"]
+        else "×",
+        axis=1
+    )
+else:
+    df["目標CPA評価"] = df.apply(
+        lambda row: "◎" if pd.notna(row["目標CPA"]) and pd.notna(row["CPA"]) and row["CPA"] <= row["目標CPA"] else "×",
+        axis=1
+    )
+
+# 1キャンペーン1行に集約
+df_disp = df.drop_duplicates(
+    subset=["配信月", "キャンペーン名", "メインカテゴリ", "サブカテゴリ", "広告目的"]
 )
 
-# フィルター
+# フィルター（複数選択＋件数順＋初期は未選択）
 def option_list(colname):
-    vals = df[colname].dropna()
+    vals = df_disp[colname].dropna()
     return vals.value_counts().index.tolist()  # 件数順
 
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 with col1:
     main_cat_opts = option_list("メインカテゴリ")
     main_cat = st.multiselect(
@@ -71,24 +90,23 @@ with col5:
         "🎯 広告目的", obj_opts, default=[], placeholder="すべて"
     )
 
-
 # フィルター適用（何も選択されていなければ全件）
+df_filtered = df_disp.copy()
 if main_cat:
-    df = df[df["メインカテゴリ"].isin(main_cat)]
+    df_filtered = df_filtered[df_filtered["メインカテゴリ"].isin(main_cat)]
 if sub_cat:
-    df = df[df["サブカテゴリ"].isin(sub_cat)]
+    df_filtered = df_filtered[df_filtered["サブカテゴリ"].isin(sub_cat)]
 if area:
-    df = df[df["地方"].isin(area)]
+    df_filtered = df_filtered[df_filtered["地方"].isin(area)]
 if pref:
-    df = df[df["都道府県"].isin(pref)]
+    df_filtered = df_filtered[df_filtered["都道府県"].isin(pref)]
 if obj:
-    df = df[df["広告目的"].isin(obj)]
-
+    df_filtered = df_filtered[df_filtered["広告目的"].isin(obj)]
 
 # 4. 表示テーブル
 st.markdown("### 📋 達成率一覧")
 表示列 = [
-    "配信月", "都道府県", "メインカテゴリ", "サブカテゴリ", "広告目的", "キャンペーン名",
+    "配信月", "都道府県", "地方", "メインカテゴリ", "サブカテゴリ", "広告目的", "キャンペーン名",
     "CPA", "CPA_best", "CPA_評価",
     "CVR", "CVR_best", "CVR_評価",
     "CTR", "CTR_best", "CTR_評価",
@@ -97,13 +115,16 @@ st.markdown("### 📋 達成率一覧")
     "目標CPA", "目標CPA評価"
 ]
 
-df_fmt = df[表示列].copy()
+df_fmt = df_filtered[表示列].copy()
 for col in ["CVR", "CVR_best", "CTR", "CTR_best"]:
     df_fmt[col] = df_fmt[col].apply(lambda x: f"{x:.1%}" if pd.notna(x) else "")
 for col in ["CPA", "CPA_best", "CPC", "CPC_best", "CPM", "CPM_best", "目標CPA"]:
     df_fmt[col] = df_fmt[col].apply(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "")
 
-st.dataframe(df_fmt.sort_values(["配信月", "都道府県", "メインカテゴリ", "サブカテゴリ", "キャンペーン名"]), use_container_width=True, hide_index=True)
+st.dataframe(
+    df_fmt.sort_values(["配信月", "都道府県", "メインカテゴリ", "サブカテゴリ", "キャンペーン名"]),
+    use_container_width=True, hide_index=True
+)
 
 # 5. 月別推移グラフ（指標ごとに分けて表示・実績値表示付き）
 st.markdown("### 📈 月別推移グラフ（指標別）")
@@ -111,8 +132,8 @@ st.markdown("### 📈 月別推移グラフ（指標別）")
 for 指標 in 指標群:
     st.markdown(f"#### 📉 {指標} 推移")
     df_plot = (
-        df.groupby("配信月_dt")
-          .agg(実績値=(指標, "mean"), 目標値=(f"{指標}_best", "mean"))
+        df_filtered.groupby("配信月_dt")
+          .agg(実績値=(指標, "mean"), 目標値=(f"{指標}_good", "mean"))
           .reset_index()
     )
     df_plot["実績値_label"] = df_plot["実績値"].apply(
@@ -152,10 +173,10 @@ st.markdown("### 📈 配信月 × メインカテゴリ × サブカテゴリ �
 for 指標, tab in zip(指標リスト, 折れ線タブ):
     with tab:
         st.markdown(f"#### 📉 {指標} 達成率の推移（メインカテゴリ・サブカテゴリ別）")
-        best_col = f"{指標}_best"
+        good_col = f"{指標}_good"
         rate_col = f"{指標}_達成率"
-        df_line = df[df[best_col].notna() & df[指標].notna()].copy()
-        df_line[rate_col] = df_line[指標] / df_line[best_col]
+        df_line = df_filtered[df_filtered[good_col].notna() & df_filtered[指標].notna()].copy()
+        df_line[rate_col] = df_line[指標] / df_line[good_col]
         df_line["配信月_str"] = df_line["配信月_dt"].dt.strftime("%Y/%m")
         # 月×メインカテゴリ×サブカテゴリごとの平均達成率
         df_grouped_line = (
@@ -186,9 +207,9 @@ st.markdown("### 📊 都道府県別 達成率バーグラフ（指標別）")
 for 指標, tab in zip(指標リスト, タブ):
     with tab:
         st.markdown(f"#### 🧭 都道府県別 {指標} 達成率")
-        col_best = f"{指標}_best"
-        df_metric = df[df[col_best].notna() & df[指標].notna()].copy()
-        df_metric[f"{指標}_達成率"] = df_metric[指標] / df_metric[col_best]
+        good_col = f"{指標}_good"
+        df_metric = df_filtered[df_filtered[good_col].notna() & df_filtered[指標].notna()].copy()
+        df_metric[f"{指標}_達成率"] = df_metric[指標] / df_metric[good_col]
         # 都道府県別集計
         df_grouped = (
             df_metric.groupby("都道府県")
