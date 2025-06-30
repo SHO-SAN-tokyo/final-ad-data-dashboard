@@ -39,6 +39,7 @@ df["目標CPA評価"] = df.apply(
     axis=1
 )
 
+# フィルター
 def option_list(colname):
     vals = df[colname].dropna()
     return vals.value_counts().index.tolist()  # 件数順
@@ -46,19 +47,30 @@ def option_list(colname):
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     main_cat_opts = option_list("メインカテゴリ")
-    main_cat = st.multiselect("📁 メインカテゴリ", main_cat_opts, default=[])
+    main_cat = st.multiselect(
+        "📁 メインカテゴリ", main_cat_opts, default=[], placeholder="すべて"
+    )
 with col2:
     sub_cat_opts = option_list("サブカテゴリ")
-    sub_cat = st.multiselect("🗂️ サブカテゴリ", sub_cat_opts, default=[])
+    sub_cat = st.multiselect(
+        "🗂️ サブカテゴリ", sub_cat_opts, default=[], placeholder="すべて"
+    )
 with col3:
     area_opts = option_list("地方")
-    area = st.multiselect("🌏 地方", area_opts, default=[])
+    area = st.multiselect(
+        "🌏 地方", area_opts, default=[], placeholder="すべて"
+    )
 with col4:
     pref_opts = option_list("都道府県")
-    pref = st.multiselect("🗾 都道府県", pref_opts, default=[])
+    pref = st.multiselect(
+        "🗾 都道府県", pref_opts, default=[], placeholder="すべて"
+    )
 with col5:
     obj_opts = option_list("広告目的")
-    obj = st.multiselect("🎯 広告目的", obj_opts, default=[])
+    obj = st.multiselect(
+        "🎯 広告目的", obj_opts, default=[], placeholder="すべて"
+    )
+
 
 # フィルター適用（何も選択されていなければ全件）
 if main_cat:
