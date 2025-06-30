@@ -10,7 +10,7 @@ from auth import require_login
 require_login()
 
 # ─────────────────────────────
-# コンテンツ
+# ページ設定
 # ─────────────────────────────
 st.set_page_config(page_title="カテゴリ×都道府県 達成率モニター", layout="wide")
 st.title("🧩 SHO‑SAN market")
@@ -35,16 +35,14 @@ df_kpi = load_kpi_settings()
 
 df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
 df["配信月"] = df["配信月_dt"].dt.strftime("%Y/%m")
-for col in ["CVR_good", "CTR_good"]:
-    if col in df.columns:
-        df[col] = df[col].apply(lambda x: x / 100 if pd.notna(x) and x > 1 else x)
 
-# ▼ KPIは常に完全固定
+# KPIは常に完全固定
 kpi_row = df_kpi[
     (df_kpi["メインカテゴリ"] == "注文住宅･規格住宅") &
     (df_kpi["サブカテゴリ"] == "完成見学会") &
     (df_kpi["広告目的"] == "コンバージョン")
 ].iloc[0]
+
 kpi_dict = {
     "CPA": kpi_row["CPA_good"],
     "CVR": kpi_row["CVR_good"],
@@ -53,10 +51,12 @@ kpi_dict = {
     "CPM": kpi_row["CPM_good"],
 }
 
+# 1キャンペーン1行
 df_disp = df.drop_duplicates(
     subset=["配信月", "キャンペーン名", "メインカテゴリ", "サブカテゴリ", "広告目的"]
 )
 
+# フィルター
 def option_list(colname):
     vals = df_disp[colname].dropna()
     return vals.value_counts().index.tolist()
@@ -90,6 +90,20 @@ if pref:
 if obj:
     df_filtered = df_filtered[df_filtered["広告目的"].isin(obj)]
 
+# 表示整形用関数
+def get_label(val, indicator, is_kpi=False):
+    if pd.isna(val):
+        return ""
+    if indicator in ["CPA", "CPC", "CPM"]:
+        return f"¥{val:,.0f}"
+    elif indicator in ["CVR", "CTR"]:
+        if is_kpi:
+            return f"{val:.1f}%"
+        else:
+            return f"{val*100:.1f}%"
+    else:
+        return f"{val}"
+
 st.markdown("### 📋 達成率一覧")
 表示列 = [
     "配信月", "都道府県", "地方", "メインカテゴリ", "サブカテゴリ", "広告目的", "キャンペーン名",
@@ -101,15 +115,20 @@ st.markdown("### 📋 達成率一覧")
     "目標CPA"
 ]
 df_fmt = df_filtered[表示列].copy()
-for col in ["CVR", "CVR_good", "CTR", "CTR_good"]:
-    df_fmt[col] = df_fmt[col].apply(lambda x: f"{x:.1%}" if pd.notna(x) else "")
+
+# 指標ごとに書式変更
 for col in ["CPA", "CPA_good", "CPC", "CPC_good", "CPM", "CPM_good", "目標CPA"]:
-    df_fmt[col] = df_fmt[col].apply(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "")
+    df_fmt[col] = df_fmt[col].apply(lambda x: get_label(x, col.split("_")[0]))
+for col in ["CVR", "CVR_good", "CTR", "CTR_good"]:
+    is_kpi = "good" in col
+    df_fmt[col] = df_fmt[col].apply(lambda x: get_label(x, col.split("_")[0], is_kpi=is_kpi))
+
 st.dataframe(
     df_fmt.sort_values(["配信月", "都道府県", "メインカテゴリ", "サブカテゴリ", "キャンペーン名"]),
     use_container_width=True, hide_index=True
 )
 
+# 5. 月別推移グラフ（指標ごとに分けて表示・実績値表示付き）
 st.markdown("### 📈 月別推移グラフ（指標別）")
 指標群 = ["CPA", "CVR", "CTR", "CPC", "CPM"]
 for 指標 in 指標群:
@@ -119,16 +138,9 @@ for 指標 in 指標群:
           .agg(実績値=(指標, "mean"))
           .reset_index()
     )
-    def get_label(val):
-        if pd.isna(val):
-            return ""
-        if 指標 in ["CPA", "CPC", "CPM"]:
-            return f"¥{val:,.0f}"
-        else:
-            return f"{val:.1%}"
-    df_plot["実績値_label"] = df_plot["実績値"].apply(get_label)
+    df_plot["実績値_label"] = df_plot["実績値"].apply(lambda v: get_label(v, 指標))
     kpi_value = kpi_dict[指標]
-    kpi_label = get_label(kpi_value)
+    kpi_label = get_label(kpi_value, 指標, is_kpi=True)
     df_plot["目標値"] = kpi_value
     df_plot["目標値_label"] = kpi_label
     import plotly.graph_objects as go
@@ -161,6 +173,7 @@ for 指標 in 指標群:
         hovermode="x unified"
     )
     st.plotly_chart(fig, use_container_width=True)
+
 # 6. 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別タブ）
 st.markdown("### 📈 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別）")
 指標リスト = ["CPA", "CVR", "CPC", "CPM"]
@@ -211,14 +224,14 @@ for 指標, tab in zip(指標リスト, タブ):
                      .agg(達成率平均=(f"{指標}_達成率", "mean"))
                      .reset_index()
         )
-        def get_label(rate):
+        def get_label_bar(rate):
             if rate >= 1.0:
                 return "良好"
             elif rate >= 0.9:
                 return "注意"
             else:
                 return "低調"
-        df_grouped["評価"] = df_grouped["達成率平均"].apply(get_label)
+        df_grouped["評価"] = df_grouped["達成率平均"].apply(get_label_bar)
         df_grouped["達成率（％）"] = df_grouped["達成率平均"].apply(lambda x: f"{x:.0%}")
         color_map = {"良好": "#B8E0D2", "注意": "#FFF3B0", "低調": "#F4C2C2"}
         df_grouped["色"] = df_grouped["評価"].map(color_map)
