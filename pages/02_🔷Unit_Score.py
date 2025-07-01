@@ -103,6 +103,9 @@ if maincat_filter:
 if subcat_filter:
     df_filtered = df_filtered[df_filtered["サブカテゴリ"].isin(subcat_filter)]
 
+# 👇 配信月＋キャンペーンID＋クライアント名で1行にまとめる
+df_filtered = df_filtered.drop_duplicates(subset=["配信月", "CampaignId", "クライアント名"])
+
 def safe_cpa(cost, cv):
     return cost / cv if cv > 0 else np.nan
 
