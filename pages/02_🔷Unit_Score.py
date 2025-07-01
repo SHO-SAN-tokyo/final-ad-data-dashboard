@@ -148,7 +148,7 @@ for idx, row in unit_summary_df.iterrows():
         <div style='background-color: {unit_color_map.get(row["所属"], "#f0f0f0")}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
             <div style='font-size: 1.6rem; font-weight: bold; text-align: center;'>{row['所属']}</div>
             <div style='font-size: 1.3rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
-            <div style='font-size: 0.95rem; margin-top: 0.7rem; text-align:center;'>
+            <div style='font-size: 0.8rem; margin-top: 0.7rem; text-align:center;'>
                 キャンペーン数(CV目的)  :  {int(row["キャンペーン数(コンバージョン)"])}<br>
                 キャンペーン数(すべて)  :  {int(row["キャンペーン数(すべて)"])}<br>
                 消化金額(CV目的)  :  ¥{int(row["消化金額(コンバージョン)"]):,}<br>
@@ -197,7 +197,7 @@ for idx, row in person_summary_df.iterrows():
         <div style='background-color: {color}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
             <h4 style='font-size: 1.2rem; padding: 10px 0 10px 16px;'>{row['担当者']}</h4>
             <div style='font-size: 1.2rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
-            <div style='font-size: 0.9rem; margin-top: 0.5rem; text-align:center;'>
+            <div style='font-size: 0.8rem; margin-top: 0.5rem; text-align:center;'>
                 キャンペーン数(CV目的)  :  {int(row["キャンペーン数(コンバージョン)"])}<br>
                 キャンペーン数(すべて)  :  {int(row["キャンペーン数(すべて)"])}<br>
                 消化金額(CV目的)  :  ¥{int(row["消化金額(コンバージョン)"]):,}<br>
