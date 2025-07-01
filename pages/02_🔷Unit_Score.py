@@ -109,16 +109,16 @@ def safe_cpa(cost, cv):
 # -----------------------------
 # 1. Unitごとのサマリー（2軸）
 # -----------------------------
-unit_group = df_filtered.groupby("所属", dropna=False)
+def campaign_key(df):
+    return df["配信月"].astype(str) + "_" + df["CampaignId"].astype(str) + "_" + df["クライアント名"].astype(str)
 
+unit_group = df_filtered.groupby("所属", dropna=False)
 unit_summary = []
 for unit, group in unit_group:
-    # 「広告目的=コンバージョン」のみ
     group_conv = group[group["広告目的"] == "コンバージョン"]
-    camp_count_conv = group_conv.shape[0]
+    camp_count_conv = campaign_key(group_conv).nunique()
+    camp_count_all = campaign_key(group).nunique()
     spend_conv = group_conv["消化金額"].sum()
-    # すべて
-    camp_count_all = group.shape[0]
     spend_all = group["消化金額"].sum()
     total_cv = group_conv["コンバージョン数"].sum()
     cpa = safe_cpa(spend_conv, total_cv)
@@ -131,6 +131,7 @@ for unit, group in unit_group:
         "消化金額(すべて)": spend_all,
         "CV": total_cv,
     })
+
 unit_summary_df = pd.DataFrame(unit_summary).sort_values("所属")
 
 # --- Unit別色マップ
