@@ -3,20 +3,20 @@ from google.cloud import bigquery
 import pandas as pd
 import numpy as np
 
-# ──────────────────────────────────────────────
+# ──────────────────────
 # ログイン認証
-# ──────────────────────────────────────────────
+# ──────────────────────
 from auth import require_login
 require_login()
 
-# ──────────────────────────────────────────────
+# ──────────────────────
 # コンテンツ
-# ──────────────────────────────────────────────
+# ──────────────────────
 st.set_page_config(page_title="Unit Drive", layout="wide")
 st.title("🔷 Unit Score")
+
 st.subheader("📊 広告TM パフォーマンス")
 
-# BigQuery認証
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info_dict)
@@ -27,28 +27,21 @@ def load_data():
     df = client.query("SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Unit_Drive_Ready_View").to_dataframe()
     return df
 
-df_raw = load_data()
+df = load_data()
 
-# --- 1. キャンペーン単位での重複除去（配信月＋キャンペーンID＋広告セットID＋クライアント名）
-# ※ Google広告は広告セットIDが空欄でもOK
-df_raw["広告セットID_正規"] = df_raw["広告セット名"].fillna("").astype(str)
-df_raw["キャンペーンキー"] = (
-    df_raw["配信月"].astype(str) + "___"
-    + df_raw["CampaignId"].astype(str) + "___"
-    + df_raw["広告セットID_正規"] + "___"
-    + df_raw["クライアント名"].astype(str)
-)
-df = df_raw.drop_duplicates(subset="キャンペーンキー").copy()
-
-# ----------------------------
-# フィルター
-# ----------------------------
+# 📅 配信月（multiselectに変更）
 month_options = sorted(df["配信月"].dropna().unique())
 sel_month = st.multiselect("📅 配信月", month_options, placeholder="すべて")
 if sel_month:
     df = df[df["配信月"].isin(sel_month)]
 
+# フィルター項目
 latest = df.copy()
+numeric_cols = latest.select_dtypes(include=["number"]).columns
+latest[numeric_cols] = latest[numeric_cols].replace([np.inf, -np.inf], 0).fillna(0)
+latest = latest[latest["所属"].notna()]
+latest = latest[latest["所属"].apply(lambda x: isinstance(x, str))]
+
 unit_options = sorted(latest["所属"].dropna().unique())
 person_options = sorted(latest["担当者"].dropna().astype(str).unique())
 front_options = sorted(latest["フロント"].dropna().astype(str).unique())
@@ -70,6 +63,7 @@ with f4:
     employment_filter = st.multiselect(
         "🏢 雇用形態", employment_options, default=default_employment, key="employment_type"
     )
+
 f5, f6, f7 = st.columns(3)
 with f5:
     focus_filter = st.multiselect("📌 注力度", focus_options, placeholder="すべて")
@@ -78,7 +72,7 @@ with f6:
 with f7:
     subcat_filter = st.multiselect("📂 サブカテゴリ", subcat_options, placeholder="すべて")
 
-# 状況表示
+# --- 状況表示
 st.markdown(f"""
 <div style='font-size: 0.9rem; line-height: 1.8;'>
 📅 配信月: <b>{sel_month or 'すべて'}</b><br>
@@ -92,7 +86,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# フィルター適用
+# --- フィルター適用（複数選択対応）
 df_filtered = latest.copy()
 if unit_filter:
     df_filtered = df_filtered[df_filtered["所属"].isin(unit_filter)]
@@ -119,10 +113,12 @@ unit_group = df_filtered.groupby("所属", dropna=False)
 
 unit_summary = []
 for unit, group in unit_group:
+    # 「広告目的=コンバージョン」のみ
     group_conv = group[group["広告目的"] == "コンバージョン"]
-    camp_count_conv = len(group_conv)
-    camp_count_all = len(group)
+    camp_count_conv = group_conv.shape[0]
     spend_conv = group_conv["消化金額"].sum()
+    # すべて
+    camp_count_all = group.shape[0]
     spend_all = group["消化金額"].sum()
     total_cv = group_conv["コンバージョン数"].sum()
     cpa = safe_cpa(spend_conv, total_cv)
@@ -137,9 +133,11 @@ for unit, group in unit_group:
     })
 unit_summary_df = pd.DataFrame(unit_summary).sort_values("所属")
 
+# --- Unit別色マップ
 unit_colors = ["#c0e4eb", "#cbebb5", "#ffdda6"]
 unit_color_map = {unit: unit_colors[i % len(unit_colors)] for i, unit in enumerate(unit_summary_df["所属"].unique())}
 
+# --- Unitカード ---
 st.write("#### 🍋🍋‍🟩 Unitごとのスコア 🍒🍏")
 unit_cols = st.columns(3)
 for idx, row in unit_summary_df.iterrows():
@@ -167,10 +165,11 @@ person_group = df_filtered.groupby("担当者", dropna=False)
 
 person_summary = []
 for person, group in person_group:
+    # 「広告目的=コンバージョン」のみ
     group_conv = group[group["広告目的"] == "コンバージョン"]
-    camp_count_conv = len(group_conv)
-    camp_count_all = len(group)
+    camp_count_conv = group_conv.shape[0]
     spend_conv = group_conv["消化金額"].sum()
+    camp_count_all = group.shape[0]
     spend_all = group["消化金額"].sum()
     total_cv = group_conv["コンバージョン数"].sum()
     cpa = safe_cpa(spend_conv, total_cv)
@@ -215,7 +214,7 @@ st.write("#### 👨‍💼 担当者ごとの達成率（コンバージョン�
 if "達成状況" in df_filtered.columns:
     conv_df = df_filtered[df_filtered["広告目的"] == "コンバージョン"]
     person_agg = conv_df.groupby("担当者", dropna=False).agg(
-        campaign_count=("キャンペーンキー", "nunique"),
+        campaign_count=("キャンペーン名", "count"),
         達成件数=("達成状況", lambda x: (x == "達成").sum())
     ).reset_index()
     person_agg["達成率"] = person_agg["達成件数"] / person_agg["campaign_count"]
@@ -236,7 +235,7 @@ if "達成状況" in df_filtered.columns:
 
 st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
-# ▼ キャンペーン一覧
+# ▼ キャンペーン一覧（必要なカラム全て追加＆整形）
 st.write("#### 📋 配信キャンペーン一覧（最大1,000件）")
 columns_to_show = [
     "配信月","キャンペーン名","担当者","所属","フロント","雇用形態",
@@ -261,7 +260,7 @@ st.dataframe(styled_table, use_container_width=True)
 
 st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
-# --- 達成・未達成キャンペーン一覧（CV目的のみ）
+# --- 達成キャンペーン一覧 ---
 if "達成状況" in df_filtered.columns:
     st.write("#### 👍 達成キャンペーン一覧")
     achieved = df_filtered[(df_filtered["達成状況"] == "達成") & (df_filtered["広告目的"] == "コンバージョン")]
@@ -281,6 +280,7 @@ if "達成状況" in df_filtered.columns:
 
     st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
+    # --- 未達成キャンペーン一覧 ---
     st.write("#### 💤 未達成キャンペーン一覧")
     missed = df_filtered[(df_filtered["達成状況"] == "未達成") & (df_filtered["広告目的"] == "コンバージョン")]
     if not missed.empty:
