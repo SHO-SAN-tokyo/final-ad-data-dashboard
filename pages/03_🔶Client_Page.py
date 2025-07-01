@@ -21,14 +21,14 @@ st.markdown("""
     font-size: 15px;
     font-weight: bold;
 ">
-    クライアントに共有可能なリンク一覧です。そのクライアントのみの広告スコアが表示されるので安全です。
+    クライアント別で広告スコアが見れるページリンク一覧です。直近の日別データや全期間データも閲覧できます。
 </div>
 <div style="
     margin-bottom: 28px;
     font-size: 13px;
     color: #444;
 ">
-    ⚠️間違えて他のクライアントのリンクを送らないように注意！<br>　  各リンクにアイパスを添えて共有してください。<br>
+    ⚠️「ページを開く」を押した先では、以下のログインアイパスが必要です<br>
     <span style="font-weight:600;color:#1d7290;">　  ユーザーID: adscore</span>　
     <span style="font-weight:600;color:#b65916;">　パスワード: 7n2wb86vkw</span>
 </div>
