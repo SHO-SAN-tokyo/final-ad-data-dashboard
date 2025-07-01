@@ -212,6 +212,45 @@ for idx, row in person_summary_df.iterrows():
 st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 
 # -----------------------------
+# 3. Unitごとの達成率（コンバージョン目的のみ）
+# -----------------------------
+st.write("#### 🏢 Unitごとの達成率（コンバージョン目的のみ）")
+if "達成状況" in df_filtered.columns:
+    # コンバージョン目的のみで分母・分子を計算
+    conv_df = df_filtered[df_filtered["広告目的"] == "コンバージョン"].copy()
+    conv_df["キャンペーンキー"] = (
+        conv_df["配信月"].astype(str) + "_" +
+        conv_df["CampaignId"].astype(str) + "_" +
+        conv_df["クライアント名"].astype(str)
+    )
+    df_uniq = conv_df.drop_duplicates("キャンペーンキー")
+    unit_agg = (
+        df_uniq.groupby("所属", dropna=False)
+        .agg(
+            campaign_count=("キャンペーンキー", "nunique"),
+            達成件数=("達成状況", lambda x: (x == "達成").sum())
+        )
+        .reset_index()
+    )
+    unit_agg["達成率"] = unit_agg["達成件数"] / unit_agg["campaign_count"]
+    unit_agg = unit_agg.sort_values("達成率", ascending=False)
+    unit_cols = st.columns(3)
+    for idx, row in unit_agg.iterrows():
+        with unit_cols[idx % 3]:
+            st.markdown(f"""
+            <div style='background-color: #f0f5eb; padding: 1rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
+                <h5 style='font-size: 1.2rem; padding: 10px 0px 10px 15px;'>{row["所属"]}</h5>
+                <div style='font-size: 1.2rem; font-weight: bold; padding-bottom: 5px;'>{row["達成率"]:.0%}</div>
+                <div style='font-size: 0.8rem; padding-bottom: 5px;'>
+                    キャンペーン数(CV目的)  :  {int(row["campaign_count"])}<br>
+                    達成数: {int(row["達成件数"])}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
+
+
+# -----------------------------
 # 3. 担当者ごとの達成率（コンバージョン目的のみ）
 # -----------------------------
 st.write("#### 👨‍💼 担当者ごとの達成率（コンバージョン目的のみ）")
