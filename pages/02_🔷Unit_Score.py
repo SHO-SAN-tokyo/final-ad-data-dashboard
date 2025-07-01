@@ -239,7 +239,7 @@ if "達成状況" in df_filtered.columns:
         with unit_cols[idx % 3]:
             st.markdown(f"""
             <div style='background-color: #f0f5eb; padding: 1rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
-                <h5 style='font-size: 1.2rem; padding: 10px 0px 10px 15px;'>{row["所属"]}</h5>
+                <h5 style='font-size: 1.2rem; padding: 10px 0px 10px 15px; font-weight:bold;'>{row["所属"]}</h5>
                 <div style='font-size: 1.2rem; font-weight: bold; padding-bottom: 5px;'>{row["達成率"]:.0%}</div>
                 <div style='font-size: 0.8rem; padding-bottom: 5px;'>
                     キャンペーン数(CV目的)  :  {int(row["campaign_count"])}<br>
