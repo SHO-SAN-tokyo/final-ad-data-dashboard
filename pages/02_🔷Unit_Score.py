@@ -182,7 +182,7 @@ for person, group in person_group:
         "キャンペーン数(すべて)": camp_count_all,
         "消化金額(コンバージョン)": spend_conv,
         "消化金額(すべて)": spend_all,
-        "CV数": total_cv,
+        "CV": total_cv,
     })
 person_summary_df = pd.DataFrame(person_summary).sort_values("担当者")
 person_summary_df = person_summary_df.merge(
@@ -202,7 +202,7 @@ for idx, row in person_summary_df.iterrows():
                 キャンペーン数(すべて)  :  {int(row["キャンペーン数(すべて)"])}<br>
                 消化金額(CV目的)  :  ¥{int(row["消化金額(コンバージョン)"]):,}<br>
                 消化金額(すべて)  :  ¥{int(row["消化金額(すべて)"]):,}<br>
-                CV  :  {int(row["CV"])}
+                CV数  :  {int(row["CV"])}
             </div>
         </div>
         """, unsafe_allow_html=True)
