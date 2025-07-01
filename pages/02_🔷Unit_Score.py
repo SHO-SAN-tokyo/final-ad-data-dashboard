@@ -149,7 +149,7 @@ for idx, row in unit_summary_df.iterrows():
             <div style='font-size: 1.6rem; font-weight: bold; text-align: center;'>{row['所属']}</div>
             <div style='font-size: 1.3rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
             <div style='font-size: 0.95rem; margin-top: 0.7rem; text-align:left;'>
-                <b>キャンペーン数/CV目的</b>   :   {int(row["キャンペーン数(コンバージョン)"])}<br>
+                <b>キャンペーン数/CV目的</b>　:　{int(row["キャンペーン数(コンバージョン)"])}<br>
                 <b>キャンペーン数/すべて</b>   :   {int(row["キャンペーン数(すべて)"])}<br>
                 <b>消化金額(ｺﾝﾊﾞｰｼﾞｮﾝ)</b>: ¥{int(row["消化金額(コンバージョン)"]):,}<br>
                 <b>消化金額(すべて)</b>: ¥{int(row["消化金額(すべて)"]):,}<br>
