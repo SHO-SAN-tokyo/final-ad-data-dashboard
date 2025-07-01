@@ -198,7 +198,7 @@ for idx, row in person_summary_df.iterrows():
             <h4 style='font-size: 1.2rem; padding: 10px 0 10px 16px;'>{row['担当者']}</h4>
             <div style='font-size: 1.2rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
             <div style='font-size: 0.9rem; margin-top: 0.5rem; text-align:left;'>
-                <b>キャンペーン数(ｺﾝﾊﾞｰｼﾞｮﾝ)</b>: {int(row["キャンペーン数(コンバージョン)"])}<br>
+                <b>キャンペーン数(CV目的)</b> :  {int(row["キャンペーン数(コンバージョン)"])}<br>
                 <b>キャンペーン数(すべて)</b>: {int(row["キャンペーン数(すべて)"])}<br>
                 <b>消化金額(ｺﾝﾊﾞｰｼﾞｮﾝ)</b>: ¥{int(row["消化金額(コンバージョン)"]):,}<br>
                 <b>消化金額(すべて)</b>: ¥{int(row["消化金額(すべて)"]):,}<br>
