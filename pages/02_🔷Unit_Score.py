@@ -149,11 +149,11 @@ for idx, row in unit_summary_df.iterrows():
             <div style='font-size: 1.6rem; font-weight: bold; text-align: center;'>{row['所属']}</div>
             <div style='font-size: 1.3rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
             <div style='font-size: 0.95rem; margin-top: 0.7rem; text-align:left;'>
-                <b>キャンペーン数/CV目的</b>  :  {int(row["キャンペーン数(コンバージョン)"])}<br>
-                <b>キャンペーン数/すべて</b>   :   {int(row["キャンペーン数(すべて)"])}<br>
-                <b>消化金額(ｺﾝﾊﾞｰｼﾞｮﾝ)</b>: ¥{int(row["消化金額(コンバージョン)"]):,}<br>
-                <b>消化金額(すべて)</b>: ¥{int(row["消化金額(すべて)"]):,}<br>
-                <b>CV</b>: {int(row["CV"])}
+                <b>キャンペーン数(CV目的)</b>  :  {int(row["キャンペーン数(コンバージョン)"])}<br>
+                <b>キャンペーン数(すべて)</b>  :  {int(row["キャンペーン数(すべて)"])}<br>
+                <b>消化金額(CV目的)</b>  :  ¥{int(row["消化金額(コンバージョン)"]):,}<br>
+                <b>消化金額(すべて)</b>  :  ¥{int(row["消化金額(すべて)"]):,}<br>
+                <b>CV</b>  :  {int(row["CV"])}
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -189,20 +189,20 @@ person_summary_df = person_summary_df.merge(
     latest[["担当者", "所属"]].drop_duplicates(), on="担当者", how="left"
 )
 
-person_cols = st.columns(5)
+person_cols = st.columns(4)
 for idx, row in person_summary_df.iterrows():
     color = unit_color_map.get(row.get("所属"), "#f0f0f0")
-    with person_cols[idx % 5]:
+    with person_cols[idx % 4]:
         st.markdown(f"""
         <div style='background-color: {color}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
             <h4 style='font-size: 1.2rem; padding: 10px 0 10px 16px;'>{row['担当者']}</h4>
             <div style='font-size: 1.2rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
             <div style='font-size: 0.9rem; margin-top: 0.5rem; text-align:left;'>
-                <b>キャンペーン数(CV目的)</b> :  {int(row["キャンペーン数(コンバージョン)"])}<br>
-                <b>キャンペーン数(すべて)</b>: {int(row["キャンペーン数(すべて)"])}<br>
-                <b>消化金額(ｺﾝﾊﾞｰｼﾞｮﾝ)</b>: ¥{int(row["消化金額(コンバージョン)"]):,}<br>
-                <b>消化金額(すべて)</b>: ¥{int(row["消化金額(すべて)"]):,}<br>
-                <b>CV</b>: {int(row["CV"])}
+                <b>キャンペーン数(CV目的)</b>  :  {int(row["キャンペーン数(コンバージョン)"])}<br>
+                <b>キャンペーン数(すべて)</b>  :  {int(row["キャンペーン数(すべて)"])}<br>
+                <b>消化金額(CV目的)</b>  :  ¥{int(row["消化金額(コンバージョン)"]):,}<br>
+                <b>消化金額(すべて)</b>  :  ¥{int(row["消化金額(すべて)"]):,}<br>
+                <b>CV</b>  :  {int(row["CV"])}
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -230,7 +230,7 @@ if "達成状況" in df_filtered.columns:
                 <h5 style='font-size: 1.2rem; padding: 10px 0px 10px 15px;'>{row["担当者"]}</h5>
                 <div style='font-size: 1.2rem; font-weight: bold; padding-bottom: 5px;'>{row["達成率"]:.0%}</div>
                 <div style='font-size: 0.9rem; padding-bottom: 5px;'>
-                    キャンペーン数(ｺﾝﾊﾞｰｼﾞｮﾝ): {int(row["campaign_count"])}<br>
+                    キャンペーン数(CV目的)  :  {int(row["campaign_count"])}<br>
                     達成数: {int(row["達成件数"])}
                 </div>
             </div>
