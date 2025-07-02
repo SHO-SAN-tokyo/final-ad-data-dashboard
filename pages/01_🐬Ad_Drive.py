@@ -296,7 +296,7 @@ def split_urls(raw):
     urls = [u.strip() for u in urls if u.strip().startswith("http")]
     return urls
 
-cols = st.columns(4, gap="small")
+cols = st.columns(3, gap="small")
 for i, (_, row) in enumerate(df_banner_disp.iterrows()):
     cost = row.get("Cost", 0)
     imp  = row.get("Impressions", 0)
@@ -335,7 +335,7 @@ for i, (_, row) in enumerate(df_banner_disp.iterrows()):
         <div class='banner-caption'>{"<br>".join(caption)}</div>
       </div>
     """
-    with cols[i % 4]:
+    with cols[i % 3]:
         st.markdown(card_html, unsafe_allow_html=True)
 
 
