@@ -20,10 +20,12 @@ cred = dict(st.secrets["connections"]["bigquery"])
 cred["private_key"] = cred["private_key"].replace("\\n", "\n")
 bq = bigquery.Client.from_service_account_info(cred)
 
-# 「最新データ取得」ボタン
-if st.button("🔄 キャッシュクリア"):
-    st.cache_data.clear()
-    st.rerun()
+cols = st.columns([5,1])
+with cols[1]:
+    if st.button("🔄 最新データを取得"):
+        st.cache_data.clear()
+        st.rerun()
+
 
 # ──────────────────────────────────────────────
 # ① データ取得
