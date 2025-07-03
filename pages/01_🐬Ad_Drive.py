@@ -20,13 +20,6 @@ cred = dict(st.secrets["connections"]["bigquery"])
 cred["private_key"] = cred["private_key"].replace("\\n", "\n")
 bq = bigquery.Client.from_service_account_info(cred)
 
-cols = st.columns([5,1])
-with cols[1]:
-    if st.button("🔄 最新データを取得"):
-        st.cache_data.clear()
-        st.rerun()
-
-
 # ──────────────────────────────────────────────
 # ① データ取得
 #    キャンペーン指標   … Final_Ad_Data_Last
@@ -210,7 +203,12 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
+#キャッシュクリアボタン
+cols = st.columns([5,1])
+with cols[1]:
+    if st.button("🔄 最新データを取得"):
+        st.cache_data.clear()
+        st.rerun()
 
 # ──────────────────────────────────────────────
 # ⑥ 広告数値
