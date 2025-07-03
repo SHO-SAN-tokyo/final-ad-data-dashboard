@@ -21,7 +21,7 @@ cred["private_key"] = cred["private_key"].replace("\\n", "\n")
 bq = bigquery.Client.from_service_account_info(cred)
 
 # 「最新データ取得」ボタン
-if st.button("🔄 最新データを取得"):
+if st.button("🔄 キャッシュクリア"):
     st.cache_data.clear()
     st.rerun()
 
