@@ -418,3 +418,21 @@ st.markdown("""
   }
 </style>
 """, unsafe_allow_html=True)
+
+button_html = """
+<div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+    <form action="" method="post">
+        <button type="submit" style="
+            background: #F3F3F3; 
+            color: #333;
+            border: none; 
+            border-radius: 8px;
+            padding: 0.4em 1.3em; 
+            font-size: 1.08em;
+            cursor: pointer;
+            box-shadow: 0 1px 5px #ddd;
+        ">🔄 最新データを取得</button>
+    </form>
+</div>
+"""
+clicked = st.markdown(button_html, unsafe_allow_html=True)
