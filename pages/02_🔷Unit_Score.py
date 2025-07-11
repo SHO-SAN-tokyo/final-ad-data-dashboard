@@ -15,74 +15,23 @@ require_login()
 # ──────────────────────
 st.set_page_config(page_title="Unit Drive", layout="wide")
 
-# --- 2つのCloud Functionsエンドポイント（本番URLに直す）
-URL_META = "https://asia-northeast1-careful-chess-406412.cloudfunctions.net/upload-sql-data"
-URL_GOOGLE = "https://asia-northeast1-careful-chess-406412.cloudfunctions.net/upload-sql-data-pmax"
+# === 上部に折りたたみ（expander）で管理者操作 ===
+with st.expander("🛠️ 広告数値の手動更新（管理者用・通常は触らないでOK）", expanded=False):
+    st.warning("※ この操作は数分かかる場合あり、同時に何度も押さないでください。")
+    URL_META = "https://asia-northeast1-careful-chess-406412.cloudfunctions.net/upload-sql-data"
+    URL_GOOGLE = "https://asia-northeast1-careful-chess-406412.cloudfunctions.net/upload-sql-data-pmax"
+    st.markdown(f"**Meta広告用数値マージURL:**  \n[こちらをクリック]({URL_META})", unsafe_allow_html=True)
+    st.markdown(f"**Google広告用数値マージURL:**  \n[こちらをクリック]({URL_GOOGLE})", unsafe_allow_html=True)
+    st.info("実行後は5分ほど待ってからキャッシュクリアボタンで最新化してください。")
 
-# --- 状態管理
-if "is_merging" not in st.session_state:
-    st.session_state["is_merging"] = False
-if "merge_status" not in st.session_state:
-    st.session_state["merge_status"] = ""
-
-def merge_both():
-    st.session_state["is_merging"] = True
-    st.session_state["merge_status"] = "広告数値を更新中…（最大2～3分かかる場合あり）"
-    try:
-        r_meta = requests.post(URL_META, timeout=90)
-        if r_meta.status_code != 200:
-            st.session_state["merge_status"] = f"Meta広告更新失敗: {r_meta.status_code}"
-            st.session_state["is_merging"] = False
-            return
-    except Exception as e:
-        st.session_state["merge_status"] = f"Meta広告更新エラー: {e}"
-        st.session_state["is_merging"] = False
-        return
-
-    try:
-        r_google = requests.post(URL_GOOGLE, timeout=90)
-        if r_google.status_code == 200:
-            st.session_state["merge_status"] = "✅ 広告数値の更新が完了しました！"
-        else:
-            st.session_state["merge_status"] = f"Google広告更新失敗: {r_google.status_code}"
-    except Exception as e:
-        st.session_state["merge_status"] = f"Google広告更新エラー: {e}"
-    st.session_state["is_merging"] = False
-
-# ---- レイアウト：タイトル＋右端2ボタン ----
-col1, col2 = st.columns([7, 2])
+# ↓↓ 以下は通常どおりUnit Score本体
+col1, col2 = st.columns([7, 1])
 with col1:
     st.markdown(f"<h1 style='display:inline-block;margin-bottom:0;'>Unit Score</h1>", unsafe_allow_html=True)
 with col2:
-    st.markdown(
-        """
-        <style>
-        div[data-testid="column"]:nth-of-type(2) button {
-            float: right !important;
-            margin-top: 8px;
-            margin-left: 12px;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-    btn_cols = st.columns(2, gap="small")
-    # --- キャッシュクリア
-    with btn_cols[0]:
-        if st.button("🧹 キャッシュクリア", key="refresh_btn"):
-            st.cache_data.clear()
-            st.rerun()
-    # --- 広告数値更新（2API・排他・進行状況付き）
-    with btn_cols[1]:
-        if st.session_state["is_merging"]:
-            st.button("広告数値更新中…", key="merge_btn", disabled=True)
-        else:
-            if st.button("広告数値更新", key="merge_btn"):
-                merge_both()
-                st.experimental_rerun()
-
-# --- 実行状況メッセージ
-if st.session_state["merge_status"]:
-    st.write(st.session_state["merge_status"])
-
+    if st.button("🧹 キャッシュクリア", key="refresh_btn"):
+        st.cache_data.clear()
+        st.experimental_rerun()
 
 
 st.subheader("📊 広告TM パフォーマンス")
