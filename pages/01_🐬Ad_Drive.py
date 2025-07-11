@@ -206,7 +206,7 @@ st.markdown(
 #キャッシュクリアボタン
 cols = st.columns([5,1])
 with cols[1]:
-    if st.button("🚮 キャッシュクリア"):
+    if st.button("🔄️データ更新"):
         st.cache_data.clear()
         st.rerun()
 
