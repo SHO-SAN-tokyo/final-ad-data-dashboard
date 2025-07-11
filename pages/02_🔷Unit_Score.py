@@ -27,7 +27,7 @@ with st.expander("🛠️ 広告数値の手動更新（管理者用・通常は
 # ↓↓ 以下は通常どおりUnit Score本体
 col1, col2 = st.columns([7, 1])
 with col1:
-    st.markdown(f"<h1 style='display:inline-block;margin-bottom:0;'>Unit Score</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='display:inline-block;margin-bottom:0;'>🔷 Unit Score</h1>", unsafe_allow_html=True)
 with col2:
     if st.button("🧹 キャッシュクリア", key="refresh_btn"):
         st.cache_data.clear()
