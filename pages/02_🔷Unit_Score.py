@@ -25,7 +25,7 @@ with st.expander("🛠️ 広告数値の手動更新（管理者用・通常は
     st.info("実行後は5分ほど待ってからキャッシュクリアボタンで最新化してください。")
 
 # ↓↓ 以下は通常どおりUnit Score本体
-col1, col2 = st.columns([6, 1])
+col1, col2 = st.columns([4, 1])
 with col1:
     st.markdown(f"<h1 style='display:inline-block;margin-bottom:0;'>🔷 Unit Score</h1>", unsafe_allow_html=True)
 with col2:
