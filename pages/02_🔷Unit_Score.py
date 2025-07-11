@@ -2,6 +2,7 @@ import streamlit as st
 from google.cloud import bigquery
 import pandas as pd
 import numpy as np
+import requests
 
 # ──────────────────────
 # ログイン認証
@@ -14,25 +15,74 @@ require_login()
 # ──────────────────────
 st.set_page_config(page_title="Unit Drive", layout="wide")
 
-# --- タイトルとボタンを横並びで表示 ---
-col1, col2 = st.columns([6, 1])  # 左を広く
+# --- 2つのCloud Functionsエンドポイント（本番URLに直す）
+URL_META = "https://asia-northeast1-careful-chess-406412.cloudfunctions.net/upload-sql-data"
+URL_GOOGLE = "https://asia-northeast1-careful-chess-406412.cloudfunctions.net/upload-sql-data-pmax"
+
+# --- 状態管理
+if "is_merging" not in st.session_state:
+    st.session_state["is_merging"] = False
+if "merge_status" not in st.session_state:
+    st.session_state["merge_status"] = ""
+
+def merge_both():
+    st.session_state["is_merging"] = True
+    st.session_state["merge_status"] = "広告数値を更新中…（最大2～3分かかる場合あり）"
+    try:
+        r_meta = requests.post(URL_META, timeout=90)
+        if r_meta.status_code != 200:
+            st.session_state["merge_status"] = f"Meta広告更新失敗: {r_meta.status_code}"
+            st.session_state["is_merging"] = False
+            return
+    except Exception as e:
+        st.session_state["merge_status"] = f"Meta広告更新エラー: {e}"
+        st.session_state["is_merging"] = False
+        return
+
+    try:
+        r_google = requests.post(URL_GOOGLE, timeout=90)
+        if r_google.status_code == 200:
+            st.session_state["merge_status"] = "✅ 広告数値の更新が完了しました！"
+        else:
+            st.session_state["merge_status"] = f"Google広告更新失敗: {r_google.status_code}"
+    except Exception as e:
+        st.session_state["merge_status"] = f"Google広告更新エラー: {e}"
+    st.session_state["is_merging"] = False
+
+# ---- レイアウト：タイトル＋右端2ボタン ----
+col1, col2 = st.columns([7, 2])
 with col1:
-    st.markdown("<h1 style='display:inline-block;margin-bottom:0;'>🔷 Unit Score</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='display:inline-block;margin-bottom:0;'>Unit Score</h1>", unsafe_allow_html=True)
 with col2:
-    # 右端にボタン
-    btn_style = """
-    <style>
-    div[data-testid="column"]:nth-of-type(2) button {
-        float: right !important;
-        margin-top: 8px;
-        margin-right: 6px;
-    }
-    </style>
-    """
-    st.markdown(btn_style, unsafe_allow_html=True)
-    if st.button("🔄 キャッシュクリア", key="refresh_btn"):
-        st.cache_data.clear()
-        st.rerun()
+    st.markdown(
+        """
+        <style>
+        div[data-testid="column"]:nth-of-type(2) button {
+            float: right !important;
+            margin-top: 8px;
+            margin-left: 12px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    btn_cols = st.columns(2, gap="small")
+    # --- キャッシュクリア
+    with btn_cols[0]:
+        if st.button("🧹 キャッシュクリア", key="refresh_btn"):
+            st.cache_data.clear()
+            st.rerun()
+    # --- 広告数値更新（2API・排他・進行状況付き）
+    with btn_cols[1]:
+        if st.session_state["is_merging"]:
+            st.button("広告数値更新中…", key="merge_btn", disabled=True)
+        else:
+            if st.button("広告数値更新", key="merge_btn"):
+                merge_both()
+                st.experimental_rerun()
+
+# --- 実行状況メッセージ
+if st.session_state["merge_status"]:
+    st.write(st.session_state["merge_status"])
+
 
 
 st.subheader("📊 広告TM パフォーマンス")
