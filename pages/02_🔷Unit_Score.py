@@ -25,6 +25,23 @@ with st.expander("🛠️ 広告数値の手動更新（管理者用・通常は
     st.info("クリック後、画面に完了ログが表示されたら、一呼吸おいてキャッシュクリアボタンでを押して最新化してください。")
 
 # --- キャッシュクリア ---
+# --- ボタン用CSS（必要な場合のみ） ---
+btn_style = """
+<style>
+div[data-testid="stButton"] button {
+    width: 100%;
+    background: #eaf2fb;
+    color: #111;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-top: 4px;
+    margin-bottom: 6px;
+}
+</style>
+"""
+
+# --- タイトル＋キャッシュクリアボタン ---
 col1, col2 = st.columns([4, 1])
 with col1:
     st.markdown(f"<h1 style='display:inline-block;margin-bottom:0;'>🔷 Unit Score</h1>", unsafe_allow_html=True)
@@ -33,6 +50,7 @@ with col2:
     if st.button("🔄 キャッシュクリア", key="refresh_btn"):
         st.cache_data.clear()
         st.rerun()
+
 
 
 st.subheader("📊 広告TM パフォーマンス")
