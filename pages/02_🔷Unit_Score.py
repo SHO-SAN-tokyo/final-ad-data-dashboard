@@ -24,14 +24,20 @@ with st.expander("🛠️ 広告数値の手動更新（管理者用・通常は
     st.markdown(f"**Google広告の数値を更新:**  \n[こちらをクリック（所要時間：1分弱）]({URL_GOOGLE})", unsafe_allow_html=True)
     st.info("クリック後、画面に完了ログが表示されたら、一呼吸おいてキャッシュクリアボタンでを押して最新化してください。")
 
-# ↓↓ 以下は通常どおりUnit Score本体
+# --- キャッシュクリア ---
 col1, col2 = st.columns([4, 1])
 with col1:
     st.markdown(f"<h1 style='display:inline-block;margin-bottom:0;'>🔷 Unit Score</h1>", unsafe_allow_html=True)
 with col2:
     if st.button("🧹 キャッシュクリア", key="refresh_btn"):
         st.cache_data.clear()
+        st.session_state["just_cleared_cache"] = True
         st.experimental_rerun()
+
+# --- 再読み込み後にメッセージ表示 ---
+if st.session_state.get("just_cleared_cache"):
+    st.success("✅ キャッシュをクリアしました！")
+    st.session_state["just_cleared_cache"] = False  # メッセージは1回だけ
 
 
 st.subheader("📊 広告TM パフォーマンス")
