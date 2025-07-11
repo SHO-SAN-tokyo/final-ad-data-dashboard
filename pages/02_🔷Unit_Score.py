@@ -13,7 +13,27 @@ require_login()
 # コンテンツ
 # ──────────────────────
 st.set_page_config(page_title="Unit Drive", layout="wide")
-st.title("🔷 Unit Score")
+
+# --- タイトルとボタンを横並びで表示 ---
+col1, col2 = st.columns([6, 1])  # 左を広く
+with col1:
+    st.markdown("<h1 style='display:inline-block;margin-bottom:0;'>🔷 Unit Score</h1>", unsafe_allow_html=True)
+with col2:
+    # 右端にボタン
+    btn_style = """
+    <style>
+    div[data-testid="column"]:nth-of-type(2) button {
+        float: right !important;
+        margin-top: 8px;
+        margin-right: 6px;
+    }
+    </style>
+    """
+    st.markdown(btn_style, unsafe_allow_html=True)
+    if st.button("🔄 キャッシュクリア", key="refresh_btn"):
+        st.cache_data.clear()
+        st.rerun()
+
 
 st.subheader("📊 広告TM パフォーマンス")
 
