@@ -20,9 +20,9 @@ with st.expander("🛠️ 広告数値の手動更新（管理者用・通常は
     st.warning("※ この操作は数分かかる場合あり、同時に何度も押さないでください。")
     URL_META = "https://asia-northeast1-careful-chess-406412.cloudfunctions.net/upload-sql-data"
     URL_GOOGLE = "https://asia-northeast1-careful-chess-406412.cloudfunctions.net/upload-sql-data-pmax"
-    st.markdown(f"**Meta広告用数値マージURL:**  \n[こちらをクリック]({URL_META})", unsafe_allow_html=True)
-    st.markdown(f"**Google広告用数値マージURL:**  \n[こちらをクリック]({URL_GOOGLE})", unsafe_allow_html=True)
-    st.info("実行後は5分ほど待ってからキャッシュクリアボタンで最新化してください。")
+    st.markdown(f"**Meta広告の数値を更新:**  \n[こちらをクリック]({URL_META})", unsafe_allow_html=True)
+    st.markdown(f"**Google広告の数値を更新:**  \n[こちらをクリック]({URL_GOOGLE})", unsafe_allow_html=True)
+    st.info("クリック後、画面に完了ログが表示されたら、一呼吸おいてキャッシュクリアボタンでを押して最新化してください。")
 
 # ↓↓ 以下は通常どおりUnit Score本体
 col1, col2 = st.columns([4, 1])
