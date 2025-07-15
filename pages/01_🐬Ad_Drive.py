@@ -204,6 +204,7 @@ cpa = total_cost / total_cv if total_cv else None
 cvr = total_cv / total_click if total_click else None
 ctr = total_click / total_imp if total_imp else None
 cpm = (total_cost * 1000 / total_imp) if total_imp else None
+cpc = total_cost / total_click if total_click else None
 
 # 配信月：空やNaN対策
 if "配信月" not in df_num_filt.columns or df_num_filt["配信月"].dropna().empty:
@@ -264,10 +265,11 @@ for i, card in enumerate(row1):
 row2 = [
     {"label": "インプレッション", "value": f"{int(total_imp):,}", "bg": "#fff"},
     {"label": "CTR - クリック率", "value": f"{ctr*100:,.2f}%" if ctr else "-", "bg": "#fff"},
+    {"label": "CPC - クリック単価",   "value": f"{cpc:,.0f}円" if cpc else "-",     "bg": "#fff"},
     {"label": "CPM", "value": f"{cpm:,.0f}" if cpm else "-", "bg": "#fff"},
     {"label": "クリック", "value": f"{int(total_click):,}", "bg": "#fff"},
 ]
-cols2 = st.columns(4)
+cols2 = st.columns(5)
 for i, card in enumerate(row2):
     with cols2[i]:
         st.markdown(f"""
