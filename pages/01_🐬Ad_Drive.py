@@ -330,6 +330,7 @@ for i, (_, row) in enumerate(df_banner_disp.iterrows()):
     cv   = int(row.get("conv_banner", 0)) if pd.notna(row.get("conv_banner", 0)) else 0
     cpa_ = row.get("CPA")
     ctr_ = row.get("CTR")
+    cpc_ = row.get("CPC") if "CPC" in row and pd.notna(row.get("CPC")) else (cost / clk if clk else None)
 
     canva_links = split_urls(row.get("canvaURL", ""))
     if canva_links:
@@ -347,6 +348,7 @@ for i, (_, row) in enumerate(df_banner_disp.iterrows()):
         f"<b>IMP：</b>{imp:,.0f}",
         f"<b>クリック：</b>{clk:,.0f}",
         f"<b>CTR：</b>{ctr_*100:.2f}%" if pd.notna(ctr_) else "<b>CTR：</b>-",
+        f"<b>CPC：</b>{cpc_:,.0f}円" if cpc_ is not None else "<b>CPC：</b>-",
         f"<b>CV数：</b>{cv if cv else 'なし'}",
         f"<b>CPA：</b>{cpa_:,.0f}円" if pd.notna(cpa_) else "<b>CPA：</b>-",
         canva_html,
