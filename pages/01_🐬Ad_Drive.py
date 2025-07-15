@@ -341,6 +341,17 @@ for i, (_, row) in enumerate(df_banner_disp.iterrows()):
     else:
         canva_html = '<span class="gray-text">canvaURL：なし</span>'
 
+    # --- LP /遷移先 URL ---
+    url_links = split_urls(row.get("URL", ""))
+    if url_links:
+        url_html = "<br>".join(
+            f'<a href="{html.escape(u)}" target="_blank">飛び先URL{"↗️" if j == 0 else str(j+1)+"↗️"}</a>'
+            for j, u in enumerate(url_links)
+        )
+    else:
+        url_html = '<span class="gray-text">飛び先URL：未記入</span>'
+
+
     caption = [
         f"<div style='font-size:9px;color:#888;margin-bottom:-17px;line-height:1.4;'>{row.get('キャンペーン名','')}</div>",
         f"<b>広告名：</b>{row.get('AdName', '')}",
@@ -351,6 +362,7 @@ for i, (_, row) in enumerate(df_banner_disp.iterrows()):
         f"<b>CPC：</b>{cpc_:,.0f}円" if cpc_ is not None else "<b>CPC：</b>-",
         f"<b>CV数：</b>{cv if cv else 'なし'}",
         f"<b>CPA：</b>{cpa_:,.0f}円" if pd.notna(cpa_) else "<b>CPA：</b>-",
+        url_html,
         canva_html,
         f"<b>メインテキスト：</b>{row.get('Description', '')}"
     ]
