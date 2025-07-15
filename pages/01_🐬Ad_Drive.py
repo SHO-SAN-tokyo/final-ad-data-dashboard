@@ -339,7 +339,7 @@ for i, (_, row) in enumerate(df_banner_disp.iterrows()):
             for j, u in enumerate(canva_links)
         )
     else:
-        canva_html = '<span class="gray-text">canvaURL：なし</span>'
+        canva_html = '<span class="gray-text">canvaURL：未記入</span>'
 
     # --- LP /遷移先 URL ---
     url_links = split_urls(row.get("URL", ""))
