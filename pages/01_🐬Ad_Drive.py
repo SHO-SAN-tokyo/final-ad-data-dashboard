@@ -198,7 +198,7 @@ df_num_filt = apply_filters(
     sel_goal=sel_goal,
     sel_media=sel_media,
     sel_specialcat=sel_specialcat,
-    sel_campaign=sel_campaign
+    sel_campaign=sel_campaign,
     sel_adgroup=sel_adgroup
 )
 
@@ -211,7 +211,7 @@ df_banner_filt = apply_filters(
     sel_goal=sel_goal,
     sel_media=sel_media,
     sel_specialcat=sel_specialcat,
-    sel_campaign=sel_campaign
+    sel_campaign=sel_campaign,
     sel_adgroup=sel_adgroup
 )
 
