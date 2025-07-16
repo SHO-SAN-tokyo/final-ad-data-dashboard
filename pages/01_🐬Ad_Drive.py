@@ -107,27 +107,33 @@ with col2:
         filtered = filtered[filtered["client_name"].isin(sel_client)]
 
 # --- 2段目: メインカテゴリ・サブカテゴリ・広告媒体・広告目的（横並び） ---
-col3, col4, col5, col6 = st.columns(4)
+col3, col4, col5, col6, col7 = st.columns(5)
 
 with col3:
-    cat_options = sorted(filtered["メインカテゴリ"].dropna().unique())
-    sel_cat = st.multiselect("📁 メインカテゴリ", cat_options, placeholder="すべて")
-    if sel_cat:
-        filtered = filtered[filtered["メインカテゴリ"].isin(sel_cat)]
-
-with col4:
-    subcat_options = sorted(filtered["サブカテゴリ"].dropna().unique())
-    sel_subcat = st.multiselect("📂 サブカテゴリ", subcat_options, placeholder="すべて")
-    if sel_subcat:
-        filtered = filtered[filtered["サブカテゴリ"].isin(sel_subcat)]
-
-with col5:
     media_options = sorted(filtered["広告媒体"].dropna().unique())
     sel_media = st.multiselect("📡 広告媒体", media_options, placeholder="すべて")
     if sel_media:
         filtered = filtered[filtered["広告媒体"].isin(sel_media)]
 
+with col4:
+    cat_options = sorted(filtered["メインカテゴリ"].dropna().unique())
+    sel_cat = st.multiselect("📁 メインカテゴリ", cat_options, placeholder="すべて")
+    if sel_cat:
+        filtered = filtered[filtered["メインカテゴリ"].isin(sel_cat)]
+
+with col5:
+    subcat_options = sorted(filtered["サブカテゴリ"].dropna().unique())
+    sel_subcat = st.multiselect("📂 サブカテゴリ", subcat_options, placeholder="すべて")
+    if sel_subcat:
+        filtered = filtered[filtered["サブカテゴリ"].isin(sel_subcat)]
+
 with col6:
+    specialcat_options = sorted(filtered["特殊カテゴリ"].dropna().unique())
+    sel_specialcat = st.multiselect("🏷️ 特殊カテゴリ", specialcat_options, placeholder="すべて")
+    if sel_specialcat:
+        filtered = filtered[filtered["特殊カテゴリ"].isin(sel_specialcat)]
+
+with col7:
     goal_options = sorted(filtered["広告目的"].dropna().unique())
     sel_goal = st.multiselect("🎯 広告目的", goal_options, placeholder="すべて")
     if sel_goal:
@@ -146,6 +152,7 @@ def apply_filters(
     sel_client=None, sel_month=None,
     sel_cat=None, sel_subcat=None,
     sel_goal=None, sel_media=None,
+    sel_specialcat=None,
     sel_campaign=None
 ) -> pd.DataFrame:
     cond = pd.Series(True, index=df.index)
@@ -153,14 +160,16 @@ def apply_filters(
         cond &= df["client_name"].isin(sel_client)
     if "配信月" in df.columns and sel_month:
         cond &= df["配信月"].isin(sel_month)
+    if "広告媒体" in df.columns and sel_media:
+        cond &= df["広告媒体"].isin(sel_media)
     if "メインカテゴリ" in df.columns and sel_cat:
         cond &= df["メインカテゴリ"].isin(sel_cat)
     if "サブカテゴリ" in df.columns and sel_subcat:
         cond &= df["サブカテゴリ"].isin(sel_subcat)
+    if "特殊カテゴリ" in df.columns and sel_specialcat:
+        cond &= df["特殊カテゴリ"].isin(sel_specialcat)
     if "広告目的" in df.columns and sel_goal:
         cond &= df["広告目的"].isin(sel_goal)
-    if "広告媒体" in df.columns and sel_media:
-        cond &= df["広告媒体"].isin(sel_media)
     if "キャンペーン名" in df.columns and sel_campaign:
         cond &= df["キャンペーン名"].isin(sel_campaign)
     return df.loc[cond].copy()
@@ -174,6 +183,7 @@ df_num_filt = apply_filters(
     sel_subcat=sel_subcat,
     sel_goal=sel_goal,
     sel_media=sel_media,
+    sel_specialcat=sel_specialcat,
     sel_campaign=sel_campaign
 )
 
@@ -185,6 +195,7 @@ df_banner_filt = apply_filters(
     sel_subcat=sel_subcat,
     sel_goal=sel_goal,
     sel_media=sel_media,
+    sel_specialcat=sel_specialcat,
     sel_campaign=sel_campaign
 )
 
@@ -217,6 +228,7 @@ st.markdown(
     f"👤 クライアント：{sel_client or 'すべて'}<br>"
     f"📁 メインカテゴリ：{sel_cat or 'すべて'}　"
     f"📂 サブカテゴリ：{sel_subcat or 'すべて'}　"
+    f"🏷️ 特殊カテゴリ：{sel_specialcat or 'すべて'}"
     f"📡 広告媒体：{sel_media or 'すべて'}　"
     f"🎯 広告目的：{sel_goal or 'すべて'}<br>"
     f"📣 キャンペーン名：{sel_campaign or 'すべて'}",
