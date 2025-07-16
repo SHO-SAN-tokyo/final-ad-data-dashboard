@@ -139,10 +139,21 @@ with col7:
     if sel_goal:
         filtered = filtered[filtered["広告目的"].isin(sel_goal)]
 
-camp_options = sorted(filtered["キャンペーン名"].dropna().unique())
-sel_campaign = st.multiselect("📣 キャンペーン名", camp_options, placeholder="すべて")
-if sel_campaign:
-    filtered = filtered[filtered["キャンペーン名"].isin(sel_campaign)]
+# --- キャンペーン名・広告セット名（横並び） ---
+camp_col, adg_col = st.columns(2)
+
+with camp_col:
+    camp_options = sorted(filtered["キャンペーン名"].dropna().unique())
+    sel_campaign = st.multiselect("📣 キャンペーン名", camp_options, placeholder="すべて")
+    if sel_campaign:
+        filtered = filtered[filtered["キャンペーン名"].isin(sel_campaign)]
+
+with adg_col:
+    adg_options = sorted(filtered["広告セット名"].dropna().unique())
+    sel_adgroup = st.multiselect("*️⃣ 広告セット名", adg_options, placeholder="すべて")
+    if sel_adgroup:
+        filtered = filtered[filtered["広告セット名"].isin(sel_adgroup)]
+
 
 # ──────────────────────────────────────────────
 # ④ フィルター関数（キャンペーン / バナー両方へ適用）
@@ -153,7 +164,8 @@ def apply_filters(
     sel_cat=None, sel_subcat=None,
     sel_goal=None, sel_media=None,
     sel_specialcat=None,
-    sel_campaign=None
+    sel_campaign=None,
+    sel_adgroup=None
 ) -> pd.DataFrame:
     cond = pd.Series(True, index=df.index)
     if "client_name" in df.columns and sel_client:
@@ -172,6 +184,8 @@ def apply_filters(
         cond &= df["広告目的"].isin(sel_goal)
     if "キャンペーン名" in df.columns and sel_campaign:
         cond &= df["キャンペーン名"].isin(sel_campaign)
+    if "広告セット名" in df.columns and sel_adgroup:
+        cond &= df["広告セット名"].isin(sel_adgroup)
     return df.loc[cond].copy()
 
 
@@ -185,6 +199,7 @@ df_num_filt = apply_filters(
     sel_media=sel_media,
     sel_specialcat=sel_specialcat,
     sel_campaign=sel_campaign
+    sel_adgroup=sel_adgroup
 )
 
 df_banner_filt = apply_filters(
@@ -197,6 +212,7 @@ df_banner_filt = apply_filters(
     sel_media=sel_media,
     sel_specialcat=sel_specialcat,
     sel_campaign=sel_campaign
+    sel_adgroup=sel_adgroup
 )
 
 
@@ -231,7 +247,8 @@ st.markdown(
     f"🏷️ 特殊カテゴリ：{sel_specialcat or 'すべて'}"
     f"📡 広告媒体：{sel_media or 'すべて'}　"
     f"🎯 広告目的：{sel_goal or 'すべて'}<br>"
-    f"📣 キャンペーン名：{sel_campaign or 'すべて'}",
+    f"📣 キャンペーン名：{sel_campaign or 'すべて'}<br>"
+    f"*️⃣ 広告セット名：{sel_adgroup or 'すべて'}",
     unsafe_allow_html=True
 )
 
