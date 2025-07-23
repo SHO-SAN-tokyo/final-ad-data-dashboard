@@ -15,7 +15,6 @@ require_login()
 # ──────────────────────
 st.set_page_config(page_title="Unit Drive", layout="wide")
 
-# === 上部に折りたたみ（expander）で管理者操作 ===
 with st.expander("🛠️ 広告数値の手動更新（管理者用・通常は触らないでOK）", expanded=False):
     st.warning("※ この操作は数分かかる場合あり、同時に何度も押さないでください。")
     URL_META = "https://asia-northeast1-careful-chess-406412.cloudfunctions.net/upload-sql-data"
@@ -25,7 +24,6 @@ with st.expander("🛠️ 広告数値の手動更新（管理者用・通常は
     st.info("クリック後、画面に完了ログが表示されたら、一呼吸おいてキャッシュクリアボタンでを押して最新化してください。")
 
 # --- キャッシュクリア ---
-# --- ボタン用CSS（必要な場合のみ） ---
 btn_style = """
 <style>
 div[data-testid="stButton"] button {
@@ -41,7 +39,6 @@ div[data-testid="stButton"] button {
 </style>
 """
 
-# --- タイトル＋キャッシュクリアボタン ---
 col1, col2 = st.columns([4, 1])
 with col1:
     st.markdown(f"<h1 style='display:inline-block;margin-bottom:0;'>🔷 Unit Score</h1>", unsafe_allow_html=True)
@@ -51,15 +48,12 @@ with col2:
         st.cache_data.clear()
         st.rerun()
 
-
-
 st.subheader("📊 広告TM パフォーマンス")
 
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info_dict)
 
-# データ取得（VIEW）
 @st.cache_data(show_spinner="データ取得中…")
 def load_data():
     df = client.query("SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Unit_Drive_Ready_View").to_dataframe()
@@ -67,11 +61,53 @@ def load_data():
 
 df = load_data()
 
-# 📅 配信月（multiselectに変更）
+# 📅 配信月フィルタ
 month_options = sorted(df["配信月"].dropna().unique())
 sel_month = st.multiselect("📅 配信月", month_options, placeholder="すべて")
 if sel_month:
     df = df[df["配信月"].isin(sel_month)]
+
+# ▼ ここからキャンペーン単位で合算（配信月+CampaignId+クライアント名でgroupby）
+group_cols = ["配信月", "CampaignId", "クライアント名"]
+# 必要に応じて"クリック数"列名は"Clicks"などBigQuery側と合わせてください
+agg_dict = {
+    "キャンペーン名": "first",
+    "担当者": "first",
+    "所属": "first",
+    "フロント": "first",
+    "雇用形態": "first",
+    "予算": "sum",
+    "フィー": "sum",
+    "消化金額": "sum",
+    "コンバージョン数": "sum",
+    "クリック数": "sum" if "クリック数" in df.columns else "first",
+    "CPA": "mean",
+    "CVR": "mean",
+    "CTR": "mean",
+    "CPC": "mean",
+    "CPM": "mean",
+    "canvaURL": "first",
+    "メインカテゴリ": "first",
+    "サブカテゴリ": "first",
+    "広告媒体": "first",
+    "広告目的": "first",
+    "注力度": "first",
+    "配信開始日": "first",
+    "配信終了日": "first",
+    "CPA_KPI_評価": "first",
+    "CPC_KPI_評価": "first",
+    "CPM_KPI_評価": "first",
+    "CVR_KPI_評価": "first",
+    "CTR_KPI_評価": "first",
+    "個別CPA_達成": "first",
+    "達成状況": "first"
+}
+df = df.groupby(group_cols).agg(agg_dict).reset_index()
+
+# ▼ CPA/CVRだけ再計算（クリック数が無い場合は元のまま）
+df["CPA"] = df["消化金額"] / df["コンバージョン数"].replace(0, np.nan)
+if "クリック数" in df.columns:
+    df["CVR"] = df["コンバージョン数"] / df["クリック数"].replace(0, np.nan)
 
 # フィルター項目
 latest = df.copy()
@@ -141,9 +177,6 @@ if maincat_filter:
 if subcat_filter:
     df_filtered = df_filtered[df_filtered["サブカテゴリ"].isin(subcat_filter)]
 
-# 👇 配信月＋キャンペーンID＋クライアント名で1行にまとめる
-df_filtered = df_filtered.drop_duplicates(subset=["配信月", "CampaignId", "クライアント名"])
-
 def safe_cpa(cost, cv):
     return cost / cv if cv > 0 else np.nan
 
@@ -207,7 +240,6 @@ person_group = df_filtered.groupby("担当者", dropna=False)
 
 person_summary = []
 for person, group in person_group:
-    # 「広告目的=コンバージョン」のみ
     group_conv = group[group["広告目的"] == "コンバージョン"]
     camp_count_conv = group_conv.shape[0]
     spend_conv = group_conv["消化金額"].sum()
@@ -254,7 +286,6 @@ st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 # -----------------------------
 st.write("#### 🏢 Unitごとの達成率（コンバージョン目的のみ）")
 if "達成状況" in df_filtered.columns:
-    # コンバージョン目的のみで分母・分子を計算
     conv_df = df_filtered[df_filtered["広告目的"] == "コンバージョン"].copy()
     conv_df["キャンペーンキー"] = (
         conv_df["配信月"].astype(str) + "_" +
@@ -287,7 +318,6 @@ if "達成状況" in df_filtered.columns:
             """, unsafe_allow_html=True)
 st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 
-
 # -----------------------------
 # 3. 担当者ごとの達成率（コンバージョン目的のみ）
 # -----------------------------
@@ -316,7 +346,7 @@ if "達成状況" in df_filtered.columns:
 
 st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
-# ▼ キャンペーン一覧（必要なカラム全て追加＆整形）
+# ▼ キャンペーン一覧
 st.write("#### 📋 配信キャンペーン一覧（最大1,000件）")
 columns_to_show = [
     "配信月","キャンペーン名","担当者","所属","フロント","雇用形態",
