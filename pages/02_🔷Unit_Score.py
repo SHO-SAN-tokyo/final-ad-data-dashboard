@@ -376,11 +376,14 @@ if "達成状況" in df_filtered.columns:
     st.write("#### 👍 達成キャンペーン一覧")
     achieved = df_filtered[(df_filtered["達成状況"] == "達成") & (df_filtered["広告目的"] == "コンバージョン")]
     if not achieved.empty:
+        # ▼ここを差し替え！
+        cols = [
+            "配信月", "キャンペーン名", "担当者", "所属",
+            "CPA", "CPA_KPI_評価", "目標CPA", "個別CPA_達成"
+        ]
+        display_cols = [c for c in cols if c in achieved.columns]
         st.dataframe(
-            achieved[[
-                "配信月", "キャンペーン名", "担当者", "所属",
-                "CPA", "CPA_KPI_評価", "目標CPA", "個別CPA_達成"
-            ]].style.format({
+            achieved[display_cols].style.format({
                 "CPA": "¥{:,.0f}",
                 "目標CPA": "¥{:,.0f}"
             }),
@@ -395,11 +398,13 @@ if "達成状況" in df_filtered.columns:
     st.write("#### 💤 未達成キャンペーン一覧")
     missed = df_filtered[(df_filtered["達成状況"] == "未達成") & (df_filtered["広告目的"] == "コンバージョン")]
     if not missed.empty:
+        cols = [
+            "配信月", "キャンペーン名", "担当者", "所属",
+            "CPA", "CPA_KPI_評価", "目標CPA", "個別CPA_達成"
+        ]
+        display_cols = [c for c in cols if c in missed.columns]
         st.dataframe(
-            missed[[
-                "配信月", "キャンペーン名", "担当者", "所属",
-                "CPA", "CPA_KPI_評価", "目標CPA", "個別CPA_達成"
-            ]].style.format({
+            missed[display_cols].style.format({
                 "CPA": "¥{:,.0f}",
                 "目標CPA": "¥{:,.0f}"
             }),
@@ -407,3 +412,4 @@ if "達成状況" in df_filtered.columns:
         )
     else:
         st.info("未達成キャンペーンがありません。")
+
