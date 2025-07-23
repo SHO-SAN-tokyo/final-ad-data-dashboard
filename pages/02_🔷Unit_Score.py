@@ -15,6 +15,7 @@ require_login()
 # ──────────────────────
 st.set_page_config(page_title="Unit Drive", layout="wide")
 
+# === 上部に折りたたみ（expander）で管理者操作 ===
 with st.expander("🛠️ 広告数値の手動更新（管理者用・通常は触らないでOK）", expanded=False):
     st.warning("※ この操作は数分かかる場合あり、同時に何度も押さないでください。")
     URL_META = "https://asia-northeast1-careful-chess-406412.cloudfunctions.net/upload-sql-data"
@@ -24,6 +25,7 @@ with st.expander("🛠️ 広告数値の手動更新（管理者用・通常は
     st.info("クリック後、画面に完了ログが表示されたら、一呼吸おいてキャッシュクリアボタンでを押して最新化してください。")
 
 # --- キャッシュクリア ---
+# --- ボタン用CSS（必要な場合のみ） ---
 btn_style = """
 <style>
 div[data-testid="stButton"] button {
@@ -54,6 +56,7 @@ info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info_dict)
 
+# データ取得（VIEW）
 @st.cache_data(show_spinner="データ取得中…")
 def load_data():
     df = client.query("SELECT * FROM careful-chess-406412.SHOSAN_Ad_Tokyo.Unit_Drive_Ready_View").to_dataframe()
@@ -61,53 +64,11 @@ def load_data():
 
 df = load_data()
 
-# 📅 配信月フィルタ
+# 📅 配信月（multiselectに変更）
 month_options = sorted(df["配信月"].dropna().unique())
 sel_month = st.multiselect("📅 配信月", month_options, placeholder="すべて")
 if sel_month:
     df = df[df["配信月"].isin(sel_month)]
-
-# ▼ ここからキャンペーン単位で合算（配信月+CampaignId+クライアント名でgroupby）
-group_cols = ["配信月", "CampaignId", "クライアント名"]
-# 必要に応じて"クリック数"列名は"Clicks"などBigQuery側と合わせてください
-agg_dict = {
-    "キャンペーン名": "first",
-    "担当者": "first",
-    "所属": "first",
-    "フロント": "first",
-    "雇用形態": "first",
-    "予算": "sum",
-    "フィー": "sum",
-    "消化金額": "sum",
-    "コンバージョン数": "sum",
-    "クリック数": "sum" if "クリック数" in df.columns else "first",
-    "CPA": "mean",
-    "CVR": "mean",
-    "CTR": "mean",
-    "CPC": "mean",
-    "CPM": "mean",
-    "canvaURL": "first",
-    "メインカテゴリ": "first",
-    "サブカテゴリ": "first",
-    "広告媒体": "first",
-    "広告目的": "first",
-    "注力度": "first",
-    "配信開始日": "first",
-    "配信終了日": "first",
-    "CPA_KPI_評価": "first",
-    "CPC_KPI_評価": "first",
-    "CPM_KPI_評価": "first",
-    "CVR_KPI_評価": "first",
-    "CTR_KPI_評価": "first",
-    "個別CPA_達成": "first",
-    "達成状況": "first"
-}
-df = df.groupby(group_cols).agg(agg_dict).reset_index()
-
-# ▼ CPA/CVRだけ再計算（クリック数が無い場合は元のまま）
-df["CPA"] = df["消化金額"] / df["コンバージョン数"].replace(0, np.nan)
-if "クリック数" in df.columns:
-    df["CVR"] = df["コンバージョン数"] / df["クリック数"].replace(0, np.nan)
 
 # フィルター項目
 latest = df.copy()
@@ -124,7 +85,6 @@ focus_options = sorted(latest["注力度"].dropna().astype(str).unique())
 maincat_options = sorted(latest["メインカテゴリ"].dropna().astype(str).unique())
 subcat_options = sorted(latest["サブカテゴリ"].dropna().astype(str).unique())
 
-# UIの並び
 f1, f2, f3, f4 = st.columns(4)
 with f1:
     unit_filter = st.multiselect("🏷️ Unit", unit_options, placeholder="すべて")
@@ -146,7 +106,6 @@ with f6:
 with f7:
     subcat_filter = st.multiselect("📂 サブカテゴリ", subcat_options, placeholder="すべて")
 
-# --- 状況表示
 st.markdown(f"""
 <div style='font-size: 0.9rem; line-height: 1.8;'>
 📅 配信月: <b>{sel_month or 'すべて'}</b><br>
@@ -160,7 +119,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- フィルター適用（複数選択対応）
 df_filtered = latest.copy()
 if unit_filter:
     df_filtered = df_filtered[df_filtered["所属"].isin(unit_filter)]
@@ -177,15 +135,18 @@ if maincat_filter:
 if subcat_filter:
     df_filtered = df_filtered[df_filtered["サブカテゴリ"].isin(subcat_filter)]
 
-def safe_cpa(cost, cv):
-    return cost / cv if cv > 0 else np.nan
+# 👇 配信月＋キャンペーンID＋クライアント名で1行にまとめる
+df_filtered = df_filtered.drop_duplicates(subset=["配信月", "CampaignId", "クライアント名"])
 
-# -----------------------------
-# 1. Unitごとのサマリー（2軸）
-# -----------------------------
+def safe_div(x, y):
+    return x / y if y > 0 else np.nan
+
 def campaign_key(df):
     return df["配信月"].astype(str) + "_" + df["CampaignId"].astype(str) + "_" + df["クライアント名"].astype(str)
 
+# -----------------------------
+# 1. Unitごとのサマリー（合算で再計算）
+# -----------------------------
 unit_group = df_filtered.groupby("所属", dropna=False)
 unit_summary = []
 for unit, group in unit_group:
@@ -195,10 +156,20 @@ for unit, group in unit_group:
     spend_conv = group_conv["消化金額"].sum()
     spend_all = group["消化金額"].sum()
     total_cv = group_conv["コンバージョン数"].sum()
-    cpa = safe_cpa(spend_conv, total_cv)
+    total_clicks = group_conv["クリック数"].sum() if "クリック数" in group_conv.columns else np.nan
+    total_imps = group_conv["Impressions"].sum() if "Impressions" in group_conv.columns else np.nan
+
+    cpa = safe_div(spend_conv, total_cv)
+    ctr = safe_div(total_clicks, total_imps)
+    cpc = safe_div(spend_conv, total_clicks)
+    cpm = safe_div(spend_conv * 1000, total_imps)
+
     unit_summary.append({
         "所属": unit,
         "CPA": cpa,
+        "CTR": ctr,
+        "CPC": cpc,
+        "CPM": cpm,
         "キャンペーン数(コンバージョン)": camp_count_conv,
         "キャンペーン数(すべて)": camp_count_all,
         "消化金額(コンバージョン)": spend_conv,
@@ -228,16 +199,18 @@ for idx, row in unit_summary_df.iterrows():
                 消化金額(すべて)  :  ¥{int(row["消化金額(すべて)"]):,}<br>
                 CV数  :  {int(row["CV"])}
             </div>
+            <div style='font-size: 0.8rem; margin-top: 0.7rem; text-align:center;'>
+                CTR : {row["CTR"]:.2%} ／ CPC : ¥{row["CPC"]:,.0f} ／ CPM : ¥{row["CPM"]:,.0f}
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 
 # -----------------------------
-# 2. 担当者ごとのスコア（2軸）
+# 2. 担当者ごとのスコア（合算で再計算）
 # -----------------------------
 person_group = df_filtered.groupby("担当者", dropna=False)
-
 person_summary = []
 for person, group in person_group:
     group_conv = group[group["広告目的"] == "コンバージョン"]
@@ -246,10 +219,20 @@ for person, group in person_group:
     camp_count_all = group.shape[0]
     spend_all = group["消化金額"].sum()
     total_cv = group_conv["コンバージョン数"].sum()
-    cpa = safe_cpa(spend_conv, total_cv)
+    total_clicks = group_conv["クリック数"].sum() if "クリック数" in group_conv.columns else np.nan
+    total_imps = group_conv["Impressions"].sum() if "Impressions" in group_conv.columns else np.nan
+
+    cpa = safe_div(spend_conv, total_cv)
+    ctr = safe_div(total_clicks, total_imps)
+    cpc = safe_div(spend_conv, total_clicks)
+    cpm = safe_div(spend_conv * 1000, total_imps)
+
     person_summary.append({
         "担当者": person,
         "CPA": cpa,
+        "CTR": ctr,
+        "CPC": cpc,
+        "CPM": cpm,
         "キャンペーン数(コンバージョン)": camp_count_conv,
         "キャンペーン数(すべて)": camp_count_all,
         "消化金額(コンバージョン)": spend_conv,
@@ -275,6 +258,9 @@ for idx, row in person_summary_df.iterrows():
                 消化金額(CV目的)  :  ¥{int(row["消化金額(コンバージョン)"]):,}<br>
                 消化金額(すべて)  :  ¥{int(row["消化金額(すべて)"]):,}<br>
                 CV数  :  {int(row["CV"])}
+            </div>
+            <div style='font-size: 0.8rem; margin-top: 0.7rem; text-align:center;'>
+                CTR : {row["CTR"]:.2%} ／ CPC : ¥{row["CPC"]:,.0f} ／ CPM : ¥{row["CPM"]:,.0f}
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -319,7 +305,7 @@ if "達成状況" in df_filtered.columns:
 st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 
 # -----------------------------
-# 3. 担当者ごとの達成率（コンバージョン目的のみ）
+# 4. 担当者ごとの達成率（コンバージョン目的のみ）
 # -----------------------------
 st.write("#### 👨‍💼 担当者ごとの達成率（コンバージョン目的のみ）")
 if "達成状況" in df_filtered.columns:
@@ -346,12 +332,13 @@ if "達成状況" in df_filtered.columns:
 
 st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
-# ▼ キャンペーン一覧
+# ▼ キャンペーン一覧（必要なカラム全て追加＆整形）
 st.write("#### 📋 配信キャンペーン一覧（最大1,000件）")
 columns_to_show = [
     "配信月","キャンペーン名","担当者","所属","フロント","雇用形態",
     "予算","フィー","クライアント名","消化金額","canvaURL",
-    "カテゴリ","媒体","広告目的",
+    "メインカテゴリ","サブカテゴリ","広告媒体","広告目的",
+    "クリック数","Impressions",
     "コンバージョン数","CPA","CVR","CTR","CPC","CPM",
     "CPA_KPI_評価","個別CPA_達成","CTR_KPI_評価","CPC_KPI_評価","CPM_KPI_評価"
 ]
@@ -360,6 +347,8 @@ styled_table = df_filtered[columns_to_show].head(1000).style.format({
     "予算": "¥{:,.0f}",
     "フィー": "¥{:,.0f}",
     "消化金額": "¥{:,.0f}",
+    "クリック数": "{:,.0f}",
+    "Impressions": "{:,.0f}",
     "コンバージョン数": "{:,.0f}",
     "CPA": "¥{:,.0f}",
     "CVR": "{:.1%}",
