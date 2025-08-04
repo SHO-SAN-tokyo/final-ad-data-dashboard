@@ -362,6 +362,10 @@ columns_to_show = [col for col in columns_to_show if col in df_filtered.columns]
 rename_dict = {"campaign_uuid": "キャンペーン固有ID"}
 display_df = df_filtered[columns_to_show].rename(columns=rename_dict)
 
+# ▼ キャンペーン固有ID順に並び替え（昇順）
+display_df = display_df.sort_values("キャンペーン固有ID")  # 昇順
+# display_df = display_df.sort_values("キャンペーン固有ID", ascending=False)  # 降順ならこちら
+
 styled_table = display_df.head(1000).style.format({
     "予算": "¥{:,.0f}",
     "フィー": "¥{:,.0f}",
@@ -374,6 +378,7 @@ styled_table = display_df.head(1000).style.format({
     "CPM": "¥{:,.0f}"
 })
 st.dataframe(styled_table, use_container_width=True)
+
 
 st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
