@@ -72,6 +72,7 @@ group_cols = ["配信月", "CampaignId", "クライアント名"]
 # 必要に応じて"クリック数"列名は"Clicks"などBigQuery側と合わせてください
 agg_dict = {
     "キャンペーン名": "first",
+    "campaign_uuid": "first",
     "担当者": "first",
     "所属": "first",
     "フロント": "first",
