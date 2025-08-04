@@ -357,6 +357,11 @@ columns_to_show = [
     "CPA_KPI_評価","個別CPA_達成","CTR_KPI_評価","CPC_KPI_評価","CPM_KPI_評価"
 ]
 columns_to_show = [col for col in columns_to_show if col in df_filtered.columns]
+
+# ▼ 列名だけ一時的にリネーム
+rename_dict = {"campaign_uuid": "キャンペーン固有ID"}
+display_df = df_filtered[columns_to_show].rename(columns=rename_dict)
+
 styled_table = df_filtered[columns_to_show].head(1000).style.format({
     "予算": "¥{:,.0f}",
     "フィー": "¥{:,.0f}",
