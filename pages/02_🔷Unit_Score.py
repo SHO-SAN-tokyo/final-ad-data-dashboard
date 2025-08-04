@@ -349,7 +349,7 @@ st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 # ▼ キャンペーン一覧
 st.write("#### 📋 配信キャンペーン一覧（最大1,000件）")
 columns_to_show = [
-    "配信月","キャンペーン名","担当者","所属","フロント","雇用形態",
+    "campaign_uuid","配信月","キャンペーン名","担当者","所属","フロント","雇用形態",
     "予算","フィー","クライアント名","消化金額","canvaURL",
     "カテゴリ","媒体","広告目的",
     "コンバージョン数","CPA","CVR","CTR","CPC","CPM",
