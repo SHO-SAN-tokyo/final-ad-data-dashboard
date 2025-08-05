@@ -371,10 +371,10 @@ display_rename = {
     "Cost": "消化金額",
     "conv_total": "コンバージョン数",
     "CPA": "CPA",
+    "CVR": "CVR",
     "Impressions": "IMP",
     "Clicks": "クリック",
-    "CTR": "CTR",
-    "CVR": "CVR"
+    "CTR": "CTR"
 }
 
 if not df_num_campaign_only.empty:
@@ -419,10 +419,10 @@ display_rename2 = {
     "Cost": "消化金額",
     "conv_total": "コンバージョン数",
     "CPA": "CPA",
+    "CVR": "CVR",
     "Impressions": "IMP",
     "Clicks": "クリック",
-    "CTR": "CTR",
-    "CVR": "CVR"
+    "CTR": "CTR"
 }
 
 show_cols2_disp = list(display_rename2.values())
