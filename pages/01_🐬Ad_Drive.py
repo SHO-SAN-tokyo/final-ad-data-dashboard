@@ -220,8 +220,6 @@ df_num_filt = apply_filters(
     sel_campaign=sel_campaign,
     sel_adgroup=sel_adgroup,
     keyword=keyword,
-    search_in_camp=search_in_camp,
-    search_in_adg=search_in_adg,
 )
 
 df_banner_filt = apply_filters(
@@ -236,8 +234,6 @@ df_banner_filt = apply_filters(
     sel_campaign=sel_campaign,
     sel_adgroup=sel_adgroup,
     keyword=keyword,
-    search_in_camp=search_in_camp,
-    search_in_adg=search_in_adg,
 )
 
 
