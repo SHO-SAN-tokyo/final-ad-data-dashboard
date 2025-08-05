@@ -266,13 +266,15 @@ st.markdown(
     f"👤 クライアント：{sel_client or 'すべて'}<br>"
     f"📁 メインカテゴリ：{sel_cat or 'すべて'}　"
     f"📂 サブカテゴリ：{sel_subcat or 'すべて'}　"
-    f"🏷️ 特殊カテゴリ：{sel_specialcat or 'すべて'}"
+    f"🏷️ 特殊カテゴリ：{sel_specialcat or 'すべて'}<br>"
     f"📡 広告媒体：{sel_media or 'すべて'}　"
     f"🎯 広告目的：{sel_goal or 'すべて'}<br>"
     f"📣 キャンペーン名：{sel_campaign or 'すべて'}<br>"
-    f"*️⃣ 広告セット名：{sel_adgroup or 'すべて'}",
+    f"*️⃣ 広告セット名：{sel_adgroup or 'すべて'}<br>"
+    f"🔍 広告セット名キーワード：{keyword or '未入力'}",
     unsafe_allow_html=True
 )
+
 
 # ──────────────────────────────────────────────
 # ⑥ 広告数値
