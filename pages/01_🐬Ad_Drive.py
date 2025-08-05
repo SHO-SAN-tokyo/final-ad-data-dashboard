@@ -154,15 +154,13 @@ with adg_col:
     if sel_adgroup:
         filtered = filtered[filtered["広告セット名"].isin(sel_adgroup)]
 
-# --- キーワード検索（キャンペーン名・広告セット名どちらでも可） ---
-st.markdown("#### 🔍 キーワード検索（複数ワードはカンマ区切りで入力）")
-col_kw, col_ck_camp, col_ck_adg = st.columns([4, 2, 2])
-with col_kw:
-    keyword = st.text_input("キーワード（例: 動画,静止画）", value="", placeholder="例: 動画,静止画,30秒")
-with col_ck_camp:
-    search_in_camp = st.checkbox("キャンペーン名で検索", value=True)
-with col_ck_adg:
-    search_in_adg = st.checkbox("広告セット名で検索", value=True)
+# --- キーワード検索（広告セット名のみ部分一致、複数ワードOK） ---
+keyword = st.text_input(
+    "🔍 広告セット名キーワード検索（複数ワードはカンマ区切り可）",
+    value="",
+    placeholder="例: 動画,静止画,30秒"
+)
+
 
 
 
