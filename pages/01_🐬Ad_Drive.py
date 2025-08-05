@@ -364,7 +364,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 表示用の列名マッピング
 display_rename = {
     "キャンペーン名": "キャンペーン名",
     "配信月": "配信月",
@@ -377,7 +376,9 @@ display_rename = {
     "CTR": "CTR"
 }
 
-if not df_num_campaign_only.empty:
+if keyword:  # ←★ここでキーワード入力を判定
+    st.info("広告セット名のキーワード検索でフィルターされているため、キャンペーンデータは表示されません。")
+elif not df_num_campaign_only.empty:
     camp_grouped = (
         df_num_campaign_only.groupby(["キャンペーン名", "配信月"], as_index=False)
         .agg({
@@ -406,6 +407,7 @@ if not df_num_campaign_only.empty:
     st.dataframe(camp_grouped_disp[show_cols_disp].head(1000), use_container_width=True, hide_index=True)
 else:
     st.info("データがありません")
+
 
 
 
