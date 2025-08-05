@@ -359,8 +359,19 @@ for i, card in enumerate(row2):
 # ⑥-A キャンペーン一覧表 UI
 # ──────────────────────────────────────────────
 # --- キャンペーン単位集計表 ---
-st.markdown("### 📊 キャンペーン単位 集計")
+st.markdown("""
+<div style="background:#ddedfc;padding:.6rem 1.2rem;margin:2rem 0 1rem 0;font-size:2.1rem;font-weight:700;letter-spacing:.04em;">
+  <img src="https://img.icons8.com/color/48/000000/combo-chart--v1.png" style="width:38px;vertical-align:-8px;margin-right:8px;">キャンペーン単位 集計
+</div>
+""", unsafe_allow_html=True)
+
+# --- デバッグ表示 ---
+with st.expander("🦚 デバッグ（キャンペーン＋配信月ごとの件数）", expanded=False):
+    debug_count = df_num_filt.groupby(["キャンペーン名", "配信月"]).size().reset_index(name="件数")
+    st.dataframe(debug_count, use_container_width=True, hide_index=True)
+
 if not df_num_filt.empty:
+    # キャンペーン単位で集計
     camp_grouped = (
         df_num_filt.groupby(["キャンペーン名", "配信月"], as_index=False)
         .agg({
@@ -370,6 +381,7 @@ if not df_num_filt.empty:
             "Clicks": "sum"
         })
     )
+    # 指標計算
     camp_grouped["CPA"] = camp_grouped["Cost"] / camp_grouped["conv_total"]
     camp_grouped["CTR"] = camp_grouped["Clicks"] / camp_grouped["Impressions"]
     camp_grouped["CVR"] = camp_grouped["conv_total"] / camp_grouped["Clicks"]
@@ -386,14 +398,10 @@ if not df_num_filt.empty:
     show_cols = [
         "キャンペーン名", "配信月", "Cost", "conv_total", "CPA", "Impressions", "Clicks", "CTR", "CVR"
     ]
-    
-    # デバッグ: キャンペーン＋配信月ごとの件数を画面に出す
-    dbg = camp_grouped.groupby(["キャンペーン名", "配信月"]).size()
-    st.write("🪲 デバッグ（キャンペーン＋配信月ごとの件数）", dbg)
-
     st.dataframe(camp_grouped[show_cols].head(1000), use_container_width=True, hide_index=True)
 else:
     st.info("データがありません")
+
 
 # --- キャンペーン＋広告セット単位集計表 ---
 st.markdown("### 📑 キャンペーン＋広告セット単位 集計")
