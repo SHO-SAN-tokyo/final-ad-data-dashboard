@@ -3,6 +3,7 @@ import pandas as pd
 from google.cloud import bigquery
 import re
 import html
+import numpy as np
 
 # ──────────────────────────────────────────────
 # ログイン認証
@@ -394,7 +395,9 @@ elif not df_num_campaign_only.empty:
 
     # フォーマット
     camp_grouped["Cost"] = camp_grouped["Cost"].map(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "-")
-    camp_grouped["CPA"] = camp_grouped["CPA"].map(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "-")
+    camp_grouped["CPA"] = camp_grouped["CPA"].map(
+    lambda x: f"¥{x:,.0f}" if pd.notna(x) and np.isfinite(x) else "-"
+    )
     camp_grouped["CTR"] = camp_grouped["CTR"].map(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "-")
     camp_grouped["CVR"] = camp_grouped["CVR"].map(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "-")
     camp_grouped["Impressions"] = camp_grouped["Impressions"].map(lambda x: f"{int(x):,}" if pd.notna(x) else "-")
