@@ -359,12 +359,7 @@ df_num_campaign_only = apply_filters(
 )
 
 # --- キャンペーン単位集計表 ---
-st.markdown("""
-<div style="background:#ddedfc;padding:.6rem 1.2rem;margin:2rem 0 1rem 0;font-size:2.1rem;font-weight:700;letter-spacing:.04em;">
-  <img src="https://img.icons8.com/color/48/000000/combo-chart--v1.png" style="width:38px;vertical-align:-8px;margin-right:8px;">キャンペーン単位 集計
-</div>
-""", unsafe_allow_html=True)
-
+st.subheader("💠 キャンペーン単位 一覧")
 display_rename = {
     "キャンペーン名": "キャンペーン名",
     "配信月": "配信月",
@@ -415,7 +410,7 @@ else:
 
 
 # --- キャンペーン＋広告セット単位集計表 ---
-st.markdown("### 📑 キャンペーン＋広告セット単位 集計")
+st.subheader("💠 キャンペーン＋広告セット単位 一覧")
 # 表示用の列名マッピング
 display_rename2 = {
     "キャンペーン名": "キャンペーン名",
@@ -448,7 +443,9 @@ if not df_num_filt.empty:
 
     # フォーマット
     camp_adg_grouped["Cost"] = camp_adg_grouped["Cost"].map(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "-")
-    camp_adg_grouped["CPA"] = camp_adg_grouped["CPA"].map(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "-")
+    camp_adg_grouped["CPA"] = camp_adg_grouped["CPA"].map(
+    lambda x: f"¥{x:,.0f}" if pd.notna(x) and np.isfinite(x) else "-"
+    )
     camp_adg_grouped["CTR"] = camp_adg_grouped["CTR"].map(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "-")
     camp_adg_grouped["CVR"] = camp_adg_grouped["CVR"].map(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "-")
     camp_adg_grouped["Impressions"] = camp_adg_grouped["Impressions"].map(lambda x: f"{int(x):,}" if pd.notna(x) else "-")
