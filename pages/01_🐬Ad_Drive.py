@@ -377,7 +377,7 @@ display_rename = {
 }
 
 if keyword:  # ←★ここでキーワード入力を判定
-    st.info("広告セット名のキーワード検索でフィルターされているため、キャンペーンデータは表示されません。")
+    st.info("⚠️広告セット名のキーワード検索でフィルターされているため、キャンペーンデータは表示されません。")
 elif not df_num_campaign_only.empty:
     camp_grouped = (
         df_num_campaign_only.groupby(["キャンペーン名", "配信月"], as_index=False)
