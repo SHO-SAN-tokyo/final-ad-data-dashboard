@@ -364,10 +364,18 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- デバッグ表示 ---
-with st.expander("🦚 デバッグ（キャンペーン＋配信月ごとの件数）", expanded=False):
-    debug_count = df_num_campaign_only.groupby(["キャンペーン名", "配信月"]).size().reset_index(name="件数")
-    st.dataframe(debug_count, use_container_width=True, hide_index=True)
+# 表示用の列名マッピング
+display_rename = {
+    "キャンペーン名": "キャンペーン名",
+    "配信月": "配信月",
+    "Cost": "消化金額",
+    "conv_total": "コンバージョン数",
+    "CPA": "CPA",
+    "Impressions": "IMP",
+    "Clicks": "クリック",
+    "CTR": "CTR",
+    "CVR": "CVR"
+}
 
 if not df_num_campaign_only.empty:
     camp_grouped = (
@@ -392,10 +400,10 @@ if not df_num_campaign_only.empty:
     camp_grouped["Clicks"] = camp_grouped["Clicks"].map(lambda x: f"{int(x):,}" if pd.notna(x) else "-")
     camp_grouped["conv_total"] = camp_grouped["conv_total"].map(lambda x: f"{int(x):,}" if pd.notna(x) else "-")
 
-    show_cols = [
-        "キャンペーン名", "配信月", "Cost", "conv_total", "CPA", "Impressions", "Clicks", "CTR", "CVR"
-    ]
-    st.dataframe(camp_grouped[show_cols].head(1000), use_container_width=True, hide_index=True)
+    # ★ ここで表の列名を日本語に変換
+    camp_grouped_disp = camp_grouped.rename(columns=display_rename)
+    show_cols_disp = list(display_rename.values())
+    st.dataframe(camp_grouped_disp[show_cols_disp].head(1000), use_container_width=True, hide_index=True)
 else:
     st.info("データがありません")
 
