@@ -358,6 +358,23 @@ for i, card in enumerate(row2):
 # ──────────────────────────────────────────────
 # ⑥-A キャンペーン一覧表 UI
 # ──────────────────────────────────────────────
+# --- キャンペーン単位（キーワード・広告セット名で絞り込まないDFで集計）
+df_num_campaign_only = apply_filters(
+    df_num,
+    sel_client=sel_client,
+    sel_month=sel_month,
+    sel_cat=sel_cat,
+    sel_subcat=sel_subcat,
+    sel_goal=sel_goal,
+    sel_media=sel_media,
+    sel_specialcat=sel_specialcat,
+    sel_campaign=sel_campaign,
+    sel_adgroup=None,       # ★広告セット名フィルター無効
+    keyword=None,           # ★キーワード検索も無効
+    search_in_camp=False,
+    search_in_adg=False,
+)
+
 # --- キャンペーン単位集計表 ---
 st.markdown("""
 <div style="background:#ddedfc;padding:.6rem 1.2rem;margin:2rem 0 1rem 0;font-size:2.1rem;font-weight:700;letter-spacing:.04em;">
@@ -367,13 +384,12 @@ st.markdown("""
 
 # --- デバッグ表示 ---
 with st.expander("🦚 デバッグ（キャンペーン＋配信月ごとの件数）", expanded=False):
-    debug_count = df_num_filt.groupby(["キャンペーン名", "配信月"]).size().reset_index(name="件数")
+    debug_count = df_num_campaign_only.groupby(["キャンペーン名", "配信月"]).size().reset_index(name="件数")
     st.dataframe(debug_count, use_container_width=True, hide_index=True)
 
-if not df_num_filt.empty:
-    # キャンペーン単位で集計
+if not df_num_campaign_only.empty:
     camp_grouped = (
-        df_num_filt.groupby(["キャンペーン名", "配信月"], as_index=False)
+        df_num_campaign_only.groupby(["キャンペーン名", "配信月"], as_index=False)
         .agg({
             "Cost": "sum",
             "conv_total": "sum",
@@ -381,7 +397,6 @@ if not df_num_filt.empty:
             "Clicks": "sum"
         })
     )
-    # 指標計算
     camp_grouped["CPA"] = camp_grouped["Cost"] / camp_grouped["conv_total"]
     camp_grouped["CTR"] = camp_grouped["Clicks"] / camp_grouped["Impressions"]
     camp_grouped["CVR"] = camp_grouped["conv_total"] / camp_grouped["Clicks"]
@@ -401,6 +416,7 @@ if not df_num_filt.empty:
     st.dataframe(camp_grouped[show_cols].head(1000), use_container_width=True, hide_index=True)
 else:
     st.info("データがありません")
+
 
 
 # --- キャンペーン＋広告セット単位集計表 ---
