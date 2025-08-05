@@ -418,6 +418,8 @@ if not df_num_filt.empty:
     show_cols2 = [
         "キャンペーン名", "広告セット名", "配信月", "Cost", "conv_total", "CPA", "Impressions", "Clicks", "CTR", "CVR"
     ]
+    # デバッグ: キャンペーン＋配信月ごとの件数を確認
+    print(camp_grouped.groupby(["キャンペーン名", "配信月"]).size())
     st.dataframe(camp_adg_grouped[show_cols2].head(1000), use_container_width=True, hide_index=True)
 else:
     st.info("データがありません")
