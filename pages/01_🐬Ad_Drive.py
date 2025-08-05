@@ -355,8 +355,6 @@ df_num_campaign_only = apply_filters(
     sel_campaign=sel_campaign,
     sel_adgroup=None,       # ★広告セット名フィルター無効
     keyword=None,           # ★キーワード検索も無効
-    search_in_camp=False,
-    search_in_adg=False,
 )
 
 # --- キャンペーン単位集計表 ---
