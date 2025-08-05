@@ -197,22 +197,14 @@ def apply_filters(
     if "広告セット名" in df.columns and sel_adgroup:
         cond &= df["広告セット名"].isin(sel_adgroup)
 
-    # ▼▼▼ ここが追加部分！ ▼▼▼
-    if keyword and (search_in_camp or search_in_adg):
+    # ▼ キーワード検索は広告セット名のみ
+    if keyword:
         keywords = [w.strip() for w in keyword.split(",") if w.strip()]
-        if keywords:
-            subcond = pd.Series(False, index=df.index)
-            if search_in_camp and "キャンペーン名" in df.columns:
-                subcond = subcond | df["キャンペーン名"].astype(str).apply(
-                    lambda x: any(kw.lower() in x.lower() for kw in keywords)
-                )
-            if search_in_adg and "広告セット名" in df.columns:
-                subcond = subcond | df["広告セット名"].astype(str).apply(
-                    lambda x: any(kw.lower() in x.lower() for kw in keywords)
-                )
+        if keywords and "広告セット名" in df.columns:
+            subcond = df["広告セット名"].astype(str).apply(
+                lambda x: any(kw.lower() in x.lower() for kw in keywords)
+            )
             cond &= subcond
-    # ▲▲▲ ここまで ▲▲▲
-
     return df.loc[cond].copy()
 
 
