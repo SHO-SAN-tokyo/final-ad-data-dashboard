@@ -176,8 +176,6 @@ def apply_filters(
     sel_campaign=None,
     sel_adgroup=None,
     keyword=None,
-    search_in_camp=True,
-    search_in_adg=True
 ) -> pd.DataFrame:
     cond = pd.Series(True, index=df.index)
     if "client_name" in df.columns and sel_client:
