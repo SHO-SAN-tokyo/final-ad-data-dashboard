@@ -411,6 +411,22 @@ else:
 
 # --- キャンペーン＋広告セット単位集計表 ---
 st.markdown("### 📑 キャンペーン＋広告セット単位 集計")
+# 表示用の列名マッピング
+display_rename2 = {
+    "キャンペーン名": "キャンペーン名",
+    "広告セット名": "広告セット名",
+    "配信月": "配信月",
+    "Cost": "消化金額",
+    "conv_total": "コンバージョン数",
+    "CPA": "CPA",
+    "Impressions": "IMP",
+    "Clicks": "クリック",
+    "CTR": "CTR",
+    "CVR": "CVR"
+}
+
+show_cols2_disp = list(display_rename2.values())
+
 if not df_num_filt.empty:
     camp_adg_grouped = (
         df_num_filt.groupby(["キャンペーン名", "広告セット名", "配信月"], as_index=False)
@@ -434,12 +450,12 @@ if not df_num_filt.empty:
     camp_adg_grouped["Clicks"] = camp_adg_grouped["Clicks"].map(lambda x: f"{int(x):,}" if pd.notna(x) else "-")
     camp_adg_grouped["conv_total"] = camp_adg_grouped["conv_total"].map(lambda x: f"{int(x):,}" if pd.notna(x) else "-")
 
-    show_cols2 = [
-        "キャンペーン名", "広告セット名", "配信月", "Cost", "conv_total", "CPA", "Impressions", "Clicks", "CTR", "CVR"
-    ]
-    st.dataframe(camp_adg_grouped[show_cols2].head(1000), use_container_width=True, hide_index=True)
+    # ★ ここで表の列名を日本語に変換
+    camp_adg_grouped_disp = camp_adg_grouped.rename(columns=display_rename2)
+    st.dataframe(camp_adg_grouped_disp[show_cols2_disp].head(1000), use_container_width=True, hide_index=True)
 else:
     st.info("データがありません")
+
 
 
 # ──────────────────────────────────────────────
