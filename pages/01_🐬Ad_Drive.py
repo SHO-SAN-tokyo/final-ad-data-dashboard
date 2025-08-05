@@ -154,6 +154,31 @@ with adg_col:
     if sel_adgroup:
         filtered = filtered[filtered["広告セット名"].isin(sel_adgroup)]
 
+# --- キーワード検索（キャンペーン名・広告セット名どちらでも可） ---
+st.markdown("#### 🔍 キーワード検索（複数ワードはカンマ区切りで入力）")
+col_kw, col_ck_camp, col_ck_adg = st.columns([4, 2, 2])
+with col_kw:
+    keyword = st.text_input("キーワード（例: 動画,静止画）", value="", placeholder="例: 動画,静止画,30秒")
+with col_ck_camp:
+    search_in_camp = st.checkbox("キャンペーン名で検索", value=True)
+with col_ck_adg:
+    search_in_adg = st.checkbox("広告セット名で検索", value=True)
+
+if keyword.strip() and (search_in_camp or search_in_adg):
+    # カンマで分割、前後空白を除去
+    keywords = [w.strip() for w in keyword.split(",") if w.strip()]
+    if keywords:
+        cond = pd.Series(False, index=filtered.index)
+        if search_in_camp and "キャンペーン名" in filtered.columns:
+            cond = cond | filtered["キャンペーン名"].astype(str).apply(
+                lambda x: any(kw.lower() in x.lower() for kw in keywords)
+            )
+        if search_in_adg and "広告セット名" in filtered.columns:
+            cond = cond | filtered["広告セット名"].astype(str).apply(
+                lambda x: any(kw.lower() in x.lower() for kw in keywords)
+            )
+        filtered = filtered[cond]
+
 
 # ──────────────────────────────────────────────
 # ④ フィルター関数（キャンペーン / バナー両方へ適用）
