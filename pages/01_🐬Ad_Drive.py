@@ -164,20 +164,6 @@ with col_ck_camp:
 with col_ck_adg:
     search_in_adg = st.checkbox("広告セット名で検索", value=True)
 
-if keyword.strip() and (search_in_camp or search_in_adg):
-    # カンマで分割、前後空白を除去
-    keywords = [w.strip() for w in keyword.split(",") if w.strip()]
-    if keywords:
-        cond = pd.Series(False, index=filtered.index)
-        if search_in_camp and "キャンペーン名" in filtered.columns:
-            cond = cond | filtered["キャンペーン名"].astype(str).apply(
-                lambda x: any(kw.lower() in x.lower() for kw in keywords)
-            )
-        if search_in_adg and "広告セット名" in filtered.columns:
-            cond = cond | filtered["広告セット名"].astype(str).apply(
-                lambda x: any(kw.lower() in x.lower() for kw in keywords)
-            )
-        filtered = filtered[cond]
 
 
 # ──────────────────────────────────────────────
@@ -190,7 +176,10 @@ def apply_filters(
     sel_goal=None, sel_media=None,
     sel_specialcat=None,
     sel_campaign=None,
-    sel_adgroup=None
+    sel_adgroup=None,
+    keyword=None,
+    search_in_camp=True,
+    search_in_adg=True
 ) -> pd.DataFrame:
     cond = pd.Series(True, index=df.index)
     if "client_name" in df.columns and sel_client:
@@ -211,6 +200,23 @@ def apply_filters(
         cond &= df["キャンペーン名"].isin(sel_campaign)
     if "広告セット名" in df.columns and sel_adgroup:
         cond &= df["広告セット名"].isin(sel_adgroup)
+
+    # ▼▼▼ ここが追加部分！ ▼▼▼
+    if keyword and (search_in_camp or search_in_adg):
+        keywords = [w.strip() for w in keyword.split(",") if w.strip()]
+        if keywords:
+            subcond = pd.Series(False, index=df.index)
+            if search_in_camp and "キャンペーン名" in df.columns:
+                subcond = subcond | df["キャンペーン名"].astype(str).apply(
+                    lambda x: any(kw.lower() in x.lower() for kw in keywords)
+                )
+            if search_in_adg and "広告セット名" in df.columns:
+                subcond = subcond | df["広告セット名"].astype(str).apply(
+                    lambda x: any(kw.lower() in x.lower() for kw in keywords)
+                )
+            cond &= subcond
+    # ▲▲▲ ここまで ▲▲▲
+
     return df.loc[cond].copy()
 
 
@@ -224,7 +230,10 @@ df_num_filt = apply_filters(
     sel_media=sel_media,
     sel_specialcat=sel_specialcat,
     sel_campaign=sel_campaign,
-    sel_adgroup=sel_adgroup
+    sel_adgroup=sel_adgroup,
+    keyword=keyword,
+    search_in_camp=search_in_camp,
+    search_in_adg=search_in_adg,
 )
 
 df_banner_filt = apply_filters(
@@ -237,7 +246,10 @@ df_banner_filt = apply_filters(
     sel_media=sel_media,
     sel_specialcat=sel_specialcat,
     sel_campaign=sel_campaign,
-    sel_adgroup=sel_adgroup
+    sel_adgroup=sel_adgroup,
+    keyword=keyword,
+    search_in_camp=search_in_camp,
+    search_in_adg=search_in_adg,
 )
 
 
