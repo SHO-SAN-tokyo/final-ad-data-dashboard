@@ -356,6 +356,74 @@ for i, card in enumerate(row2):
         """, unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
+# ⑥-A キャンペーン一覧表 UI
+# ──────────────────────────────────────────────
+# --- キャンペーン単位集計表 ---
+st.markdown("### 📊 キャンペーン単位 集計")
+if not df_num_filt.empty:
+    camp_grouped = (
+        df_num_filt.groupby(["キャンペーン名", "配信月"], as_index=False)
+        .agg({
+            "Cost": "sum",
+            "conv_total": "sum",
+            "Impressions": "sum",
+            "Clicks": "sum"
+        })
+    )
+    camp_grouped["CPA"] = camp_grouped["Cost"] / camp_grouped["conv_total"]
+    camp_grouped["CTR"] = camp_grouped["Clicks"] / camp_grouped["Impressions"]
+    camp_grouped["CVR"] = camp_grouped["conv_total"] / camp_grouped["Clicks"]
+
+    # フォーマット
+    camp_grouped["Cost"] = camp_grouped["Cost"].map(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "-")
+    camp_grouped["CPA"] = camp_grouped["CPA"].map(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "-")
+    camp_grouped["CTR"] = camp_grouped["CTR"].map(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "-")
+    camp_grouped["CVR"] = camp_grouped["CVR"].map(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "-")
+    camp_grouped["Impressions"] = camp_grouped["Impressions"].map(lambda x: f"{int(x):,}" if pd.notna(x) else "-")
+    camp_grouped["Clicks"] = camp_grouped["Clicks"].map(lambda x: f"{int(x):,}" if pd.notna(x) else "-")
+    camp_grouped["conv_total"] = camp_grouped["conv_total"].map(lambda x: f"{int(x):,}" if pd.notna(x) else "-")
+
+    show_cols = [
+        "キャンペーン名", "配信月", "Cost", "conv_total", "CPA", "Impressions", "Clicks", "CTR", "CVR"
+    ]
+    st.dataframe(camp_grouped[show_cols].head(1000), use_container_width=True, hide_index=True)
+else:
+    st.info("データがありません")
+
+# --- キャンペーン＋広告セット単位集計表 ---
+st.markdown("### 📑 キャンペーン＋広告セット単位 集計")
+if not df_num_filt.empty:
+    camp_adg_grouped = (
+        df_num_filt.groupby(["キャンペーン名", "広告セット名", "配信月"], as_index=False)
+        .agg({
+            "Cost": "sum",
+            "conv_total": "sum",
+            "Impressions": "sum",
+            "Clicks": "sum"
+        })
+    )
+    camp_adg_grouped["CPA"] = camp_adg_grouped["Cost"] / camp_adg_grouped["conv_total"]
+    camp_adg_grouped["CTR"] = camp_adg_grouped["Clicks"] / camp_adg_grouped["Impressions"]
+    camp_adg_grouped["CVR"] = camp_adg_grouped["conv_total"] / camp_adg_grouped["Clicks"]
+
+    # フォーマット
+    camp_adg_grouped["Cost"] = camp_adg_grouped["Cost"].map(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "-")
+    camp_adg_grouped["CPA"] = camp_adg_grouped["CPA"].map(lambda x: f"¥{x:,.0f}" if pd.notna(x) else "-")
+    camp_adg_grouped["CTR"] = camp_adg_grouped["CTR"].map(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "-")
+    camp_adg_grouped["CVR"] = camp_adg_grouped["CVR"].map(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "-")
+    camp_adg_grouped["Impressions"] = camp_adg_grouped["Impressions"].map(lambda x: f"{int(x):,}" if pd.notna(x) else "-")
+    camp_adg_grouped["Clicks"] = camp_adg_grouped["Clicks"].map(lambda x: f"{int(x):,}" if pd.notna(x) else "-")
+    camp_adg_grouped["conv_total"] = camp_adg_grouped["conv_total"].map(lambda x: f"{int(x):,}" if pd.notna(x) else "-")
+
+    show_cols2 = [
+        "キャンペーン名", "広告セット名", "配信月", "Cost", "conv_total", "CPA", "Impressions", "Clicks", "CTR", "CVR"
+    ]
+    st.dataframe(camp_adg_grouped[show_cols2].head(1000), use_container_width=True, hide_index=True)
+else:
+    st.info("データがありません")
+
+
+# ──────────────────────────────────────────────
 # ⑦ バナー並び替え UI
 # ──────────────────────────────────────────────
 st.subheader("💠 配信バナー")
