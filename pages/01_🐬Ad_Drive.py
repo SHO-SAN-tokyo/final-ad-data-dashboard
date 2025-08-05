@@ -386,8 +386,11 @@ if not df_num_filt.empty:
     show_cols = [
         "キャンペーン名", "配信月", "Cost", "conv_total", "CPA", "Impressions", "Clicks", "CTR", "CVR"
     ]
-    # デバッグ: キャンペーン＋配信月ごとの件数を確認
-    print(camp_grouped.groupby(["キャンペーン名", "配信月"]).size())
+    
+    # デバッグ: キャンペーン＋配信月ごとの件数を画面に出す
+    dbg = camp_grouped.groupby(["キャンペーン名", "配信月"]).size()
+    st.write("🪲 デバッグ（キャンペーン＋配信月ごとの件数）", dbg)
+
     st.dataframe(camp_grouped[show_cols].head(1000), use_container_width=True, hide_index=True)
 else:
     st.info("データがありません")
