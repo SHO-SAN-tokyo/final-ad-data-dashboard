@@ -107,6 +107,33 @@ if sel_sub:
 if sel_purpose:
     filtered = filtered[filtered["広告目的"].isin(sel_purpose)]
 
+# --- フィルター結果サマリー（フィルターごとに改行） ---
+def join_or_all(val):
+    if isinstance(val, list):
+        return "、".join(val) if val else "すべて"
+    return val if val else "すべて"
+
+st.markdown(
+    f"""
+    <div style="font-size:13px; margin: 0 0 18px 0; color:#15519d; padding:8px 12px 7px 12px; border-radius:8px; background: #f4f7fa; border:1px solid #dbeafe;">
+        👤 クライアント名：<b>{join_or_all(sel_client)}</b><br>
+        📡 広告媒体：<b>{join_or_all(sel_media)}</b><br>
+        📁 メインカテゴリ：<b>{join_or_all(sel_main)}</b><br>
+        📂 サブカテゴリ：<b>{join_or_all(sel_sub)}</b><br>
+        🎯 広告目的：<b>{join_or_all(sel_purpose)}</b>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# --- 並び替え UI（サマリー直下に配置） ---
+sort_choice = st.radio(
+    "並び替え",
+    ["消化金額が多い順（デフォルト）", "CPAが低い順", "CV数が多い順", "CVRが高い順"],
+    index=0,
+    horizontal=True,
+)
+
 # --- 並び替え適用 ---
 # ＊NaNは常に最後に送る（na_position="last"）
 if sort_choice == "CPAが低い順":
@@ -133,33 +160,6 @@ else:  # 消化金額が多い順（デフォルト）
         ascending=[False, False, True],
         na_position="last",
     )
-
-# --- フィルター結果サマリー（フィルターごとに改行） ---
-def join_or_all(val):
-    if isinstance(val, list):
-        return "、".join(val) if val else "すべて"
-    return val if val else "すべて"
-
-st.markdown(
-    f"""
-    <div style="font-size:13px; margin: 0 0 18px 0; color:#15519d; padding:8px 12px 7px 12px; border-radius:8px; background: #f4f7fa; border:1px solid #dbeafe;">
-        👤 クライアント名：<b>{join_or_all(sel_client)}</b><br>
-        📡 広告媒体：<b>{join_or_all(sel_media)}</b><br>
-        📁 メインカテゴリ：<b>{join_or_all(sel_main)}</b><br>
-        📂 サブカテゴリ：<b>{join_or_all(sel_sub)}</b><br>
-        🎯 広告目的：<b>{join_or_all(sel_purpose)}</b>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-# --- 並び替え UI（Ad Drive 風） ---
-sort_choice = st.radio(
-    "並び替え",
-    ["消化金額が多い順（デフォルト）", "CPAが低い順", "CV数が多い順", "CVRが高い順"],
-    index=0,
-    horizontal=True,
-)
 
 # --- 書式整形 ---
 show_df = filtered_sorted.copy()
