@@ -94,14 +94,6 @@ with row2_2:
 with row2_3:
     sel_purpose = st.multiselect("🎯 広告目的", purpose_opts, placeholder="すべて")
 
-# --- 並び替え UI（Ad Drive 風） ---
-sort_choice = st.radio(
-    "並び替え",
-    ["消化金額が多い順（デフォルト）", "CPAが低い順", "CV数が多い順", "CVRが高い順"],
-    index=0,
-    horizontal=True,
-)
-
 # --- フィルタリング ---
 filtered = df.copy()
 if sel_client:
@@ -159,6 +151,14 @@ st.markdown(
     </div>
     """,
     unsafe_allow_html=True,
+)
+
+# --- 並び替え UI（Ad Drive 風） ---
+sort_choice = st.radio(
+    "並び替え",
+    ["消化金額が多い順（デフォルト）", "CPAが低い順", "CV数が多い順", "CVRが高い順"],
+    index=0,
+    horizontal=True,
 )
 
 # --- 書式整形 ---
