@@ -94,10 +94,10 @@ with row2_2:
 with row2_3:
     sel_purpose = st.multiselect("🎯 広告目的", purpose_opts, placeholder="すべて")
 
-# --- 並び替え UI（Ad Drive 風） ---  # <<< 追加
+# --- 並び替え UI（Ad Drive 風） ---
 sort_choice = st.radio(
     "並び替え",
-    ["消化金額が多い順（デフォルト）", "CPAが低い順", "CV数が多い順"],
+    ["消化金額が多い順（デフォルト）", "CPAが低い順", "CV数が多い順", "CVRが高い順"],
     index=0,
     horizontal=True,
 )
@@ -115,10 +115,9 @@ if sel_sub:
 if sel_purpose:
     filtered = filtered[filtered["広告目的"].isin(sel_purpose)]
 
-# --- 並び替え適用 ---  # <<< 追加
+# --- 並び替え適用 ---
 # ＊NaNは常に最後に送る（na_position="last"）
 if sort_choice == "CPAが低い順":
-    # 同率時の見やすさ向上のためにサブキーを追加
     filtered_sorted = filtered.sort_values(
         by=["CPA", "コンバージョン数", "Cost"],
         ascending=[True, False, False],
@@ -128,6 +127,12 @@ elif sort_choice == "CV数が多い順":
     filtered_sorted = filtered.sort_values(
         by=["コンバージョン数", "Cost", "CPA"],
         ascending=[False, False, True],
+        na_position="last",
+    )
+elif sort_choice == "CVRが高い順":
+    filtered_sorted = filtered.sort_values(
+        by=["CVR", "コンバージョン数", "Cost"],
+        ascending=[False, False, False],
         na_position="last",
     )
 else:  # 消化金額が多い順（デフォルト）
@@ -157,7 +162,7 @@ st.markdown(
 )
 
 # --- 書式整形 ---
-show_df = filtered_sorted.copy()  # <<< 変更（filtered → filtered_sorted）
+show_df = filtered_sorted.copy()
 show_df["URL"] = show_df["URL"].apply(make_link)
 show_df["Cost"] = show_df["Cost"].apply(lambda x: format_num(x, is_money=True))
 show_df["CPA"] = show_df["CPA"].apply(lambda x: format_num(x, is_money=True))
