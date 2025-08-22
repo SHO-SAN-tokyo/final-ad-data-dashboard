@@ -53,19 +53,6 @@ df_banner = bq.query(
     "SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Banner_Drive_Ready`"
 ).to_dataframe()
 
-# ★ ここでクライアント設定テーブルをJOINして「棟数セグメント」を付与する
-settings_df = bq.query(
-    "SELECT client_name, building_count FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`"
-).to_dataframe()
-
-df_num = df_num.merge(settings_df, on="client_name", how="left")
-df_banner = df_banner.merge(settings_df, on="client_name", how="left")
-
-if df_num.empty and df_banner.empty:
-    st.warning("データが存在しません")
-    st.stop()
-
-
 # ──────────────────────────────────────────────
 # ② 前処理／列リネーム（※CV 列を分離）
 # ──────────────────────────────────────────────
@@ -83,6 +70,18 @@ df_banner = df_banner.rename(columns={
     "CV": "conv_banner"                  # バナー別 CV
 })
 
+# ★ rename 後にクライアント設定テーブルを JOIN して「棟数セグメント」を付与する
+settings_df = bq.query(
+    "SELECT client_name, building_count FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`"
+).to_dataframe()
+
+df_num = df_num.merge(settings_df, on="client_name", how="left")
+df_banner = df_banner.merge(settings_df, on="client_name", how="left")
+
+if df_num.empty and df_banner.empty:
+    st.warning("データが存在しません")
+    st.stop()
+
 # 数値型を明示
 for col in ("conv_total", "conv_banner"):
     if col in df_num.columns:
@@ -94,6 +93,7 @@ for col in ("conv_total", "conv_banner"):
 for d in (df_num, df_banner):
     if "配信月" in d.columns:
         d["配信月"] = d["配信月"].astype(str)
+
 
 # ──────────────────────────────────────────────
 # ③ フィルター UI  ※df_num 基準でマスタ値を取得
