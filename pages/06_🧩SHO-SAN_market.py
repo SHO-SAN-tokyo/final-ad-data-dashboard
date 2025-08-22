@@ -283,18 +283,30 @@ for 指標, tab in zip(指標リスト, 折れ線タブ):
         # --- グラフ処理 ---
         good_col = f"{指標}_good"
         rate_col = f"{指標}_達成率"
-        df_line = df_filtered[df_filtered[good_col].notna() & df_filtered[指標].notna()].copy()
 
+        df_line = df_filtered.copy()  # 👈 まず全配信月を残す
+
+        # 達成率を安全に計算（ゼロ割や NaN を考慮）
         if 指標 in ["CPA", "CPC", "CPM"]:
             # 小さいほど良い指標 → KPI / 実績
-            df_line[rate_col] = df_line[good_col] / df_line[指標]
+            df_line[rate_col] = df_line.apply(
+                lambda row: row[good_col] / row[指標]
+                if pd.notna(row[good_col]) and pd.notna(row[指標]) and row[指標] != 0
+                else None,
+                axis=1
+            )
         elif 指標 in ["CVR", "CTR"]:
             # 大きいほど良い指標（KPIは％表記なので小数に変換）
-            df_line[rate_col] = df_line[指標] / (df_line[good_col] / 100.0)
+            df_line[rate_col] = df_line.apply(
+                lambda row: row[指標] / (row[good_col] / 100.0)
+                if pd.notna(row[good_col]) and pd.notna(row[指標]) and row[good_col] != 0
+                else None,
+                axis=1
+            )
 
         df_line["配信月_str"] = df_line["配信月_dt"].dt.strftime("%Y/%m")
 
-        # 月×メインカテゴリ×サブカテゴリごとの平均達成率
+        # 月×メインカテゴリ×サブカテゴリごとの平均達成率（NaNは無視して平均）
         df_grouped_line = (
             df_line.groupby(["配信月_str", "メインカテゴリ", "サブカテゴリ"])
                    .agg(達成率平均=(rate_col, "mean"))
@@ -317,6 +329,7 @@ for 指標, tab in zip(指標リスト, 折れ線タブ):
             height=500
         )
         st.plotly_chart(fig, use_container_width=True)
+
 
 
 
