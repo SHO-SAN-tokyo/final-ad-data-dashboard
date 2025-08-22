@@ -78,11 +78,6 @@ settings_df = bq.query(
 df_num = df_num.merge(settings_df, on="client_name", how="left")
 df_banner = df_banner.merge(settings_df, on="client_name", how="left")
 
-# 👇 ここで確認ログを追加
-st.write("df_num のカラム:", df_num.columns.tolist())
-st.write("df_num の building_count サンプル:", df_num["building_count"].dropna().unique()[:20])
-st.write("JOIN結果サンプル", df_num[["client_name", "building_count"]].head(20))
-
 if df_num.empty and df_banner.empty:
     st.warning("データが存在しません")
     st.stop()
@@ -104,10 +99,6 @@ for d in (df_num, df_banner):
 # ③ フィルター UI  ※df_num 基準でマスタ値を取得
 # ──────────────────────────────────────────────
 st.markdown("<h3 class='top'>🔎 広告を絞り込む</h3>", unsafe_allow_html=True)
-
-# 👇 フィルタに入る直前で確認
-st.write("filtered 初期状態カラム:", df_num.columns.tolist())
-st.write("filtered 内の building_count サンプル:", df_num["building_count"].dropna().unique()[:20])
 
 # 最初は全データ
 filtered = df_num.copy()
