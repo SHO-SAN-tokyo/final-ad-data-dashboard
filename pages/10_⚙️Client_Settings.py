@@ -71,7 +71,11 @@ else:
     st.markdown("📋 下のランダム文字列をコピーして、クライアントIDの末尾に貼り付ける：")
     st.code(f"_{st.session_state['random_suffix']}", language="plaintext")
 
-    building_count = st.text_input("🏠 棟数")
+    # ★ 棟数 → 棟数セグメント
+    building_count = st.selectbox(
+        "🏠 棟数セグメント",
+        ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)", "ライト(10棟以下), "その他"]
+    )
     business_content = st.text_input("💼 事業内容")
     focus_level = st.text_input("🚀 注力度")
 
@@ -127,7 +131,13 @@ else:
 
         with st.form("edit_form"):
             updated_client_id = st.text_input("🆔 クライアントID", value=row["client_id"])
-            updated_building_count = st.text_input("🏠 棟数", value=row["building_count"])
+            updated_building_count = st.selectbox(
+                "🏠 棟数セグメント",
+                ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)", "ライト(10棟以下), "その他"],
+                index=["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)", "ライト(10棟以下), "その他"].index(
+                    row["building_count"] if row["building_count"] in ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)", "ライト(10棟以下), "その他"] else ""
+                )
+            )
             updated_business_content = st.text_input("💼 事業内容", value=row["buisiness_content"])
             updated_focus_level = st.text_input("🚀 注力度", value=row["focus_level"])
             submitted = st.form_submit_button("💾 保存")
