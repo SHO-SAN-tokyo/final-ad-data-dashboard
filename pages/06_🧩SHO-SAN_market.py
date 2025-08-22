@@ -33,11 +33,6 @@ def load_kpi_settings():
 df = load_data()
 df_kpi = load_kpi_settings()
 
-st.write("🔍 df のカラム一覧:", df.columns.tolist())
-if "building_count" in df.columns:
-    st.write("🔍 building_count のユニーク値サンプル:", df["building_count"].unique()[:50])
-
-
 df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
 df["配信月"] = df["配信月_dt"].dt.strftime("%Y/%m")
 
