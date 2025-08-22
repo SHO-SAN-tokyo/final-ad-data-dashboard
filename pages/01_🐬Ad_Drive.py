@@ -53,6 +53,13 @@ df_banner = bq.query(
     "SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Banner_Drive_Ready`"
 ).to_dataframe()
 
+# ★ Banner 側だけ building_count を付与
+settings_df = bq.query(
+    "SELECT client_name, building_count FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`"
+).to_dataframe()
+
+df_banner = df_banner.merge(settings_df, on="client_name", how="left")
+
 # ──────────────────────────────────────────────
 # ② 前処理／列リネーム（※CV 列を分離）
 # ──────────────────────────────────────────────
@@ -69,14 +76,6 @@ df_banner = df_banner.rename(columns={
     **rename_common,
     "CV": "conv_banner"                  # バナー別 CV
 })
-
-# ★ rename 後にクライアント設定テーブルを JOIN して「棟数セグメント」を付与する
-settings_df = bq.query(
-    "SELECT client_name, building_count FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`"
-).to_dataframe()
-
-df_num = df_num.merge(settings_df, on="client_name", how="left")
-df_banner = df_banner.merge(settings_df, on="client_name", how="left")
 
 if df_num.empty and df_banner.empty:
     st.warning("データが存在しません")
