@@ -61,7 +61,8 @@ def option_list(colname):
     vals = df_disp[colname].dropna()
     return vals.value_counts().index.tolist()
 
-col1, col2, col3, col4, col5 = st.columns(5)
+# --- 1段目: メインカテゴリ・サブカテゴリ・棟数セグメント ---
+col1, col2, col3 = st.columns(3)
 with col1:
     main_cat_opts = option_list("メインカテゴリ")
     main_cat = st.multiselect("📁 メインカテゴリ", main_cat_opts, default=[], placeholder="すべて")
@@ -69,14 +70,24 @@ with col2:
     sub_cat_opts = option_list("サブカテゴリ")
     sub_cat = st.multiselect("🗂️ サブカテゴリ", sub_cat_opts, default=[], placeholder="すべて")
 with col3:
+    if "building_count" in df_disp.columns:
+        seg_opts = option_list("building_count")
+        seg = st.multiselect("🏠 棟数セグメント", seg_opts, default=[], placeholder="すべて")
+    else:
+        seg = []
+
+# --- 2段目: 地方・都道府県・広告目的 ---
+col4, col5, col6 = st.columns(3)
+with col4:
     area_opts = option_list("地方")
     area = st.multiselect("🌏 地方", area_opts, default=[], placeholder="すべて")
-with col4:
+with col5:
     pref_opts = option_list("都道府県")
     pref = st.multiselect("🗾 都道府県", pref_opts, default=[], placeholder="すべて")
-with col5:
+with col6:
     obj_opts = option_list("広告目的")
     obj = st.multiselect("🎯 広告目的", obj_opts, default=[], placeholder="すべて")
+
 
 df_filtered = df_disp.copy()
 if main_cat:
@@ -89,6 +100,8 @@ if pref:
     df_filtered = df_filtered[df_filtered["都道府県"].isin(pref)]
 if obj:
     df_filtered = df_filtered[df_filtered["広告目的"].isin(obj)]
+if seg:   # 棟数セグメント
+    df_filtered = df_filtered[df_filtered["building_count"].isin(seg)]
 
 # 表示整形用関数
 def get_label(val, indicator, is_kpi=False):
