@@ -148,9 +148,9 @@ else:
                     row["building_count"] if row["building_count"] in ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)", "ライト(10棟以下)", "その他(棟数概念なしなど)"] else ""
                 )
             )
-            business_options = ["注文住宅", "リフォーム", "分譲", "賃貸", "その他"]
 
-            # 事業内容（既存値をカンマで分割して初期選択）
+            # 事業内容（複数選択）
+            business_options = ["注文住宅", "規格住宅", "リフォーム", "リノベーション", "分譲住宅", "分譲マンション", "土地", "賃貸", "中古物件", "その他"]
             current_business_list = row["buisiness_content"].split(",") if pd.notna(row["buisiness_content"]) else []
             updated_business_selected = st.multiselect(
                 "💼 事業内容（複数選択可）",
@@ -161,6 +161,8 @@ else:
 
             # 注力度
             updated_focus_level = st.text_input("🚀 注力度", value=row["focus_level"])
+
+            # 保存ボタン（form内専用）
             submitted = st.form_submit_button("💾 保存")
 
             if submitted:
@@ -170,7 +172,7 @@ else:
                     ]] = [
                         updated_client_id,
                         updated_building_count,
-                        ",".join(updated_business_selected),   # ★ 複数選択を結合して保存
+                        updated_business_content,   # ← カンマ区切りで保存
                         updated_focus_level
                     ]
                     with st.spinner("保存中..."):
@@ -215,6 +217,7 @@ else:
                         st.cache_data.clear()
                 except Exception as e:
                     st.error(f"❌ 削除エラー: {e}")
+
 
 # --- クライアント別リンク一覧 ---
 st.markdown("---")
