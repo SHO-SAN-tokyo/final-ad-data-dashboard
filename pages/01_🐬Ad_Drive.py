@@ -53,9 +53,18 @@ df_banner = bq.query(
     "SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Banner_Drive_Ready`"
 ).to_dataframe()
 
+# ★ ここでクライアント設定テーブルをJOINして「棟数セグメント」を付与する
+settings_df = bq.query(
+    "SELECT client_name, building_count FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`"
+).to_dataframe()
+
+df_num = df_num.merge(settings_df, on="client_name", how="left")
+df_banner = df_banner.merge(settings_df, on="client_name", how="left")
+
 if df_num.empty and df_banner.empty:
     st.warning("データが存在しません")
     st.stop()
+
 
 # ──────────────────────────────────────────────
 # ② 前処理／列リネーム（※CV 列を分離）
@@ -95,17 +104,25 @@ st.markdown("<h3 class='top'>🔎 広告を絞り込む</h3>", unsafe_allow_html
 filtered = df_num.copy()
 
 # --- 1段目: 配信月 & クライアント名 ---
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 with col1:
     month_options = sorted(filtered["配信月"].dropna().unique())
     sel_month = st.multiselect("📅 配信月", month_options, placeholder="すべて")
     if sel_month:
         filtered = filtered[filtered["配信月"].isin(sel_month)]
+
 with col2:
     client_options = sorted(filtered["client_name"].dropna().unique())
     sel_client = st.multiselect("👤 クライアント名", client_options, placeholder="すべて")
     if sel_client:
         filtered = filtered[filtered["client_name"].isin(sel_client)]
+
+with col3:
+    seg_options = sorted(filtered["building_count"].dropna().unique())
+    sel_segment = st.multiselect("🏠 棟数セグメント", seg_options, placeholder="すべて")
+    if sel_segment:
+        filtered = filtered[filtered["building_count"].isin(sel_segment)]
+
 
 # --- 2段目: メインカテゴリ・サブカテゴリ・広告媒体・広告目的（横並び） ---
 col3, col4, col5, col6, col7 = st.columns(5)
@@ -177,6 +194,7 @@ def apply_filters(
     sel_campaign=None,
     sel_adgroup=None,
     keyword=None,
+    sel_segment=None,
 ) -> pd.DataFrame:
     cond = pd.Series(True, index=df.index)
     if "client_name" in df.columns and sel_client:
@@ -221,6 +239,7 @@ df_num_filt = apply_filters(
     sel_campaign=sel_campaign,
     sel_adgroup=sel_adgroup,
     keyword=keyword,
+    sel_segment=sel_segment,
 )
 
 df_banner_filt = apply_filters(
@@ -235,6 +254,7 @@ df_banner_filt = apply_filters(
     sel_campaign=sel_campaign,
     sel_adgroup=sel_adgroup,
     keyword=keyword,
+    sel_segment=sel_segment,
 )
 
 
@@ -264,6 +284,7 @@ else:
 st.markdown(
     f"📅 配信月：{delivery_range}　"
     f"👤 クライアント：{sel_client or 'すべて'}<br>"
+    f"🏠 棟数セグメント：{sel_segment or 'すべて'}<br>"
     f"📁 メインカテゴリ：{sel_cat or 'すべて'}　"
     f"📂 サブカテゴリ：{sel_subcat or 'すべて'}　"
     f"🏷️ 特殊カテゴリ：{sel_specialcat or 'すべて'}<br>"
