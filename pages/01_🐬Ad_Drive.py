@@ -118,10 +118,14 @@ with col2:
         filtered = filtered[filtered["client_name"].isin(sel_client)]
 
 with col3:
-    seg_options = sorted(filtered["building_count"].dropna().unique())
-    sel_segment = st.multiselect("🏠 棟数セグメント", seg_options, placeholder="すべて")
-    if sel_segment:
-        filtered = filtered[filtered["building_count"].isin(sel_segment)]
+    if "building_count" in filtered.columns:
+        seg_options = sorted(filtered["building_count"].dropna().unique())
+        sel_segment = st.multiselect("🏠 棟数セグメント", seg_options, placeholder="すべて")
+        if sel_segment:
+            filtered = filtered[filtered["building_count"].isin(sel_segment)]
+    else:
+        sel_segment = []  # フォールバック
+
 
 
 # --- 2段目: メインカテゴリ・サブカテゴリ・広告媒体・広告目的（横並び） ---
