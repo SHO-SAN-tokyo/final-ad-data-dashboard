@@ -52,9 +52,12 @@ kpi_dict = {
 }
 
 # 1キャンペーン1行
-df_disp = df.drop_duplicates(
-    subset=["配信月", "キャンペーン名", "メインカテゴリ", "サブカテゴリ", "広告目的", "building_count"]
-)
+subset_cols = ["配信月", "キャンペーン名", "メインカテゴリ", "サブカテゴリ", "広告目的"]
+if "building_count" in df.columns:  # 👈 存在チェック
+    subset_cols.append("building_count")
+
+df_disp = df.drop_duplicates(subset=subset_cols)
+
 
 # フィルター
 def option_list(colname):
