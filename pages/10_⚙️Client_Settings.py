@@ -72,8 +72,8 @@ else:
     # 棟数セグメント
     building_count = st.selectbox(
         "🏠 棟数セグメント",
-        ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)",
-         "ライト(10棟以下)", "その他(棟数概念なしなど)"]
+        ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", 
+         "M2(10棟~25棟)", "ライト(10棟以下)", "その他(棟数概念なしなど)"]
     )
 
     # 事業内容（複数選択）
@@ -137,29 +137,29 @@ else:
     if selected_name != "--- 選択してください ---":
         row = settings_df[settings_df["client_name"] == selected_name].iloc[0]
 
-        # --- 編集フォーム ---
         with st.form("edit_form"):
             updated_client_id = st.text_input("🆔 クライアントID", value=row["client_id"])
 
             # 棟数セグメント
             updated_building_count = st.selectbox(
                 "🏠 棟数セグメント",
-                ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)",
-                 "ライト(10棟以下)", "その他(棟数概念なしなど)"],
-                index=["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)",
+                ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", 
+                 "M2(10棟~25棟)", "ライト(10棟以下)", "その他(棟数概念なしなど)"],
+                index=["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", 
                        "M2(10棟~25棟)", "ライト(10棟以下)", "その他(棟数概念なしなど)"].index(
-                    row["building_count"]
-                    if row["building_count"] in ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)",
-                                                 "M1(26棟~50棟)", "M2(10棟~25棟)",
-                                                 "ライト(10棟以下)", "その他(棟数概念なしなど)"]
+                    row["building_count"] if row["building_count"] in 
+                    ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", 
+                     "M2(10棟~25棟)", "ライト(10棟以下)", "その他(棟数概念なしなど)"] 
                     else ""
                 )
             )
 
-            # 事業内容
+            # 事業内容（既存値を分割＆不正値は無視）
             business_options = ["注文住宅", "規格住宅", "リフォーム", "リノベーション",
                                 "分譲住宅", "分譲マンション", "土地", "賃貸", "中古物件", "その他"]
             current_business_list = row["buisiness_content"].split(",") if pd.notna(row["buisiness_content"]) else []
+            current_business_list = [opt for opt in current_business_list if opt in business_options]
+
             updated_business_selected = st.multiselect(
                 "💼 事業内容（複数選択可）",
                 options=business_options,
@@ -170,10 +170,9 @@ else:
             # 注力度
             updated_focus_level = st.text_input("🚀 注力度", value=row["focus_level"])
 
-            # ★ フォーム内のSubmitボタン
             submitted = st.form_submit_button("💾 保存")
 
-        # --- 保存処理はフォーム外で行う ---
+        # 保存処理はフォーム外
         if submitted:
             try:
                 settings_df.loc[settings_df["client_name"] == selected_name, [
@@ -204,7 +203,6 @@ else:
             except Exception as e:
                 st.error(f"❌ 保存エラー: {e}")
 
-        # --- 削除処理 ---
         with st.expander("🗑 このクライアント情報を削除"):
             if st.button("❌ クライアントを削除"):
                 try:
@@ -250,14 +248,6 @@ else:
     header_cols[4].markdown("**棟数セグメント**")
 
     st.divider()
-
-    def vertical_center(content, height="70px"):
-        safe_content = content if pd.notna(content) and str(content).strip() != "" else "&nbsp;"
-        return f"""
-        <div style="display: flex; align-items: center; height: {height}; min-height: {height};">
-            {safe_content}
-        </div>
-        """
 
     for _, row in link_df.iterrows():
         cols = st.columns([2, 2, 1, 1.5, 1.5])
