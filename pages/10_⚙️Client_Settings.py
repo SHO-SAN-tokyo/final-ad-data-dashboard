@@ -137,6 +137,7 @@ else:
     if selected_name != "--- 選択してください ---":
         row = settings_df[settings_df["client_name"] == selected_name].iloc[0]
 
+        # --- 編集フォーム ---
         with st.form("edit_form"):
             updated_client_id = st.text_input("🆔 クライアントID", value=row["client_id"])
 
@@ -145,8 +146,8 @@ else:
                 "🏠 棟数セグメント",
                 ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)",
                  "ライト(10棟以下)", "その他(棟数概念なしなど)"],
-                index=["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)",
-                       "ライト(10棟以下)", "その他(棟数概念なしなど)"].index(
+                index=["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)",
+                       "M2(10棟~25棟)", "ライト(10棟以下)", "その他(棟数概念なしなど)"].index(
                     row["building_count"]
                     if row["building_count"] in ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)",
                                                  "M1(26棟~50棟)", "M2(10棟~25棟)",
@@ -169,9 +170,10 @@ else:
             # 注力度
             updated_focus_level = st.text_input("🚀 注力度", value=row["focus_level"])
 
+            # ★ フォーム内のSubmitボタン
             submitted = st.form_submit_button("💾 保存")
 
-        # ← 保存処理はフォームの外に書く
+        # --- 保存処理はフォーム外で行う ---
         if submitted:
             try:
                 settings_df.loc[settings_df["client_name"] == selected_name, [
@@ -202,6 +204,7 @@ else:
             except Exception as e:
                 st.error(f"❌ 保存エラー: {e}")
 
+        # --- 削除処理 ---
         with st.expander("🗑 このクライアント情報を削除"):
             if st.button("❌ クライアントを削除"):
                 try:
@@ -278,8 +281,8 @@ else:
             """
             st.markdown(f'<div style="{row_style}">{button_html}</div>', unsafe_allow_html=True)
         with cols[2]:
-            st.markdown(f'<div style="{row_style}">{row["focus_level"] or "&nbsp;"}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="{row_style}">{row["focus_level"] or "&nbsp;"} </div>', unsafe_allow_html=True)
         with cols[3]:
-            st.markdown(f'<div style="{row_style}">{row["buisiness_content"] or "&nbsp;"}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="{row_style}">{row["buisiness_content"] or "&nbsp;"} </div>', unsafe_allow_html=True)
         with cols[4]:
-            st.markdown(f'<div style="{row_style}">{row["building_count"] or "&nbsp;"}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="{row_style}">{row["building_count"] or "&nbsp;"} </div>', unsafe_allow_html=True)
