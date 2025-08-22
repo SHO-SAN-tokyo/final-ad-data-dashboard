@@ -94,7 +94,7 @@ else:
                 "client_name": selected_client,
                 "client_id": client_id,
                 "building_count": building_count,
-                "buisiness_content": business_content,
+                "buisiness_content": ",".join(business_selected),   # ★ multiselect の選択肢を結合
                 "focus_level": focus_level,
                 "created_at": datetime.now()
             }])
@@ -170,7 +170,7 @@ else:
                     ]] = [
                         updated_client_id,
                         updated_building_count,
-                        updated_business_content,
+                        ",".join(updated_business_selected),   # ★ 複数選択を結合して保存
                         updated_focus_level
                     ]
                     with st.spinner("保存中..."):
