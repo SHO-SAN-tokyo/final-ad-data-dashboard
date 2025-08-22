@@ -4,7 +4,7 @@ import plotly.express as px
 from google.cloud import bigquery
 
 # ─────────────────────────────
-# ログイン認証
+# ログイン認証 
 # ─────────────────────────────
 from auth import require_login
 require_login()
