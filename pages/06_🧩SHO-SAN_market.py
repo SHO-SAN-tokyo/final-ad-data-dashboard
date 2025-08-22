@@ -284,14 +284,23 @@ for 指標, tab in zip(指標リスト, 折れ線タブ):
         good_col = f"{指標}_good"
         rate_col = f"{指標}_達成率"
         df_line = df_filtered[df_filtered[good_col].notna() & df_filtered[指標].notna()].copy()
-        df_line[rate_col] = df_line[指標] / df_line[good_col]
+
+        if 指標 in ["CPA", "CPC", "CPM"]:
+            # 小さいほど良い指標
+            df_line[rate_col] = df_line[good_col] / df_line[指標]
+        else:  # CVR, CTR
+            # 大きいほど良い指標
+            df_line[rate_col] = df_line[指標] / df_line[good_col]
+
         df_line["配信月_str"] = df_line["配信月_dt"].dt.strftime("%Y/%m")
+
         # 月×メインカテゴリ×サブカテゴリごとの平均達成率
         df_grouped_line = (
             df_line.groupby(["配信月_str", "メインカテゴリ", "サブカテゴリ"])
                    .agg(達成率平均=(rate_col, "mean"))
                    .reset_index()
         )
+
         fig = px.line(
             df_grouped_line,
             x="配信月_str",
@@ -302,7 +311,7 @@ for 指標, tab in zip(指標リスト, 折れ線タブ):
             labels={"配信月_str": "配信月", "達成率平均": f"{指標}達成率"}
         )
         fig.update_layout(
-            yaxis_tickformat=".0%",
+            yaxis_tickformat=".0%",  # パーセント表示
             xaxis_title="配信月",
             yaxis_title=f"{指標}達成率",
             height=500
@@ -317,7 +326,7 @@ for 指標, tab in zip(指標リスト, タブ):
     with tab:
         st.markdown(f"#### 🧭 都道府県別 {指標} 達成率")
 
-        # 👇 フィルター条件のサマリ表示を追加！
+        # 👇 フィルター条件のサマリ表示
         filter_items = [
             ("📁 メインカテゴリ", main_cat),
             ("🗂️ サブカテゴリ", sub_cat),
@@ -337,14 +346,21 @@ for 指標, tab in zip(指標リスト, タブ):
 
         # --- グラフ処理 ---
         good_col = f"{指標}_good"
+        rate_col = f"{指標}_達成率"
         df_metric = df_filtered[df_filtered[good_col].notna() & df_filtered[指標].notna()].copy()
-        df_metric[f"{指標}_達成率"] = df_metric[指標] / df_metric[good_col]
+
+        if 指標 in ["CPA", "CPC", "CPM"]:
+            df_metric[rate_col] = df_metric[good_col] / df_metric[指標]
+        else:
+            df_metric[rate_col] = df_metric[指標] / df_metric[good_col]
+
         # 都道府県別集計
         df_grouped = (
             df_metric.groupby("都道府県")
-                     .agg(達成率平均=(f"{指標}_達成率", "mean"))
+                     .agg(達成率平均=(rate_col, "mean"))
                      .reset_index()
         )
+
         def get_label_bar(rate):
             if rate >= 1.0:
                 return "良好"
@@ -352,10 +368,13 @@ for 指標, tab in zip(指標リスト, タブ):
                 return "注意"
             else:
                 return "低調"
+
         df_grouped["評価"] = df_grouped["達成率平均"].apply(get_label_bar)
         df_grouped["達成率（％）"] = df_grouped["達成率平均"].apply(lambda x: f"{x:.0%}")
+
         color_map = {"良好": "#B8E0D2", "注意": "#FFF3B0", "低調": "#F4C2C2"}
         df_grouped["色"] = df_grouped["評価"].map(color_map)
+
         df_sorted = df_grouped.sort_values("達成率平均", ascending=True)
 
         import plotly.graph_objects as go
@@ -376,3 +395,4 @@ for 指標, tab in zip(指標リスト, タブ):
             margin=dict(l=100, r=40, t=40, b=40)
         )
         st.plotly_chart(fig, use_container_width=True)
+
