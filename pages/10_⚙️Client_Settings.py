@@ -11,11 +11,9 @@ import string
 from auth import require_login
 require_login()
 
-
 # ──────────────────────────────────────────────
 # クライアント設定
 # ──────────────────────────────────────────────
-# --- ページ設定 ---
 st.set_page_config(page_title="クライアント設定", layout="wide")
 st.title("⚙️ クライアント設定")
 
@@ -71,20 +69,23 @@ else:
     st.markdown("📋 下のランダム文字列をコピーして、クライアントIDの末尾に貼り付ける：")
     st.code(f"_{st.session_state['random_suffix']}", language="plaintext")
 
-    # ★ 棟数 → 棟数セグメント
+    # 棟数セグメント
     building_count = st.selectbox(
         "🏠 棟数セグメント",
-        ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)", "ライト(10棟以下)", "その他(棟数概念なしなど)"]
+        ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)",
+         "ライト(10棟以下)", "その他(棟数概念なしなど)"]
     )
-    # ★ 事業内容 → 複数選択
-    business_options = ["注文住宅", "規格住宅", "リフォーム", "リノベーション", "分譲住宅", "分譲マンション", "土地", "賃貸", "中古物件", "その他"]
+
+    # 事業内容（複数選択）
+    business_options = ["注文住宅", "規格住宅", "リフォーム", "リノベーション",
+                        "分譲住宅", "分譲マンション", "土地", "賃貸", "中古物件", "その他"]
     business_selected = st.multiselect(
         "💼 事業内容（複数選択可）",
         options=business_options
     )
-    # カンマ区切り文字列に変換
     business_content = ",".join(business_selected)
-    # ★ 注力度
+
+    # 注力度
     focus_level = st.text_input("🚀 注力度")
 
     if st.button("＋ クライアントを登録"):
@@ -94,7 +95,7 @@ else:
                 "client_name": selected_client,
                 "client_id": client_id,
                 "building_count": building_count,
-                "buisiness_content": ",".join(business_selected),   # ★ multiselect の選択肢を結合
+                "buisiness_content": business_content,
                 "focus_level": focus_level,
                 "created_at": datetime.now()
             }])
@@ -123,7 +124,6 @@ else:
         else:
             st.warning("⚠️ クライアントIDを入力してください")
 
-
 # --- クライアント情報の編集 ---
 st.markdown("---")
 st.markdown("### 📝 既存クライアントの編集")
@@ -139,18 +139,25 @@ else:
 
         with st.form("edit_form"):
             updated_client_id = st.text_input("🆔 クライアントID", value=row["client_id"])
-            
+
             # 棟数セグメント
             updated_building_count = st.selectbox(
                 "🏠 棟数セグメント",
-                ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)", "ライト(10棟以下)", "その他(棟数概念なしなど)"],
-                index=["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)", "ライト(10棟以下)", "その他(棟数概念なしなど)"].index(
-                    row["building_count"] if row["building_count"] in ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)", "ライト(10棟以下)", "その他(棟数概念なしなど)"] else ""
+                ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)",
+                 "ライト(10棟以下)", "その他(棟数概念なしなど)"],
+                index=["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)", "M1(26棟~50棟)", "M2(10棟~25棟)",
+                       "ライト(10棟以下)", "その他(棟数概念なしなど)"].index(
+                    row["building_count"]
+                    if row["building_count"] in ["", "超ヘビー(200棟以上)", "ヘビー(50棟以上)",
+                                                 "M1(26棟~50棟)", "M2(10棟~25棟)",
+                                                 "ライト(10棟以下)", "その他(棟数概念なしなど)"]
+                    else ""
                 )
             )
 
-            # 事業内容（複数選択）
-            business_options = ["注文住宅", "規格住宅", "リフォーム", "リノベーション", "分譲住宅", "分譲マンション", "土地", "賃貸", "中古物件", "その他"]
+            # 事業内容
+            business_options = ["注文住宅", "規格住宅", "リフォーム", "リノベーション",
+                                "分譲住宅", "分譲マンション", "土地", "賃貸", "中古物件", "その他"]
             current_business_list = row["buisiness_content"].split(",") if pd.notna(row["buisiness_content"]) else []
             updated_business_selected = st.multiselect(
                 "💼 事業内容（複数選択可）",
@@ -162,38 +169,38 @@ else:
             # 注力度
             updated_focus_level = st.text_input("🚀 注力度", value=row["focus_level"])
 
-            # 保存ボタン（form内専用）
             submitted = st.form_submit_button("💾 保存")
 
-            if submitted:
-                try:
-                    settings_df.loc[settings_df["client_name"] == selected_name, [
-                        "client_id", "building_count", "buisiness_content", "focus_level"
-                    ]] = [
-                        updated_client_id,
-                        updated_building_count,
-                        updated_business_content,   # ← カンマ区切りで保存
-                        updated_focus_level
-                    ]
-                    with st.spinner("保存中..."):
-                        job_config = bigquery.LoadJobConfig(
-                            write_disposition="WRITE_TRUNCATE",
-                            schema=[
-                                bigquery.SchemaField("client_name", "STRING"),
-                                bigquery.SchemaField("client_id", "STRING"),
-                                bigquery.SchemaField("building_count", "STRING"),
-                                bigquery.SchemaField("buisiness_content", "STRING"),
-                                bigquery.SchemaField("focus_level", "STRING"),
-                                bigquery.SchemaField("created_at", "TIMESTAMP"),
-                            ]
-                        )
-                        job = client.load_table_from_dataframe(settings_df, full_table, job_config=job_config)
-                        job.result()
-                        st.success("✅ 保存が完了しました！")
-                        st.cache_data.clear()
-                        settings_df = load_client_settings()
-                except Exception as e:
-                    st.error(f"❌ 保存エラー: {e}")
+        # ← 保存処理はフォームの外に書く
+        if submitted:
+            try:
+                settings_df.loc[settings_df["client_name"] == selected_name, [
+                    "client_id", "building_count", "buisiness_content", "focus_level"
+                ]] = [
+                    updated_client_id,
+                    updated_building_count,
+                    updated_business_content,
+                    updated_focus_level
+                ]
+                with st.spinner("保存中..."):
+                    job_config = bigquery.LoadJobConfig(
+                        write_disposition="WRITE_TRUNCATE",
+                        schema=[
+                            bigquery.SchemaField("client_name", "STRING"),
+                            bigquery.SchemaField("client_id", "STRING"),
+                            bigquery.SchemaField("building_count", "STRING"),
+                            bigquery.SchemaField("buisiness_content", "STRING"),
+                            bigquery.SchemaField("focus_level", "STRING"),
+                            bigquery.SchemaField("created_at", "TIMESTAMP"),
+                        ]
+                    )
+                    job = client.load_table_from_dataframe(settings_df, full_table, job_config=job_config)
+                    job.result()
+                    st.success("✅ 保存が完了しました！")
+                    st.cache_data.clear()
+                    settings_df = load_client_settings()
+            except Exception as e:
+                st.error(f"❌ 保存エラー: {e}")
 
         with st.expander("🗑 このクライアント情報を削除"):
             if st.button("❌ クライアントを削除"):
@@ -218,7 +225,6 @@ else:
                 except Exception as e:
                     st.error(f"❌ 削除エラー: {e}")
 
-
 # --- クライアント別リンク一覧 ---
 st.markdown("---")
 st.markdown("### 🔗 クライアント別ページリンク（一覧表示）")
@@ -233,13 +239,12 @@ else:
 
     st.divider()
 
-    # ヘッダー
     header_cols = st.columns([2, 2, 1, 1.5, 1.5])
     header_cols[0].markdown("**クライアント名**")
     header_cols[1].markdown("**リンク**")
     header_cols[2].markdown("**注力度**")
     header_cols[3].markdown("**事業内容**")
-    header_cols[4].markdown("**棟数**")
+    header_cols[4].markdown("**棟数セグメント**")
 
     st.divider()
 
@@ -253,13 +258,11 @@ else:
 
     for _, row in link_df.iterrows():
         cols = st.columns([2, 2, 1, 1.5, 1.5])
-
         row_height = "70px"
         row_style = f"border-bottom: 1px solid #ddd; height: {row_height}; min-height: {row_height}; display: flex; align-items: center;"
 
         with cols[0]:
             st.markdown(f'<div style="{row_style}">{row["client_name"]}</div>', unsafe_allow_html=True)
-
         with cols[1]:
             button_html = f"""
             <a href="{row['リンクURL']}" target="_blank" style="
@@ -274,16 +277,9 @@ else:
             </a>
             """
             st.markdown(f'<div style="{row_style}">{button_html}</div>', unsafe_allow_html=True)
-
         with cols[2]:
             st.markdown(f'<div style="{row_style}">{row["focus_level"] or "&nbsp;"}</div>', unsafe_allow_html=True)
-
         with cols[3]:
             st.markdown(f'<div style="{row_style}">{row["buisiness_content"] or "&nbsp;"}</div>', unsafe_allow_html=True)
-
         with cols[4]:
             st.markdown(f'<div style="{row_style}">{row["building_count"] or "&nbsp;"}</div>', unsafe_allow_html=True)
-
-
-
-
