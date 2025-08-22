@@ -215,6 +215,9 @@ def apply_filters(
         cond &= df["キャンペーン名"].isin(sel_campaign)
     if "広告セット名" in df.columns and sel_adgroup:
         cond &= df["広告セット名"].isin(sel_adgroup)
+    # ★ 棟数セグメントのフィルタ追加
+    if "building_count" in df.columns and sel_segment:
+        cond &= df["building_count"].isin(sel_segment)
 
     # ▼ キーワード検索は広告セット名のみ
     if keyword:
