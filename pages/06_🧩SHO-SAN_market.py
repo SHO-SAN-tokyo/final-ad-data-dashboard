@@ -171,17 +171,29 @@ for 指標 in 指標群:
         f"<span style='font-size:12px; color:#666;'>{filter_text}</span>",
         unsafe_allow_html=True
     )
+
     # --- 以下グラフ処理 ---
     df_plot = (
         df_filtered.groupby("配信月_dt")
           .agg(実績値=(指標, "mean"))
           .reset_index()
     )
-    df_plot["実績値_label"] = df_plot["実績値"].apply(lambda v: get_label(v, 指標))
-    kpi_value = kpi_dict[指標]
-    kpi_label = get_label(kpi_value, 指標, is_kpi=True)
+
+    # CVR / CTR は 100倍して % 表示
+    if 指標 in ["CVR", "CTR"]:
+        df_plot["実績値_raw"] = df_plot["実績値"]          # 小数 (例: 0.008)
+        df_plot["実績値"] = df_plot["実績値"] * 100        # グラフ用 (例: 0.8)
+        kpi_value = kpi_dict[指標] * 100
+    else:
+        df_plot["実績値_raw"] = df_plot["実績値"]
+        kpi_value = kpi_dict[指標]
+
+    # ラベルは get_label で整形（%や¥対応）
+    df_plot["実績値_label"] = df_plot["実績値_raw"].apply(lambda v: get_label(v, 指標))
+    kpi_label = get_label(kpi_dict[指標], 指標, is_kpi=True)
     df_plot["目標値"] = kpi_value
     df_plot["目標値_label"] = kpi_label
+
     import plotly.graph_objects as go
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -189,7 +201,7 @@ for 指標 in 指標群:
         y=df_plot["実績値"],
         mode="lines+markers+text",
         name="実績値",
-        text=df_plot["実績値_label"],
+        text=df_plot["実績値_label"],  # 👈 "0.8%" など
         textposition="top center",
         line=dict(color="blue"),
         hovertemplate="%{x|%Y/%m}<br>実績値：%{text}<extra></extra>",
@@ -199,19 +211,20 @@ for 指標 in 指標群:
         y=df_plot["目標値"],
         mode="lines+markers+text",
         name="目標値",
-        text=[kpi_label]*len(df_plot),
+        text=[kpi_label]*len(df_plot),  # 👈 "0.5%" など
         textposition="top center",
         line=dict(color="gray", dash="dash"),
         hovertemplate="%{x|%Y/%m}<br>目標値：%{text}<extra></extra>",
     ))
     fig.update_layout(
-        yaxis_title=指標,
+        yaxis_title=指標 + (" (%)" if 指標 in ["CVR", "CTR"] else ""),
         xaxis_title="配信月",
         xaxis_tickformat="%Y/%m",
         height=400,
         hovermode="x unified"
     )
     st.plotly_chart(fig, use_container_width=True)
+
 
 # 6. 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別タブ）
 st.markdown("### 📈 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別）")
