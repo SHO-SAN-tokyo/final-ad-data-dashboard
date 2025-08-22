@@ -121,6 +121,25 @@ def get_label(val, indicator, is_kpi=False):
         return f"{val}"
 
 st.markdown("### 📋 達成率一覧")
+
+# 👇 フィルター条件のサマリ表示を追加！
+filter_items = [
+    ("📁 メインカテゴリ", main_cat),
+    ("🗂️ サブカテゴリ", sub_cat),
+    ("🏠 棟数セグメント", seg),
+    ("🌏 地方", area),
+    ("🗾 都道府県", pref),
+    ("🎯 広告目的", obj)
+]
+filter_text = "｜".join([
+    f"{label}：{'すべて' if not vals else ' / '.join(vals)}"
+    for label, vals in filter_items
+])
+st.markdown(
+    f"<span style='font-size:12px; color:#666;'>{filter_text}</span>",
+    unsafe_allow_html=True
+)
+
 表示列 = [
     "配信月", "都道府県", "地方", "メインカテゴリ", "サブカテゴリ", "広告目的", "キャンペーン名",
     "CPA", "CPA_good", "CPA_評価",
