@@ -179,16 +179,17 @@ for 指標 in 指標群:
           .reset_index()
     )
 
-    # CVR / CTR は実績値をパーセント化
-    if 指標 in ["CVR", "CTR"]:
-        df_plot["実績値"] = df_plot["実績値"] * 100
-
-    # KPI値を取得（CVR/CTR はそのまま % 値）
+    # KPI値を取得（CVR, CTR の場合は % → 小数化）
     kpi_value = kpi_dict[指標]
+    if 指標 in ["CVR", "CTR"]:
+        kpi_value = kpi_value / 100.0  # 0.5 → 0.005
 
-    # ラベル整形
-    df_plot["実績値_label"] = df_plot["実績値"].apply(lambda v: get_label(v, 指標))
-    kpi_label = get_label(kpi_value, 指標, is_kpi=True)
+    # 実績値とKPIのラベル
+    df_plot["実績値_label"] = df_plot["実績値"].apply(
+        lambda v: f"{v*100:.1f}%" if 指標 in ["CVR", "CTR"] else get_label(v, 指標)
+    )
+    kpi_label = f"{kpi_value*100:.1f}%" if 指標 in ["CVR", "CTR"] else get_label(kpi_value, 指標, is_kpi=True)
+
     df_plot["目標値"] = kpi_value
     df_plot["目標値_label"] = kpi_label
 
@@ -215,12 +216,13 @@ for 指標 in 指標群:
         hovertemplate="%{x|%Y/%m}<br>目標値：%{text}<extra></extra>",
     ))
 
-    # 軸設定
+    # Y軸を % か数値で分けて設定
     if 指標 in ["CVR", "CTR"]:
         fig.update_layout(
-            yaxis=dict(title=指標 + " (%)", tickformat=".1%"),
+            yaxis_title=f"{指標} (%)",
             xaxis_title="配信月",
             xaxis_tickformat="%Y/%m",
+            yaxis_tickformat=".1%",  # 小数をパーセント表示に
             height=400,
             hovermode="x unified"
         )
