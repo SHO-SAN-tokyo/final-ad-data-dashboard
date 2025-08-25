@@ -40,8 +40,17 @@ info = dict(st.secrets["connections"]["bigquery"])
 info["private_key"] = info["private_key"].replace("\\n", "\n")
 client = bigquery.Client.from_service_account_info(info)
 
-# --- データ取得 ---
-@st.cache_data(ttl=60)
+# ① BigQueryクライアントをキャッシュ
+@st.cache_resource
+def get_bq_client():
+    info = dict(st.secrets["connections"]["bigquery"])
+    info["private_key"] = info["private_key"].replace("\\n", "\n")
+    return bigquery.Client.from_service_account_info(info)
+
+client = get_bq_client()
+
+# ② データ取得（TTLなし＝手動クリアまで固定スナップショット）
+@st.cache_data(show_spinner=False)   # ← ttl を付けない
 def load_client_view():
     query = """
     SELECT 
@@ -50,7 +59,17 @@ def load_client_view():
     """
     return client.query(query).to_dataframe()
 
+# ③ 手動クリアボタン
+left, right = st.columns([1, 3])
+with left:
+    if st.button("🧹 キャッシュをクリア", use_container_width=True):
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.success("キャッシュをクリアしました。")
+        st.experimental_rerun()
+
 df = load_client_view()
+
 
 # --- フィルターリスト ---
 current_tanto_list = sorted(set(df['現在の担当者'].dropna().unique()))
