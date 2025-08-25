@@ -213,6 +213,12 @@ for 指標 in 指標群:
     df_lastyear = df_plot.copy()
     df_lastyear["配信月_dt"] = df_lastyear["配信月_dt"] + pd.DateOffset(years=1)
 
+    # 👇 今月までに制限
+    today = pd.Timestamp.today().normalize()
+    current_month_start = pd.Timestamp(today.year, today.month, 1)
+    df_plot = df_plot[df_plot["配信月_dt"] <= current_month_start]
+    df_lastyear = df_lastyear[df_lastyear["配信月_dt"] <= current_month_start]
+
     import plotly.graph_objects as go
     fig = go.Figure()
 
@@ -271,6 +277,7 @@ for 指標 in 指標群:
         )
 
     st.plotly_chart(fig, use_container_width=True)
+
 
 
 
