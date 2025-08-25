@@ -169,6 +169,7 @@ st.markdown("### 📈 月別推移グラフ（指標別）")
 指標群 = ["CPA", "CVR", "CTR", "CPC", "CPM"]
 for 指標 in 指標群:
     st.markdown(f"#### 📉 {指標} 推移")
+
     # ここでフィルター内容を1行で明示
     filter_items = [
         ("📁 メインカテゴリ", main_cat),
@@ -197,7 +198,7 @@ for 指標 in 指標群:
     # KPI値を取得（CVR, CTR の場合は % → 小数化）
     kpi_value = kpi_dict[指標]
     if 指標 in ["CVR", "CTR"]:
-        kpi_value = kpi_value / 100.0  # 0.5 → 0.005
+        kpi_value = kpi_value / 100.0
 
     # 実績値とKPIのラベル
     df_plot["実績値_label"] = df_plot["実績値"].apply(
@@ -208,8 +209,14 @@ for 指標 in 指標群:
     df_plot["目標値"] = kpi_value
     df_plot["目標値_label"] = kpi_label
 
+    # 👇 昨年同月データを作成
+    df_lastyear = df_plot.copy()
+    df_lastyear["配信月_dt"] = df_lastyear["配信月_dt"] + pd.DateOffset(years=1)
+
     import plotly.graph_objects as go
     fig = go.Figure()
+
+    # 実績値線
     fig.add_trace(go.Scatter(
         x=df_plot["配信月_dt"],
         y=df_plot["実績値"],
@@ -220,6 +227,19 @@ for 指標 in 指標群:
         line=dict(color="blue"),
         hovertemplate="%{x|%Y/%m}<br>実績値：%{text}<extra></extra>",
     ))
+
+    # 昨年同月線
+    fig.add_trace(go.Scatter(
+        x=df_lastyear["配信月_dt"],
+        y=df_lastyear["実績値"],
+        mode="lines+markers",
+        name="昨年同月",
+        line=dict(color="blue", width=2),
+        opacity=0.3,
+        hovertemplate="%{x|%Y/%m}<br>昨年同月：%{y}<extra></extra>",
+    ))
+
+    # 目標値線
     fig.add_trace(go.Scatter(
         x=df_plot["配信月_dt"],
         y=df_plot["目標値"],
@@ -237,7 +257,7 @@ for 指標 in 指標群:
             yaxis_title=f"{指標} (%)",
             xaxis_title="配信月",
             xaxis_tickformat="%Y/%m",
-            yaxis_tickformat=".1%",  # 小数をパーセント表示に
+            yaxis_tickformat=".1%",
             height=400,
             hovermode="x unified"
         )
@@ -254,16 +274,16 @@ for 指標 in 指標群:
 
 
 
+
 # 6. 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別タブ）
 st.markdown("### 📈 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別）")
-指標リスト = ["CPA", "CVR", "CTR", "CPC", "CPM"]  # CTRも含む
+指標リスト = ["CPA", "CVR", "CTR", "CPC", "CPM"]  # 👈 CTRを追加！
 折れ線タブ = st.tabs(指標リスト)
-
 for 指標, tab in zip(指標リスト, 折れ線タブ):
     with tab:
         st.markdown(f"#### 📉 {指標} 達成率の推移（メインカテゴリ・サブカテゴリ別）")
 
-        # 👇 フィルター条件のサマリ表示
+        # 👇 フィルター条件のサマリ表示をここにも追加！
         filter_items = [
             ("📁 メインカテゴリ", main_cat),
             ("🗂️ サブカテゴリ", sub_cat),
@@ -285,10 +305,11 @@ for 指標, tab in zip(指標リスト, 折れ線タブ):
         good_col = f"{指標}_good"
         rate_col = f"{指標}_達成率"
 
-        df_line = df_filtered.copy()
+        df_line = df_filtered.copy()  # 👈 まず全配信月を残す
 
-        # 達成率を計算
+        # 達成率を安全に計算（ゼロ割や NaN を考慮）
         if 指標 in ["CPA", "CPC", "CPM"]:
+            # 小さいほど良い指標 → KPI / 実績
             df_line[rate_col] = df_line.apply(
                 lambda row: row[good_col] / row[指標]
                 if pd.notna(row[good_col]) and pd.notna(row[指標]) and row[指標] != 0
@@ -296,6 +317,7 @@ for 指標, tab in zip(指標リスト, 折れ線タブ):
                 axis=1
             )
         elif 指標 in ["CVR", "CTR"]:
+            # 大きいほど良い指標（KPIは％表記なので小数に変換）
             df_line[rate_col] = df_line.apply(
                 lambda row: row[指標] / (row[good_col] / 100.0)
                 if pd.notna(row[good_col]) and pd.notna(row[指標]) and row[good_col] != 0
@@ -303,31 +325,15 @@ for 指標, tab in zip(指標リスト, 折れ線タブ):
                 axis=1
             )
 
-        # 月を揃える
-        df_line["配信月_dt"] = df_line["配信月_dt"].dt.to_period("M").dt.to_timestamp()
         df_line["配信月_str"] = df_line["配信月_dt"].dt.strftime("%Y/%m")
 
-        # 集計
+        # 月×メインカテゴリ×サブカテゴリごとの平均達成率（NaNは無視して平均）
         df_grouped_line = (
-            df_line.groupby(["配信月_dt", "配信月_str", "メインカテゴリ", "サブカテゴリ"])
+            df_line.groupby(["配信月_str", "メインカテゴリ", "サブカテゴリ"])
                    .agg(達成率平均=(rate_col, "mean"))
                    .reset_index()
         )
 
-        # 昨年同月データを突合
-        df_grouped_line["前年同月_dt"] = df_grouped_line["配信月_dt"] - pd.DateOffset(years=1)
-        df_grouped_line = df_grouped_line.merge(
-            df_grouped_line[["配信月_dt", "メインカテゴリ", "サブカテゴリ", "達成率平均"]],
-            left_on=["前年同月_dt", "メインカテゴリ", "サブカテゴリ"],
-            right_on=["配信月_dt", "メインカテゴリ", "サブカテゴリ"],
-            how="left",
-            suffixes=("", "_昨年")
-        )
-
-        # 目標値 = 常に100%
-        df_grouped_line["目標値"] = 1.0
-
-        # --- 実績線（カテゴリ色） ---
         fig = px.line(
             df_grouped_line,
             x="配信月_str",
@@ -337,41 +343,13 @@ for 指標, tab in zip(指標リスト, 折れ線タブ):
             markers=True,
             labels={"配信月_str": "配信月", "達成率平均": f"{指標}達成率"}
         )
-
-        # --- 昨年線（同じ色、透明度で薄く） ---
-        for (cat, subcat), subdf in df_grouped_line.groupby(["メインカテゴリ", "サブカテゴリ"]):
-            # 既存 trace と同じ色を取得
-            color = None
-            for trace in fig.data:
-                if trace.name == f"{cat}, {subcat}":
-                    color = trace.line.color
-            fig.add_scatter(
-                x=subdf["配信月_str"],
-                y=subdf["達成率平均_昨年"],
-                mode="lines+markers",
-                name=f"{cat}-{subcat}（昨年）",
-                line=dict(color=color, width=2),
-                opacity=0.3  # 👈 薄くする
-            )
-
-        # --- 目標線（黒の破線） ---
-        fig.add_scatter(
-            x=df_grouped_line["配信月_str"].unique(),
-            y=[1.0] * len(df_grouped_line["配信月_str"].unique()),
-            mode="lines",
-            name="目標値（100%）",
-            line=dict(color="black", dash="dash")
-        )
-
         fig.update_layout(
-            yaxis_tickformat=".0%",
+            yaxis_tickformat=".0%",  # パーセント表示
             xaxis_title="配信月",
             yaxis_title=f"{指標}達成率",
             height=500
         )
-
         st.plotly_chart(fig, use_container_width=True)
-
 
 
 
