@@ -261,12 +261,8 @@ for 指標 in 指標群:
     if 指標 in ["CVR", "CTR"]:
         fig.update_layout(
             yaxis_title=f"{指標} (%)",
-            xaxis=dict(
-                title="配信月",
-                tickformat="%Y/%m",
-                dtick="M1",        # 毎月表示
-                tickangle=-45
-            ),
+            xaxis_title="配信月",
+            xaxis_tickformat="%Y/%m",
             yaxis_tickformat=".1%",
             height=400,
             hovermode="x unified"
@@ -274,12 +270,8 @@ for 指標 in 指標群:
     else:
         fig.update_layout(
             yaxis_title=指標,
-            xaxis=dict(
-                title="配信月",
-                tickformat="%Y/%m",
-                dtick="M1",        # 毎月表示
-                tickangle=-45
-            ),
+            xaxis_title="配信月",
+            xaxis_tickformat="%Y/%m",
             height=400,
             hovermode="x unified"
         )
