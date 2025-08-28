@@ -17,28 +17,24 @@ require_login()
 st.set_page_config(page_title="🐬 Ad Drive", layout="wide")
 
 # --- タイトルとボタンを横並びで表示 ---
-col1, col2 = st.columns([6, 1])  # 左を広く
+col1, col2, col3 = st.columns([6, 1, 1])  # 左:タイトル, 右:キャッシュ/ログアウト
 with col1:
     st.markdown("<h1 style='display:inline-block;margin-bottom:0;'>🐬 Ad Drive ／すべてのクライアント</h1>", unsafe_allow_html=True)
+
 with col2:
-    # 右端にボタン
-    btn_style = """
-    <style>
-    div[data-testid="column"]:nth-of-type(2) button {
-        float: right !important;
-        margin-top: 8px;
-        margin-right: 6px;
-    }
-    </style>
-    """
-    st.markdown(btn_style, unsafe_allow_html=True)
     if st.button("🔄 キャッシュクリア", key="refresh_btn"):
         st.cache_data.clear()
         st.rerun()
 
+with col3:
+    if st.button("🚪 ログアウト", key="logout_btn"):
+        from auth import logout
+        logout()
+
 cred = dict(st.secrets["connections"]["bigquery"])
 cred["private_key"] = cred["private_key"].replace("\\n", "\n")
 bq = bigquery.Client.from_service_account_info(cred)
+
 
 # ──────────────────────────────────────────────
 # ① データ取得
