@@ -102,7 +102,7 @@ def require_login():
     # 2) 未ログイン → ログインフォーム
     with st.container():
         st.markdown("### 🔐 Ad Drive ログイン")
-        st.info("※ログイン情報は社内のアイパス管理帳 "86番" に記載されています。")
+        st.info("※ログイン情報は社内のアイパス管理帳 86番 に記載されています。")
 
         with st.form("addrive_login"):
             email = st.text_input("メールアドレス", "")
