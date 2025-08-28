@@ -125,7 +125,10 @@ def require_login():
                     st.session_state[COOKIE_NAME] = token
 
                 st.success("ログインしました。")
-                st.experimental_rerun()
+                try:
+                    st.rerun()
+                except AttributeError:
+                    st.experimental_rerun()
             else:
                 st.error("メールアドレスまたはパスワードが正しくありません。")
 
@@ -144,4 +147,7 @@ def logout():
     if COOKIE_NAME in st.session_state:
         del st.session_state[COOKIE_NAME]
     st.success("ログアウトしました。")
-    st.experimental_rerun()
+    try:
+        st.rerun()
+    except AttributeError:
+        st.experimental_rerun()
