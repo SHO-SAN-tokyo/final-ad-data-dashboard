@@ -5,10 +5,10 @@ import base64
 import hashlib
 import streamlit as st
 
-# 依存: streamlit-cookies-manager
+# 依存: streamlit-cookies-manager（無くてもセッション維持で動くフォールバックあり）
 try:
     from streamlit_cookies_manager import EncryptedCookieManager
-except Exception as e:
+except Exception:
     EncryptedCookieManager = None
 
 
@@ -49,14 +49,32 @@ def _verify(token: str, secret: str) -> dict | None:
 
 
 def _get_cookie_manager():
-    # Cookieマネージャ（あれば使用、無ければNone）
+    """Cookie マネージャの初期化（失敗時は None を返す=セッション維持にフォールバック）"""
     if EncryptedCookieManager is None:
         return None
-    keys = ["addrive_cookie_wrapper_key"]
-    cookies = EncryptedCookieManager(prefix="addrive", password=None, keynames=keys)
-    if not cookies.ready():
-        st.stop()  # 初回ロードで内部初期化待ち
-    return cookies
+
+    auth_cfg = st.secrets.get("auth", {})
+    # cookie_password は secrets.toml で管理してください。無ければ最終手段として cookie_secret を流用
+    cookie_password = auth_cfg.get("cookie_password") or auth_cfg.get("cookie_secret")
+
+    if not cookie_password:
+        # パスワードが無いとライブラリが初期化できないのでフォールバック
+        return None
+
+    try:
+        keys = ["addrive_cookie_wrapper_key"]
+        cookies = EncryptedCookieManager(
+            prefix="addrive",
+            password=str(cookie_password),  # None を渡さない
+            keynames=keys,
+        )
+        if not cookies.ready():
+            # 初回ロードで内部初期化が必要。ここで止めて再実行を待つ
+            st.stop()
+        return cookies
+    except Exception:
+        # 何らかの理由で初期化失敗→フォールバック
+        return None
 
 
 def require_login():
@@ -67,28 +85,24 @@ def require_login():
     COOKIE_NAME = auth_cfg.get("cookie_name", "addrive_token")
     COOKIE_DAYS = int(auth_cfg.get("cookie_days", 30))
 
+    # 最低限必要な値
     if not (SHARED_EMAIL and SHARED_PASSWORD and COOKIE_SECRET):
         st.error("auth設定が不足しています（secrets.toml の [auth] を確認）")
         st.stop()
 
     cookies = _get_cookie_manager()
 
-    # 1) Cookieに有効トークンがあればそのまま通す
-    token = None
-    if cookies is not None:
-        token = cookies.get(COOKIE_NAME)
-    else:
-        token = st.session_state.get(COOKIE_NAME)
-
+    # 1) Cookie/セッションに有効トークンがあれば認証OK
+    token = cookies.get(COOKIE_NAME) if cookies is not None else st.session_state.get(COOKIE_NAME)
     if token:
         payload = _verify(token, COOKIE_SECRET)
         if payload:
-            return
+            return  # 認証OK
 
     # 2) 未ログイン → ログインフォーム
     with st.container():
         st.markdown("### 🔐 Ad Drive ログイン")
-        st.info("※ログイン情報は社内のアイパス管理帳に記載されています。")  # 👈 注意書きを追加
+        st.info("※ログイン情報は社内のアイパス管理帳に記載されています。")
 
         with st.form("addrive_login"):
             email = st.text_input("メールアドレス", "")
@@ -103,9 +117,11 @@ def require_login():
                 token = _sign(payload, COOKIE_SECRET)
 
                 if cookies is not None and remember:
+                    # Cookie（永続）に保存
                     cookies.set(COOKIE_NAME, token, max_age=COOKIE_DAYS * 24 * 60 * 60)
                     cookies.save()
                 else:
+                    # ライブラリ未導入/remember=False の場合はセッションのみ（ブラウザ閉じると消える）
                     st.session_state[COOKIE_NAME] = token
 
                 st.success("ログインしました。")
@@ -113,6 +129,7 @@ def require_login():
             else:
                 st.error("メールアドレスまたはパスワードが正しくありません。")
 
+        # フォーム表示中はページ描画を止める
         st.stop()
 
 
