@@ -31,6 +31,16 @@ with col3:
         from auth import logout
         logout()
 
+# CSSでボタンのフォントサイズを9pxに上書き
+st.markdown("""
+<style>
+div[data-testid="stButton"] button {
+    font-size: 9px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 cred = dict(st.secrets["connections"]["bigquery"])
 cred["private_key"] = cred["private_key"].replace("\\n", "\n")
 bq = bigquery.Client.from_service_account_info(cred)
