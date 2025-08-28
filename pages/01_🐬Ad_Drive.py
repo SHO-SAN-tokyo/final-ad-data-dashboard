@@ -16,6 +16,23 @@ require_login()
 # ──────────────────────────────────────────────
 st.set_page_config(page_title="🐬 Ad Drive", layout="wide")
 
+# ボタン共通のフォントサイズを9pxに
+st.markdown("""
+<style>
+/* まずはグローバルに st.button へ適用 */
+div.stButton > button {
+    font-size: 9px !important;
+    line-height: 1.1 !important;   /* 見た目を詰めたい場合 */
+    padding: 2px 8px !important;   /* ついでにパディングも少し縮めるなら */
+    height: auto !important;
+}
+/* 予備：一部環境向けの強めセレクタ */
+button[kind] {
+    font-size: 9px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # --- タイトルとボタンを横並びで表示 ---
 col1, col2, col3 = st.columns([6, 1, 1])  # 左:タイトル, 右:キャッシュ/ログアウト
 with col1:
@@ -30,16 +47,6 @@ with col3:
     if st.button("🚪 ログアウト", key="logout_btn"):
         from auth import logout
         logout()
-
-# CSSでボタンのフォントサイズを9pxに上書き
-st.markdown("""
-<style>
-div[data-testid="stButton"] button {
-    font-size: 9px !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
 
 cred = dict(st.secrets["connections"]["bigquery"])
 cred["private_key"] = cred["private_key"].replace("\\n", "\n")
