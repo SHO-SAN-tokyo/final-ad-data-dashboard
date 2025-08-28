@@ -8,7 +8,7 @@ import numpy as np
 # ──────────────────────────────────────────────
 # ログイン認証
 # ──────────────────────────────────────────────
-from auth import require_login
+from auth import require_login, logout
 require_login()
 
 # ──────────────────────────────────────────────
