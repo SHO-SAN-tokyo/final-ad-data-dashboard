@@ -69,7 +69,7 @@ def load_settings():
     ).to_dataframe()
 
 if "initial_loaded" not in st.session_state:
-    with st.spinner("⏳ 初回データ読み込み中…"):
+    with st.spinner("⏳ 初回データ取り込み中…ちょっと待ってね…"):
         df_num = bq.query(
             "SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data_Last`"
         ).to_dataframe()
