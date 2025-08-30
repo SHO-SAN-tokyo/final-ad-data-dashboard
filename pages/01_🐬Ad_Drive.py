@@ -68,19 +68,22 @@ def load_settings():
         "SELECT client_name, building_count FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`"
     ).to_dataframe()
 
-# 👇 ここを追加：初回だけスピナー表示
 if "initial_loaded" not in st.session_state:
     with st.spinner("⏳ 初回データ読み込み中…"):
-        df_num = load_df_num()
-        df_banner = load_df_banner()
-        settings_df = load_settings()
+        df_num = bq.query(
+            "SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data_Last`"
+        ).to_dataframe()
+        df_banner = bq.query(
+            "SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Banner_Drive_Ready`"
+        ).to_dataframe()
+        settings_df = bq.query(
+            "SELECT client_name, building_count FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`"
+        ).to_dataframe()
     st.session_state["initial_loaded"] = True
 else:
-    # 2回目以降は爆速（キャッシュ）＆スピナー無し
     df_num = load_df_num()
     df_banner = load_df_banner()
     settings_df = load_settings()
-
 
 # Banner 側へ building_count を付与
 df_banner = df_banner.merge(settings_df, on="client_name", how="left")
