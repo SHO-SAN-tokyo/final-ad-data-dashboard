@@ -11,46 +11,39 @@ import numpy as np
 from auth import require_login, logout
 require_login() 
 
-# ──────────────────────────────────────────────
+# ────────────────────────────────────────────── 
 # ページ設定 & BigQuery 認証 
 # ──────────────────────────────────────────────
 st.set_page_config(page_title="🐬 Ad Drive", layout="wide")
 
-# ボタン共通のフォントサイズを9pxに
+# グローバルなボタンのスタイル指定は残す（今後別の箇所で使う場合用）
 st.markdown("""
 <style>
-/* まずはグローバルに st.button へ適用 */
 div.stButton > button {
     font-size: 9px !important;
-    line-height: 1.1 !important;   /* 見た目を詰めたい場合 */
-    padding: 2px 8px !important;   /* ついでにパディングも少し縮めるなら */
+    line-height: 1.1 !important;
+    padding: 2px 8px !important;
     height: auto !important;
 }
-/* 予備：一部環境向けの強めセレクタ */
 button[kind] {
     font-size: 9px !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# --- タイトルとボタンを横並びで表示 ---
-col1, col2, col3 = st.columns([6, 1, 1])  # 左:タイトル, 右:キャッシュ/ログアウト
+# --- タイトルだけ横幅いっぱいに表示 ---
+col1 = st.columns([1])[0]
 with col1:
-    st.markdown("<h1 style='display:inline-block;margin-bottom:0;'>🐬 Ad Drive ／すべてのクライアント</h1>", unsafe_allow_html=True)
+    st.markdown(
+        "<h1 style='display:inline-block;margin-bottom:0;'>🐬 Ad Drive ／すべてのクライアント</h1>",
+        unsafe_allow_html=True
+    )
 
-with col2:
-    if st.button("🔄 キャッシュクリア", key="refresh_btn"):
-        st.cache_data.clear()
-        st.rerun()
-
-with col3:
-    if st.button("🚪 ログアウト", key="logout_btn"):
-        from auth import logout
-        logout()
-
+# BigQuery 認証
 cred = dict(st.secrets["connections"]["bigquery"])
 cred["private_key"] = cred["private_key"].replace("\\n", "\n")
 bq = bigquery.Client.from_service_account_info(cred)
+
 
 
 # ──────────────────────────────────────────────
