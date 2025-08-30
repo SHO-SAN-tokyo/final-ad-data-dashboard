@@ -46,8 +46,10 @@ def get_bq_client():
     cred["private_key"] = cred["private_key"].replace("\\n", "\n")
     return bigquery.Client.from_service_account_info(cred)
 
+# ここはそのまま
 bq = get_bq_client()
 
+# 以降の3つの load_* は @st.cache_data でキャッシュ済み（show_spinner=False）
 @st.cache_data(show_spinner=False)
 def load_df_num():
     return bq.query(
@@ -66,9 +68,19 @@ def load_settings():
         "SELECT client_name, building_count FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`"
     ).to_dataframe()
 
-df_num = load_df_num()
-df_banner = load_df_banner()
-settings_df = load_settings()
+# 👇 ここを追加：初回だけスピナー表示
+if "initial_loaded" not in st.session_state:
+    with st.spinner("⏳ 初回データ読み込み中…"):
+        df_num = load_df_num()
+        df_banner = load_df_banner()
+        settings_df = load_settings()
+    st.session_state["initial_loaded"] = True
+else:
+    # 2回目以降は爆速（キャッシュ）＆スピナー無し
+    df_num = load_df_num()
+    df_banner = load_df_banner()
+    settings_df = load_settings()
+
 
 # Banner 側へ building_count を付与
 df_banner = df_banner.merge(settings_df, on="client_name", how="left")
