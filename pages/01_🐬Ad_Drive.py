@@ -49,41 +49,38 @@ def get_bq_client():
 # ここはそのまま
 bq = get_bq_client()
 
-# 以降の3つの load_* は @st.cache_data でキャッシュ済み（show_spinner=False）
-@st.cache_data(show_spinner=False)
-def load_df_num():
-    return bq.query(
-        "SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data_Last`"
-    ).to_dataframe()
+# 版数の取得（未設定なら0）
+ver = st.session_state.get("data_version", 0)
+last_loaded_ver = st.session_state.get("last_loaded_version", -1)
 
-@st.cache_data(show_spinner=False)
-def load_df_banner():
-    return bq.query(
-        "SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Banner_Drive_Ready`"
-    ).to_dataframe()
+# 既存のキャッシュ関数（そのままでOK）
+@st.cache_data
+def load_df_num(ver_key: int):
+    # ver_key はキャッシュキー用のダミー引数
+    return bq.query("SELECT * FROM `...Final_Ad_Data_Last`").to_dataframe()
 
-@st.cache_data(show_spinner=False)
-def load_settings():
-    return bq.query(
-        "SELECT client_name, building_count FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`"
-    ).to_dataframe()
+@st.cache_data
+def load_df_banner(ver_key: int):
+    return bq.query("SELECT * FROM `...Banner_Drive_Ready`").to_dataframe()
 
-if "initial_loaded" not in st.session_state:
-    with st.spinner("⏳ 初回データ取り込み中…ちょっと待ってね…"):
-        df_num = bq.query(
-            "SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data_Last`"
-        ).to_dataframe()
-        df_banner = bq.query(
-            "SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Banner_Drive_Ready`"
-        ).to_dataframe()
-        settings_df = bq.query(
-            "SELECT client_name, building_count FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`"
-        ).to_dataframe()
-    st.session_state["initial_loaded"] = True
+@st.cache_data
+def load_settings(ver_key: int):
+    return bq.query("SELECT client_name, building_count FROM `...ClientSettings`").to_dataframe()
+
+# ★ スピナー制御付きロード
+if last_loaded_ver != ver:
+    # 版数が変わっている＝キャッシュクリア直後や初回 → スピナー＋生クエリ
+    with st.spinner("⏳ 初回データ読み込み中…"):
+        df_num = bq.query("SELECT * FROM `...Final_Ad_Data_Last`").to_dataframe()
+        df_banner = bq.query("SELECT * FROM `...Banner_Drive_Ready`").to_dataframe()
+        settings_df = bq.query("SELECT client_name, building_count FROM `...ClientSettings`").to_dataframe()
+    # 読み終えた版数を記録
+    st.session_state["last_loaded_version"] = ver
 else:
-    df_num = load_df_num()
-    df_banner = load_df_banner()
-    settings_df = load_settings()
+    # 版数が同じ＝通常時 → キャッシュ経由（爆速）
+    df_num = load_df_num(ver)
+    df_banner = load_df_banner(ver)
+    settings_df = load_settings(ver)
 
 # Banner 側へ building_count を付与
 df_banner = df_banner.merge(settings_df, on="client_name", how="left")
