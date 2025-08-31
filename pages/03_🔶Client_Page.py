@@ -79,8 +79,9 @@ cols = st.columns(5)
 sel_tanto = cols[0].multiselect("現在の担当者", current_tanto_list, placeholder="すべて")
 sel_front = cols[1].multiselect("フロント", front_list, placeholder="すべて")
 sel_client = cols[2].multiselect("クライアント名", client_list, placeholder="すべて")
-sel_focus = cols[3].multiselect("注力度", focus_list, placeholder="すべて")
 sel_segment = cols[4].multiselect("棟数セグメント", segment_list, placeholder="すべて") if segment_list else []
+sel_focus = cols[3].multiselect("注力度", focus_list, placeholder="すべて")
+
 
 # --- フィルター適用 ---
 filtered_df = df.copy()
