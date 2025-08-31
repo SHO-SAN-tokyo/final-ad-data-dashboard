@@ -60,7 +60,7 @@ with st.expander("ℹ️ ログインについて注意事項", expanded=False):
 st.divider()
 
 # ---- 広告数値の強制更新
-st.subheader("⚡ 広告数値の強制更新")
+st.subheader("🕒 広告数値の強制更新")
 st.write("Meta/Googleからの広告数値は毎日0時･6時･12時･18時に自動更新されますが、今すぐ強制更新して数値を反映したいときのみ以下から手順通りに行ってください。")
 with st.expander("🛠️ 広告数値の手動更新（管理者用・通常は触らないでOK）", expanded=False):
     st.warning("※ この操作は数分かかる場合あり、同時に何度も押さないでください。")
