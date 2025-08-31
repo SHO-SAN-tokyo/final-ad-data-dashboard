@@ -28,9 +28,9 @@ st.markdown("""
     font-size: 13px;
     color: #444;
 ">
-    ⚠️「ページを開く」を押した先では、以下のログインアイパスが必要です<br>
-    <span style="font-weight:600;color:#1d7290;">　  ユーザーID: adscore</span>　
-    <span style="font-weight:600;color:#b65916;">　パスワード: 7n2wb86vkw</span>
+    ⚠️「ページを開く」を押した先のページは原則、外部共有は禁止です。<br>
+    # <span style="font-weight:600;color:#1d7290;">　  ユーザーID: adscore</span>　
+    # <span style="font-weight:600;color:#b65916;">　パスワード: 7n2wb86vkw</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -59,14 +59,14 @@ def load_client_view():
     """
     return client.query(query).to_dataframe()
 
-# ③ 手動クリアボタン
-left, right = st.columns([1, 3])
-with left:
-    if st.button("🧹 キャッシュをクリア", use_container_width=True):
-        st.cache_data.clear()
-        st.cache_resource.clear()
-        st.success("キャッシュをクリアしました。")
-        st.experimental_rerun()
+# # ③ 手動クリアボタン
+# left, right = st.columns([1, 3])
+# with left:
+#     if st.button("🧹 キャッシュをクリア", use_container_width=True):
+#         st.cache_data.clear()
+#         st.cache_resource.clear()
+#         st.success("キャッシュをクリアしました。")
+#         st.experimental_rerun()
 
 df = load_client_view()
 
