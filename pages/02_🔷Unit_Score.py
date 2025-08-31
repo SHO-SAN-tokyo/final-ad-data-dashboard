@@ -15,38 +15,30 @@ require_login()
 # ──────────────────────
 st.set_page_config(page_title="Unit Drive", layout="wide")
 
-with st.expander("🛠️ 広告数値の手動更新（管理者用・通常は触らないでOK）", expanded=False):
-    st.warning("※ この操作は数分かかる場合あり、同時に何度も押さないでください。")
-    URL_META = "https://asia-northeast1-careful-chess-406412.cloudfunctions.net/upload-sql-data"
-    URL_GOOGLE = "https://asia-northeast1-careful-chess-406412.cloudfunctions.net/upload-sql-data-pmax"
-    st.markdown(f"**Meta広告の数値を更新:**  \n[こちらをクリック（所要時間：1~2分）]({URL_META})", unsafe_allow_html=True)
-    st.markdown(f"**Google広告の数値を更新:**  \n[こちらをクリック（所要時間：1分弱）]({URL_GOOGLE})", unsafe_allow_html=True)
-    st.info("クリック後、画面に完了ログが表示されたら、一呼吸おいてキャッシュクリアボタンでを押して最新化してください。")
+# # --- キャッシュクリア ---
+# btn_style = """
+# <style>
+# div[data-testid="stButton"] button {
+#     width: 100%;
+#     background: #eaf2fb;
+#     color: #111;
+#     border-radius: 8px;
+#     font-size: 1.1rem;
+#     font-weight: bold;
+#     margin-top: 4px;
+#     margin-bottom: 6px;
+# }
+# </style>
+# """
 
-# --- キャッシュクリア ---
-btn_style = """
-<style>
-div[data-testid="stButton"] button {
-    width: 100%;
-    background: #eaf2fb;
-    color: #111;
-    border-radius: 8px;
-    font-size: 1.1rem;
-    font-weight: bold;
-    margin-top: 4px;
-    margin-bottom: 6px;
-}
-</style>
-"""
-
-col1, col2 = st.columns([4, 1])
-with col1:
-    st.markdown(f"<h1 style='display:inline-block;margin-bottom:0;'>🔷 Unit Score</h1>", unsafe_allow_html=True)
-with col2:
-    st.markdown(btn_style, unsafe_allow_html=True)
-    if st.button("🔄 キャッシュクリア", key="refresh_btn"):
-        st.cache_data.clear()
-        st.rerun()
+# col1, col2 = st.columns([4, 1])
+# with col1:
+#     st.markdown(f"<h1 style='display:inline-block;margin-bottom:0;'>🔷 Unit Score</h1>", unsafe_allow_html=True)
+# with col2:
+#     st.markdown(btn_style, unsafe_allow_html=True)
+#     if st.button("🔄 キャッシュクリア", key="refresh_btn"):
+#         st.cache_data.clear()
+#         st.rerun()
 
 st.subheader("📊 広告TM パフォーマンス")
 
