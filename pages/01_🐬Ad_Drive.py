@@ -57,15 +57,15 @@ last_loaded_ver = st.session_state.get("last_loaded_version", -1)
 @st.cache_data
 def load_df_num(ver_key: int):
     # ver_key はキャッシュキー用のダミー引数
-    return bq.query("SELECT * FROM `...Final_Ad_Data_Last`").to_dataframe()
+    return bq.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data_Last`").to_dataframe()
 
 @st.cache_data
 def load_df_banner(ver_key: int):
-    return bq.query("SELECT * FROM `...Banner_Drive_Ready`").to_dataframe()
+    return bq.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Banner_Drive_Ready`").to_dataframe()
 
 @st.cache_data
 def load_settings(ver_key: int):
-    return bq.query("SELECT client_name, building_count FROM `...ClientSettings`").to_dataframe()
+    return bq.query("SELECT client_name, building_count FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`").to_dataframe()
 
 # ★ スピナー制御付きロード
 if last_loaded_ver != ver:
