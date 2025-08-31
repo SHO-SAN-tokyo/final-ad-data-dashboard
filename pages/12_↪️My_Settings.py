@@ -16,10 +16,11 @@ st.divider()
 # ---- キャッシュクリア
 st.subheader("🔄 キャッシュクリア")
 st.write("数値が更新されない・表示が古い場合に実行してください。")
-if st.button("キャッシュをクリアする", use_container_width=True):
+if st.button("🔄 キャッシュクリア"):
     st.cache_data.clear()
-    st.toast("キャッシュをクリアしました。", icon="✅")
+    st.session_state["data_version"] = st.session_state.get("data_version", 0) + 1
     st.rerun()
+
 
 st.divider()
 
