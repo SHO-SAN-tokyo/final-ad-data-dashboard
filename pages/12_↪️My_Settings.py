@@ -46,7 +46,7 @@ st.divider()
 
 # ---- ログアウト
 st.subheader("🚪 ログアウト")
-st.write("共有アカウントの利用を停止し、ログイン画面へ戻ります。")
+st.write("ログイン画面へ戻ります。")
 if st.button("🚪 ログアウト", key="logout_btn"):
     logout()
 
