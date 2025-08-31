@@ -32,7 +32,7 @@ button[kind] {
 
 # --- タイトルのみ表示 ---
 st.markdown(
-    "<h1 style='display:inline-block;margin-bottom:0;'>🔷 Unit Score ／ユニットごと・個人成績</h1>",
+    "<h1 style='display:inline-block;margin-bottom:0;'>🔷 Unit Score ／ユニット・個人成績</h1>",
     unsafe_allow_html=True
 )
 
