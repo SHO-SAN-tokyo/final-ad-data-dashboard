@@ -71,9 +71,9 @@ def load_settings(ver_key: int):
 if last_loaded_ver != ver:
     # 版数が変わっている＝キャッシュクリア直後や初回 → スピナー＋生クエリ
     with st.spinner("⏳ 初回データ読み込み中…"):
-        df_num = bq.query("SELECT * FROM `...Final_Ad_Data_Last`").to_dataframe()
-        df_banner = bq.query("SELECT * FROM `...Banner_Drive_Ready`").to_dataframe()
-        settings_df = bq.query("SELECT client_name, building_count FROM `...ClientSettings`").to_dataframe()
+        df_num = bq.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Final_Ad_Data_Last`").to_dataframe()
+        df_banner = bq.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Banner_Drive_Ready`").to_dataframe()
+        settings_df = bq.query("SELECT client_name, building_count FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`").to_dataframe()
     # 読み終えた版数を記録
     st.session_state["last_loaded_version"] = ver
 else:
