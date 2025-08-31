@@ -15,32 +15,28 @@ require_login()
 # ──────────────────────
 st.set_page_config(page_title="Unit Drive", layout="wide")
 
-# # --- キャッシュクリア ---
-# btn_style = """
-# <style>
-# div[data-testid="stButton"] button {
-#     width: 100%;
-#     background: #eaf2fb;
-#     color: #111;
-#     border-radius: 8px;
-#     font-size: 1.1rem;
-#     font-weight: bold;
-#     margin-top: 4px;
-#     margin-bottom: 6px;
-# }
-# </style>
-# """
+# グローバルなボタンのスタイル（他ページでも使う想定で残す）
+st.markdown("""
+<style>
+div.stButton > button {
+    font-size: 9px !important;
+    line-height: 1.1 !important;
+    padding: 2px 8px !important;
+    height: auto !important;
+}
+button[kind] {
+    font-size: 9px !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# col1, col2 = st.columns([4, 1])
-# with col1:
-#     st.markdown(f"<h1 style='display:inline-block;margin-bottom:0;'>🔷 Unit Score</h1>", unsafe_allow_html=True)
-# with col2:
-#     st.markdown(btn_style, unsafe_allow_html=True)
-#     if st.button("🔄 キャッシュクリア", key="refresh_btn"):
-#         st.cache_data.clear()
-#         st.rerun()
+# --- タイトルのみ表示 ---
+st.markdown(
+    "<h1 style='display:inline-block;margin-bottom:0;'>🔷 Unit Score ／ユニットごと・個人成績</h1>",
+    unsafe_allow_html=True
+)
 
-st.subheader("📊 広告TM パフォーマンス")
+# st.subheader（”📊 広告TM パフォーマンス”）
 
 info_dict = dict(st.secrets["connections"]["bigquery"])
 info_dict["private_key"] = info_dict["private_key"].replace("\\n", "\n")
