@@ -51,7 +51,7 @@ if st.button("🚪 ログアウト", key="logout_btn"):
     logout()
 
 # （任意）ログイン情報の注意書き
-with st.expander("ℹ️ 注意事項", expanded=False):
+with st.expander("ℹ️ ログインについて注意事項", expanded=False):
     st.markdown("""
 - ログイン情報は**社内のアイパス管理帳**を参照してください。  
 - Cookie によりログイン状態は維持されます（設定日数内）。共有端末ではご注意ください。
