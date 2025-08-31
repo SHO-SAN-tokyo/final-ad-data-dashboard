@@ -29,8 +29,8 @@ st.markdown("""
     color: #444;
 ">
     ⚠️「ページを開く」を押した先のページは原則、外部共有は禁止です。<br>
-    # <span style="font-weight:600;color:#1d7290;">　  ユーザーID: adscore</span>　
-    # <span style="font-weight:600;color:#b65916;">　パスワード: 7n2wb86vkw</span>
+    <!-- <span style="font-weight:600;color:#1d7290;">　  ユーザーID: adscore</span>　-->
+    <!-- <span style="font-weight:600;color:#b65916;">　パスワード: 7n2wb86vkw</span>　-->
 </div>
 """, unsafe_allow_html=True)
 
