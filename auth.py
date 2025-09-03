@@ -45,25 +45,34 @@ def _verify(token: str, secret: str) -> dict | None:
         return None
 
 
-# ===== Cookie ヘルパ =====
+# ===== Cookie ヘルパ（シングルトン） =====
+_COOKIES_SINGLETON_KEY = "_addrive_cookie_mgr"
+
 def _get_cookie_manager(password: str | None):
     """
-    EncryptedCookieManager を返す。
+    EncryptedCookieManager を返す（アプリ内で1個だけ生成して再利用）。
     - password が空/None の場合は None（セッションにフォールバック）。
     - ライブラリ未導入でも None。
     """
     if EncryptedCookieManager is None or not password:
         return None
 
-    # バージョン差を吸収（prefix と password のみ）
-    try:
-        cookies = EncryptedCookieManager(prefix="addrive", password=password)
-    except TypeError:
-        # もし旧シグネチャなら位置引数で
-        cookies = EncryptedCookieManager(password, prefix="addrive")
+    # 既に作成済みならそれを再利用
+    if _COOKIES_SINGLETON_KEY in st.session_state:
+        cookies = st.session_state[_COOKIES_SINGLETON_KEY]
+    else:
+        # バージョン差を吸収（prefix と password のみ）
+        try:
+            cookies = EncryptedCookieManager(prefix="addrive", password=password)
+        except TypeError:
+            # もし旧シグネチャなら位置引数で
+            cookies = EncryptedCookieManager(password, prefix="addrive")
+        st.session_state[_COOKIES_SINGLETON_KEY] = cookies
 
+    # 初回ロード1フレーム待ち（ready になるまで）
     if not cookies.ready():
-        st.stop()  # 初回ロード1フレーム待ち
+        st.stop()
+
     return cookies
 
 
@@ -84,11 +93,7 @@ def require_login():
     cookies = _get_cookie_manager(COOKIE_PASSWORD)
 
     # 1) Cookie / セッションに有効トークンがあれば通す
-    token = None
-    if cookies is not None:
-        token = cookies.get(COOKIE_NAME)  # dict-like の get は利用可
-    else:
-        token = st.session_state.get(COOKIE_NAME)
+    token = cookies.get(COOKIE_NAME) if cookies is not None else st.session_state.get(COOKIE_NAME)
 
     if token:
         payload = _verify(token, COOKIE_SECRET)
@@ -120,8 +125,6 @@ def require_login():
             if cookies is not None and remember:
                 # dict-like で保存して cookies.save()
                 cookies[COOKIE_NAME] = token
-                # Cookie の寿命はライブラリのデフォルトに従うため、remember=保持期間は
-                # JWT の exp で担保（ブラウザ側の寿命はセッション依存。必要なら別ライブラリ設定で max_age を）
                 cookies.save()
             else:
                 # フォールバック：セッションのみ
