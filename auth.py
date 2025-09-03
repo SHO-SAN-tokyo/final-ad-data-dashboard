@@ -45,25 +45,21 @@ def _verify(token: str, secret: str) -> dict | None:
         return None
 
 
-# ===== Cookie ヘルパ =====
+# ===== Cookie マネージャ（1セッション1個・再利用）=====
+@st.cache_resource
 def _get_cookie_manager(password: str | None):
     """
-    EncryptedCookieManager を返す。
-    - password が空/None の場合は None（セッションにフォールバック）。
-    - ライブラリ未導入でも None。
+    EncryptedCookieManager をキャッシュして返す。
+    - password が空/None またはライブラリ未導入なら None（セッション保持にフォールバック）
     """
     if EncryptedCookieManager is None or not password:
         return None
-
-    # バージョン差を吸収（prefix と password のみ）
     try:
+        # 新しめのAPI
         cookies = EncryptedCookieManager(prefix="addrive", password=password)
     except TypeError:
-        # もし旧シグネチャなら位置引数で
+        # 古いシグネチャ対策（位置引数）
         cookies = EncryptedCookieManager(password, prefix="addrive")
-
-    if not cookies.ready():
-        st.stop()  # 初回ロード1フレーム待ち
     return cookies
 
 
@@ -83,13 +79,12 @@ def require_login():
 
     cookies = _get_cookie_manager(COOKIE_PASSWORD)
 
-    # 1) Cookie / セッションに有効トークンがあれば通す
-    token = None
-    if cookies is not None:
-        token = cookies.get(COOKIE_NAME)  # dict-like の get は利用可
-    else:
-        token = st.session_state.get(COOKIE_NAME)
+    # Cookieコンポーネントは初回フレームで ready() が False の場合があるので、その時は1フレーム待つ
+    if cookies is not None and not cookies.ready():
+        st.stop()
 
+    # 1) Cookie / セッションに有効トークンがあれば通す
+    token = cookies.get(COOKIE_NAME) if cookies is not None else st.session_state.get(COOKIE_NAME)
     if token:
         payload = _verify(token, COOKIE_SECRET)
         if payload:
@@ -118,13 +113,9 @@ def require_login():
             token = _sign(payload, COOKIE_SECRET)
 
             if cookies is not None and remember:
-                # dict-like で保存して cookies.save()
                 cookies[COOKIE_NAME] = token
-                # Cookie の寿命はライブラリのデフォルトに従うため、remember=保持期間は
-                # JWT の exp で担保（ブラウザ側の寿命はセッション依存。必要なら別ライブラリ設定で max_age を）
                 cookies.save()
             else:
-                # フォールバック：セッションのみ
                 st.session_state[COOKIE_NAME] = token
 
             st.success("ログインしました。")
@@ -138,9 +129,13 @@ def require_login():
 # ===== ログアウト =====
 def logout():
     auth_cfg = st.secrets.get("auth", {})
-    COOKIE_NAME     = auth_cfg.get("cookie_name", "addrive_token")
-    COOKIE_PASSWORD = auth_cfg.get("cookie_password", "")
+    COOKIE_NAME      = auth_cfg.get("cookie_name", "addrive_token")
+    COOKIE_PASSWORD  = auth_cfg.get("cookie_password", "")
     cookies = _get_cookie_manager(COOKIE_PASSWORD)
+
+    # Cookieコンポーネントの初期化待ち（必要なら）
+    if cookies is not None and not cookies.ready():
+        st.stop()
 
     # Cookie / セッションの両方を削除
     if cookies is not None:
