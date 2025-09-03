@@ -1,3 +1,4 @@
+# auth.py
 import time
 import hmac
 import json
@@ -11,9 +12,8 @@ try:
 except Exception:
     EncryptedCookieManager = None
 
-# ─────────────────────────────────────────
-# util
-# ─────────────────────────────────────────
+
+# ===== JWT風 署名トークン =====
 def _b64url_encode(b: bytes) -> str:
     return base64.urlsafe_b64encode(b).decode().rstrip("=")
 
@@ -22,7 +22,6 @@ def _b64url_decode(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + pad)
 
 def _sign(payload: dict, secret: str) -> str:
-    """HMAC-SHA256で署名付きトークン(JWT風)を生成"""
     header = {"alg": "HS256", "typ": "JWT"}
     header_b64 = _b64url_encode(json.dumps(header, separators=(",", ":")).encode())
     payload_b64 = _b64url_encode(json.dumps(payload, separators=(",", ":")).encode())
@@ -32,7 +31,6 @@ def _sign(payload: dict, secret: str) -> str:
     return f"{header_b64}.{payload_b64}.{sig_b64}"
 
 def _verify(token: str, secret: str) -> dict | None:
-    """署名/有効期限(exp)検証"""
     try:
         header_b64, payload_b64, sig_b64 = token.split(".")
         to_sign = f"{header_b64}.{payload_b64}".encode()
@@ -46,43 +44,38 @@ def _verify(token: str, secret: str) -> dict | None:
     except Exception:
         return None
 
-# ─────────────────────────────────────────
-# Cookie manager singleton
-# ─────────────────────────────────────────
-_COOKIES_SINGLETON_KEY = "_addrive_cookie_mgr"
 
+# ===== Cookie ヘルパ =====
 def _get_cookie_manager(password: str | None):
     """
-    アプリ内で1つだけ CookieManager を使う。
-    - 既に作成済みならそれを返す
-    - 未作成なら作って保存
+    EncryptedCookieManager を返す。
+    - password が空/None の場合は None（セッションにフォールバック）。
+    - ライブラリ未導入でも None。
     """
-    if EncryptedCookieManager is None:
+    if EncryptedCookieManager is None or not password:
         return None
 
-    # 既に作成済みなら再利用
-    if _COOKIES_SINGLETON_KEY in st.session_state:
-        mgr = st.session_state[_COOKIES_SINGLETON_KEY]
-    else:
-        mgr = EncryptedCookieManager(prefix="addrive", password=password)
-        st.session_state[_COOKIES_SINGLETON_KEY] = mgr
+    # バージョン差を吸収（prefix と password のみ）
+    try:
+        cookies = EncryptedCookieManager(prefix="addrive", password=password)
+    except TypeError:
+        # もし旧シグネチャなら位置引数で
+        cookies = EncryptedCookieManager(password, prefix="addrive")
 
-    # 初回ロード時の内部初期化待ち
-    if not mgr.ready():
-        st.stop()
-    return mgr
+    if not cookies.ready():
+        st.stop()  # 初回ロード1フレーム待ち
+    return cookies
 
-# ─────────────────────────────────────────
-# public API
-# ─────────────────────────────────────────
+
+# ===== ログイン必須 =====
 def require_login():
     auth_cfg = st.secrets.get("auth", {})
-    SHARED_EMAIL   = auth_cfg.get("shared_email", "")
-    SHARED_PASSWORD = auth_cfg.get("shared_password", "")
-    COOKIE_SECRET  = auth_cfg.get("cookie_secret", "")
-    COOKIE_PASSWORD = auth_cfg.get("cookie_password", "")  # 暗号化用
-    COOKIE_NAME    = auth_cfg.get("cookie_name", "addrive_token")
-    COOKIE_DAYS    = int(auth_cfg.get("cookie_days", 30))
+    SHARED_EMAIL     = auth_cfg.get("shared_email", "")
+    SHARED_PASSWORD  = auth_cfg.get("shared_password", "")
+    COOKIE_SECRET    = auth_cfg.get("cookie_secret", "")
+    COOKIE_NAME      = auth_cfg.get("cookie_name", "addrive_token")
+    COOKIE_DAYS      = int(auth_cfg.get("cookie_days", 30))
+    COOKIE_PASSWORD  = auth_cfg.get("cookie_password", "")  # Cookie暗号化用パスワード
 
     if not (SHARED_EMAIL and SHARED_PASSWORD and COOKIE_SECRET):
         st.error("auth設定が不足しています（secrets.toml の [auth] を確認）")
@@ -90,52 +83,71 @@ def require_login():
 
     cookies = _get_cookie_manager(COOKIE_PASSWORD)
 
-    # 1) Cookieに有効トークンがあれば通す
-    token = cookies.get(COOKIE_NAME) if cookies is not None else st.session_state.get(COOKIE_NAME)
+    # 1) Cookie / セッションに有効トークンがあれば通す
+    token = None
+    if cookies is not None:
+        token = cookies.get(COOKIE_NAME)  # dict-like の get は利用可
+    else:
+        token = st.session_state.get(COOKIE_NAME)
+
     if token:
         payload = _verify(token, COOKIE_SECRET)
         if payload:
-            return
+            return  # 認証OK
 
     # 2) 未ログイン → ログインフォーム
-    with st.container():
-        st.markdown("### 🔐 Ad Drive ログイン")
-        st.info("※ログイン情報は社内のアイパス管理帳に記載されています。")
+    st.markdown("### 🔐 Ad Drive ログイン")
+    st.info("※ログイン情報は社内のアイパス管理帳に記載されています。")
 
-        with st.form("addrive_login"):
-            email = st.text_input("メールアドレス", "")
-            password = st.text_input("パスワード", type="password")
-            remember = st.checkbox("ログイン状態を保持する（推奨）", value=True)
-            submitted = st.form_submit_button("ログイン")
+    if EncryptedCookieManager is None:
+        st.warning("永続ログイン（Cookie保持）には `streamlit-cookies-manager` が必要です。現在はセッション（ブラウザを閉じるまで）で保持します。")
+    elif not COOKIE_PASSWORD:
+        st.warning("`[auth].cookie_password` が未設定のため、Cookie暗号化は無効です。設定するとブラウザを閉じても保持できます。")
 
-        if submitted:
-            if email.strip() == SHARED_EMAIL and password == SHARED_PASSWORD:
-                exp = time.time() + COOKIE_DAYS * 24 * 60 * 60
-                payload = {"u": "shared", "exp": exp}
-                token = _sign(payload, COOKIE_SECRET)
+    with st.form("addrive_login"):
+        email = st.text_input("メールアドレス", "")
+        password = st.text_input("パスワード", type="password")
+        remember = st.checkbox("ログイン状態を保持する（推奨）", value=True)
+        submitted = st.form_submit_button("ログイン")
 
-                if cookies is not None and remember:
-                    cookies.set(COOKIE_NAME, token, max_age=COOKIE_DAYS * 24 * 60 * 60)
-                    cookies.save()
-                else:
-                    st.session_state[COOKIE_NAME] = token
+    if submitted:
+        if email.strip() == SHARED_EMAIL and password == SHARED_PASSWORD:
+            # 署名トークン作成（exp = n日後）
+            exp = time.time() + COOKIE_DAYS * 24 * 60 * 60
+            payload = {"u": "shared", "exp": exp}
+            token = _sign(payload, COOKIE_SECRET)
 
-                st.success("ログインしました。")
-                st.rerun()
+            if cookies is not None and remember:
+                # dict-like で保存して cookies.save()
+                cookies[COOKIE_NAME] = token
+                # Cookie の寿命はライブラリのデフォルトに従うため、remember=保持期間は
+                # JWT の exp で担保（ブラウザ側の寿命はセッション依存。必要なら別ライブラリ設定で max_age を）
+                cookies.save()
             else:
-                st.error("メールアドレスまたはパスワードが正しくありません。")
+                # フォールバック：セッションのみ
+                st.session_state[COOKIE_NAME] = token
 
-        st.stop()
+            st.success("ログインしました。")
+            st.rerun()
+        else:
+            st.error("メールアドレスまたはパスワードが正しくありません。")
 
+    st.stop()
+
+
+# ===== ログアウト =====
 def logout():
-    """任意の場所で呼べるログアウト関数（My Settings から呼び出し）"""
     auth_cfg = st.secrets.get("auth", {})
     COOKIE_NAME     = auth_cfg.get("cookie_name", "addrive_token")
     COOKIE_PASSWORD = auth_cfg.get("cookie_password", "")
+    cookies = _get_cookie_manager(COOKIE_PASSWORD)
 
-    cookies = _get_cookie_manager(COOKIE_PASSWORD)  # 既存インスタンスを再利用
+    # Cookie / セッションの両方を削除
     if cookies is not None:
-        cookies.delete(COOKIE_NAME)
+        try:
+            del cookies[COOKIE_NAME]
+        except KeyError:
+            pass
         cookies.save()
     if COOKIE_NAME in st.session_state:
         del st.session_state[COOKIE_NAME]
