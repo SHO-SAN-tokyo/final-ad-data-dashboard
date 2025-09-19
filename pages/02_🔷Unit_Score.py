@@ -178,7 +178,7 @@ def campaign_key(df):
 unit_group = df_filtered.groupby("所属", dropna=False)
 unit_summary = []
 for unit, group in unit_group:
-    group_conv = group[group["広告目的"] == "コンバージョン"]
+    group_conv = group[group["広告目的"].fillna("").str.contains("コンバージョン", na=False)]
     camp_count_conv = campaign_key(group_conv).nunique()
     camp_count_all = campaign_key(group).nunique()
     spend_conv = group_conv["消化金額"].sum()
@@ -229,7 +229,7 @@ person_group = df_filtered.groupby("担当者", dropna=False)
 
 person_summary = []
 for person, group in person_group:
-    group_conv = group[group["広告目的"] == "コンバージョン"]
+    group_conv = group[group["広告目的"].fillna("").str.contains("コンバージョン", na=False)]
     camp_count_conv = group_conv.shape[0]
     spend_conv = group_conv["消化金額"].sum()
     camp_count_all = group.shape[0]
@@ -275,7 +275,7 @@ st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 # -----------------------------
 st.write("#### 🏢 Unitごとの達成率（コンバージョン目的のみ）")
 if "達成状況" in df_filtered.columns:
-    conv_df = df_filtered[df_filtered["広告目的"] == "コンバージョン"].copy()
+    conv_df = df_filtered[df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False)].copy()
     conv_df["キャンペーンキー"] = (
         conv_df["配信月"].astype(str) + "_" +
         conv_df["CampaignId"].astype(str) + "_" +
