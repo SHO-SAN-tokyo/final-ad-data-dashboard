@@ -57,46 +57,100 @@ if sel_month:
 
 # ▼ ここからキャンペーン単位で合算（配信月+CampaignId+クライアント名でgroupby）
 group_cols = ["配信月", "CampaignId", "クライアント名"]
-# 必要に応じて"クリック数"列名は"Clicks"などBigQuery側と合わせてください
+
+# 代表行がブレないよう一応並べ替え（存在するキーのみ）
+sort_keys = [k for k in ["配信月","CampaignId","クライアント名","配信終了日","配信開始日","日付"] if k in df.columns]
+if sort_keys:
+    df = df.sort_values(sort_keys)
+
+# 閾値列も保持（後段で再評価に使う）
 agg_dict = {
-    "キャンペーン名": "first",
-    "campaign_uuid": "first",
-    "担当者": "first",
-    "所属": "first",
-    "フロント": "first",
-    "雇用形態": "first",
+    "キャンペーン名": "last",
+    "campaign_uuid": "last",
+    "担当者": "last",
+    "所属": "last",
+    "フロント": "last",
+    "雇用形態": "last",
     "予算": "sum",
     "フィー": "sum",
     "消化金額": "sum",
     "コンバージョン数": "sum",
-    "クリック数": "sum" if "クリック数" in df.columns else "first",
-    "CPA": "mean",
-    "CVR": "mean",
-    "CTR": "mean",
-    "CPC": "mean",
-    "CPM": "mean",
-    "canvaURL": "first",
-    "メインカテゴリ": "first",
-    "サブカテゴリ": "first",
-    "広告媒体": "first",
-    "広告目的": "first",
-    "注力度": "first",
-    "配信開始日": "first",
-    "配信終了日": "first",
-    "CPA_KPI_評価": "first",
-    "CPC_KPI_評価": "first",
-    "CPM_KPI_評価": "first",
-    "CVR_KPI_評価": "first",
-    "CTR_KPI_評価": "first",
-    "個別CPA_達成": "first",
-    "達成状況": "first"
+    "クリック数": "sum" if "クリック数" in df.columns else "last",
+    "CVR": "last",
+    "CTR": "last",
+    "CPC": "last",
+    "CPM": "last",
+    "canvaURL": "last",
+    "メインカテゴリ": "last",
+    "サブカテゴリ": "last",
+    "広告媒体": "last",
+    "広告目的": "last",
+    "注力度": "last",
+    "配信開始日": "last",
+    "配信終了日": "last",
+    "CPA_best": "max",
+    "CPA_good": "max",
+    "CPA_min":  "max",
+    "目標CPA":   "max",
+    "CPA_KPI_評価": "last",
+    "CPC_KPI_評価": "last",
+    "CPM_KPI_評価": "last",
+    "CVR_KPI_評価": "last",
+    "CTR_KPI_評価": "last",
+    "個別CPA_達成": "last",
+    "達成状況": "last"
 }
-df = df.groupby(group_cols).agg(agg_dict).reset_index()
+df = df.groupby(group_cols, dropna=False).agg(agg_dict).reset_index()
 
-# ▼ CPA/CVRだけ再計算（クリック数が無い場合は元のまま）
+# ▼ CPA/CVRを再計算
 df["CPA"] = df["消化金額"] / df["コンバージョン数"].replace(0, np.nan)
 if "クリック数" in df.columns:
     df["CVR"] = df["コンバージョン数"] / df["クリック数"].replace(0, np.nan)
+
+# ───────── 再評価（“コンバージョン”を含む） ─────────
+is_conv = df["広告目的"].fillna("").str.contains("コンバージョン", na=False)
+has_cpa = df["CPA"].notna()
+
+# 初期化：NaN（= NULL 相当）
+df["CPA_KPI_評価"] = np.nan
+
+# 評価外（コンバージョン以外）
+df.loc[~is_conv, "CPA_KPI_評価"] = "評価外"
+
+# 閾値が存在するか（best を主判定に使う：仕様に合わせる）
+has_best = df["CPA_best"].notna()
+
+# 各評価用の条件（欠損を必ず除外）
+cond_best = is_conv & has_cpa & has_best & (df["CPA"] <= df["CPA_best"])
+cond_good = is_conv & has_cpa & df["CPA_good"].notna() & (df["CPA"] <= df["CPA_good"])
+cond_min  = is_conv & has_cpa & df["CPA_min"].notna()  & (df["CPA"] <= df["CPA_min"])
+
+# 順に上書き
+df.loc[cond_best, "CPA_KPI_評価"] = "◎"
+df.loc[~df["CPA_KPI_評価"].isin(["◎"]) & cond_good, "CPA_KPI_評価"] = "〇"
+df.loc[~df["CPA_KPI_評価"].isin(["◎","〇"]) & cond_min, "CPA_KPI_評価"] = "△"
+
+# ここまでで未設定かつ（コンバージョン かつ CPAとbestが有効）→ ✕
+df.loc[
+    df["CPA_KPI_評価"].isna() & is_conv & has_cpa & has_best,
+    "CPA_KPI_評価"
+] = "✕"
+# （bestが欠損 or CPA欠損）は仕様通り NaN のまま
+
+# 個別CPA_達成
+df["個別CPA_達成"] = np.where(
+    df["目標CPA"].isna(), "個別目標なし",
+    np.where(has_cpa & (df["CPA"] <= df["目標CPA"]), "〇", "✕")
+)
+
+# 達成状況（CPA_good または 目標CPA を満たせば達成／コンバージョン以外は評価外）
+achieve_by_good = df["CPA_good"].notna() & has_cpa & (df["CPA"] <= df["CPA_good"])
+achieve_by_target = df["目標CPA"].notna() & has_cpa & (df["CPA"] <= df["目標CPA"])
+df["達成状況"] = np.where(
+    ~is_conv, "評価外",
+    np.where(achieve_by_good | achieve_by_target, "達成",
+             np.where(has_cpa, "未達成", np.nan))
+)
 
 # フィルター項目
 latest = df.copy()
@@ -172,8 +226,8 @@ def safe_cpa(cost, cv):
 # -----------------------------
 # 1. Unitごとのサマリー（2軸）
 # -----------------------------
-def campaign_key(df):
-    return df["配信月"].astype(str) + "_" + df["CampaignId"].astype(str) + "_" + df["クライアント名"].astype(str)
+def campaign_key(df_):
+    return df_["配信月"].astype(str) + "_" + df_["CampaignId"].astype(str) + "_" + df_["クライアント名"].astype(str)
 
 unit_group = df_filtered.groupby("所属", dropna=False)
 unit_summary = []
@@ -312,7 +366,7 @@ st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 # -----------------------------
 st.write("#### 👨‍💼 担当者ごとの達成率（コンバージョン目的のみ）")
 if "達成状況" in df_filtered.columns:
-    conv_df = df_filtered[df_filtered["広告目的"] == "コンバージョン"]
+    conv_df = df_filtered[df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False)]
     person_agg = conv_df.groupby("担当者", dropna=False).agg(
         campaign_count=("キャンペーン名", "count"),
         達成件数=("達成状況", lambda x: (x == "達成").sum())
@@ -352,7 +406,6 @@ display_df = df_filtered[columns_to_show].rename(columns=rename_dict)
 
 # ▼ キャンペーン固有ID順に並び替え（昇順）
 display_df = display_df.sort_values("キャンペーン固有ID")  # 昇順
-# display_df = display_df.sort_values("キャンペーン固有ID", ascending=False)  # 降順ならこちら
 
 styled_table = display_df.head(1000).style.format({
     "予算": "¥{:,.0f}",
@@ -367,15 +420,13 @@ styled_table = display_df.head(1000).style.format({
 })
 st.dataframe(styled_table, use_container_width=True)
 
-
 st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
 # --- 達成キャンペーン一覧 ---
 if "達成状況" in df_filtered.columns:
     st.write("#### 👍 達成キャンペーン一覧")
-    achieved = df_filtered[(df_filtered["達成状況"] == "達成") & (df_filtered["広告目的"] == "コンバージョン")]
+    achieved = df_filtered[(df_filtered["達成状況"] == "達成") & (df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False))]
     if not achieved.empty:
-        # ▼ここを差し替え！
         cols = [
             "配信月", "キャンペーン名", "担当者", "所属",
             "CPA", "CPA_KPI_評価", "目標CPA", "個別CPA_達成"
@@ -395,7 +446,7 @@ if "達成状況" in df_filtered.columns:
 
     # --- 未達成キャンペーン一覧 ---
     st.write("#### 💤 未達成キャンペーン一覧")
-    missed = df_filtered[(df_filtered["達成状況"] == "未達成") & (df_filtered["広告目的"] == "コンバージョン")]
+    missed = df_filtered[(df_filtered["達成状況"] == "未達成") & (df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False))]
     if not missed.empty:
         cols = [
             "配信月", "キャンペーン名", "担当者", "所属",
