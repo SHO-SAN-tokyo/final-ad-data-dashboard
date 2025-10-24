@@ -138,56 +138,43 @@ df.loc[
 # （bestが欠損 or CPA欠損）は仕様通り NaN のまま
 
 # ===== 個別CPA_達成（安全に判定） =====
-# 目標CPAがNAのときは「個別目標なし」、それ以外はCPAと比較して〇/✕
-# dtypeを"string"で初期化しておくと、NAや日本語文字列が混在しても安全
 df["個別CPA_達成"] = pd.Series(pd.NA, index=df.index, dtype="string")
-
 mask_target = df["目標CPA"].notna()
 mask_cpa    = df["CPA"].notna()
 mask_valid  = mask_target & mask_cpa
-
 df.loc[~mask_target, "個別CPA_達成"] = "個別目標なし"
 df.loc[mask_valid & (df["CPA"] <= df["目標CPA"]), "個別CPA_達成"] = "〇"
 df.loc[mask_valid & (df["CPA"] >  df["目標CPA"]), "個別CPA_達成"] = "✕"
 
 # ===== 達成状況（安全に判定） =====
-# ルール：
-# - 広告目的が「コンバージョン」を含まない -> 「評価外」
-# - それ以外は、(CPA<=CPA_good) または (CPA<=目標CPA) のどちらか満たせば「達成」、そうでなければ「未達成」
 df["達成状況"] = pd.Series(pd.NA, index=df.index, dtype="string")
-
 mask_conv   = df["広告目的"].fillna("").str.contains("コンバージョン", case=False, na=False)
 mask_cpa    = df["CPA"].notna()
 mask_cpa_go = df["CPA_good"].notna()
 mask_target = df["目標CPA"].notna()
-
-# デフォルト：評価対象外
 df.loc[~mask_conv, "達成状況"] = "評価外"
-
-# コンバージョン目的のみ判定
 mask_judge = mask_conv & mask_cpa
-
-# まず未達成で埋める
 df.loc[mask_judge, "達成状況"] = "未達成"
-
-# 達成条件： (CPA <= CPA_good) or (CPA <= 目標CPA)
 df.loc[mask_judge & mask_cpa_go & (df["CPA"] <= df["CPA_good"]), "達成状況"] = "達成"
 df.loc[mask_judge & mask_target & (df["CPA"] <= df["目標CPA"]),  "達成状況"] = "達成"
 
-# ===== ここから表示用の補助関数（①の要望対応） =====
+# ===== ここから表示用の補助関数（①対応をNaNも拾うよう強化） =====
 def safe_cpa(cost, cv):
     return cost / cv if cv > 0 else np.nan
 
 def fill_cpa_eval_for_display(df_in: pd.DataFrame) -> pd.DataFrame:
-    """表示専用：CV=0 かつ CPA=0円 かつ コンバージョン目的 かつ 評価が空/NaN → '✕' に置換"""
+    """
+    表示専用：CV=0 かつ (CPA=0円 または CPAがNaN) かつ コンバージョン目的 かつ 評価が空/NaN → '✕' に置換
+    """
     d = df_in.copy()
     if "CPA_KPI_評価" not in d.columns:
         return d
-    is_conv = d.get("広告目的", pd.Series(index=d.index)).fillna("").str.contains("コンバージョン", na=False)
-    zero_cv  = d.get("コンバージョン数", pd.Series(index=d.index)).fillna(0).astype(float).eq(0)
-    zero_cpa = d.get("CPA", pd.Series(index=d.index)).fillna(0).astype(float).eq(0)
+    is_conv   = d.get("広告目的", pd.Series(index=d.index)).fillna("").str.contains("コンバージョン", na=False)
+    zero_cv   = d.get("コンバージョン数", pd.Series(index=d.index)).fillna(0).astype(float).eq(0)
+    cpa_series = d.get("CPA", pd.Series(index=d.index, dtype="float"))
+    zero_or_nan_cpa = cpa_series.isna() | cpa_series.fillna(0).astype(float).eq(0)
     blank_eval = d["CPA_KPI_評価"].isna() | (d["CPA_KPI_評価"].astype(str).str.strip() == "")
-    d.loc[is_conv & zero_cv & zero_cpa & blank_eval, "CPA_KPI_評価"] = "✕"
+    d.loc[is_conv & zero_cv & zero_or_nan_cpa & blank_eval, "CPA_KPI_評価"] = "✕"
     return d
 
 # フィルター項目
@@ -439,7 +426,7 @@ columns_to_show = [col for col in columns_to_show if col in df_filtered.columns]
 rename_dict = {"campaign_uuid": "キャンペーン固有ID"}
 display_df = df_filtered[columns_to_show].rename(columns=rename_dict)
 
-# ① 表示専用の評価補正（CV=0 & CPA=0 & コンバージョン目的 & 評価空→'✕'）
+# ① 表示専用の評価補正（CV=0 & (CPA=0 or NaN) & コンバージョン目的 & 評価空→'✕'）
 display_df_disp = fill_cpa_eval_for_display(display_df)
 
 # ▼ キャンペーン固有ID順に並び替え（昇順）
@@ -488,17 +475,16 @@ if "達成状況" in df_filtered.columns:
 
     # --- 未達成キャンペーン一覧 ---
     st.write("#### 💤 未達成キャンペーン一覧")
-    missed_base = df_filtered[
-        (df_filtered["達成状況"] == "未達成")
-        & (df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False))
-    ]
 
-    # ② CPA_KPI_評価 が「✕」または「空白（NaN/空文字）」を表示
-    if "CPA_KPI_評価" in missed_base.columns:
-        is_blank = missed_base["CPA_KPI_評価"].isna() | (missed_base["CPA_KPI_評価"].astype(str).str.strip() == "")
-        missed = missed_base[ missed_base["CPA_KPI_評価"].eq("✕") | is_blank ]
+    # ←← 修正ポイントその1：達成状況に依存せず、まず「コンバージョン目的」全量から抽出
+    conv_base = df_filtered[df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False)]
+
+    # ←← 修正ポイントその2：CPA_KPI_評価 が「✕」または「空白（NaN/空文字）」を表示対象に
+    if "CPA_KPI_評価" in conv_base.columns:
+        is_blank = conv_base["CPA_KPI_評価"].isna() | (conv_base["CPA_KPI_評価"].astype(str).str.strip() == "")
+        missed = conv_base[ conv_base["CPA_KPI_評価"].eq("✕") | is_blank ]
     else:
-        missed = missed_base.copy()
+        missed = conv_base.copy()
 
     if not missed.empty:
         cols = [
@@ -507,7 +493,7 @@ if "達成状況" in df_filtered.columns:
         ]
         display_cols = [c for c in cols if c in missed.columns]
 
-        # ① 表示専用の評価補正
+        # ① 表示専用の評価補正（NaN CPAも拾って✕にする）
         missed_disp = fill_cpa_eval_for_display(missed[display_cols])
 
         st.dataframe(
