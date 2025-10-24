@@ -210,7 +210,7 @@ subcat_options = sorted(latest["サブカテゴリ"].dropna().astype(str).unique
 default_employment = ["インターン"] if "インターン" in employment_options else []
 
 # メインカテゴリ：「分譲住宅・土地」を除外して全選択
-default_maincat = [x for x in maincat_options if x != "分譲住宅・土地"]
+default_maincat = [x for x in maincat_options if x != "分譲住宅･土地"]
 
 # サブカテゴリ：「認知」「採用」を除外して全選択
 default_subcat = [x for x in subcat_options if x not in ["認知", "採用"]]
