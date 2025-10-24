@@ -150,7 +150,6 @@ df.loc[~mask_target, "個別CPA_達成"] = "個別目標なし"
 df.loc[mask_valid & (df["CPA"] <= df["目標CPA"]), "個別CPA_達成"] = "〇"
 df.loc[mask_valid & (df["CPA"] >  df["目標CPA"]), "個別CPA_達成"] = "✕"
 
-
 # ===== 達成状況（安全に判定） =====
 # ルール：
 # - 広告目的が「コンバージョン」を含まない -> 「評価外」
@@ -175,6 +174,21 @@ df.loc[mask_judge, "達成状況"] = "未達成"
 df.loc[mask_judge & mask_cpa_go & (df["CPA"] <= df["CPA_good"]), "達成状況"] = "達成"
 df.loc[mask_judge & mask_target & (df["CPA"] <= df["目標CPA"]),  "達成状況"] = "達成"
 
+# ===== ここから表示用の補助関数（①の要望対応） =====
+def safe_cpa(cost, cv):
+    return cost / cv if cv > 0 else np.nan
+
+def fill_cpa_eval_for_display(df_in: pd.DataFrame) -> pd.DataFrame:
+    """表示専用：CV=0 かつ CPA=0円 かつ コンバージョン目的 かつ 評価が空/NaN → '✕' に置換"""
+    d = df_in.copy()
+    if "CPA_KPI_評価" not in d.columns:
+        return d
+    is_conv = d.get("広告目的", pd.Series(index=d.index)).fillna("").str.contains("コンバージョン", na=False)
+    zero_cv  = d.get("コンバージョン数", pd.Series(index=d.index)).fillna(0).astype(float).eq(0)
+    zero_cpa = d.get("CPA", pd.Series(index=d.index)).fillna(0).astype(float).eq(0)
+    blank_eval = d["CPA_KPI_評価"].isna() | (d["CPA_KPI_評価"].astype(str).str.strip() == "")
+    d.loc[is_conv & zero_cv & zero_cpa & blank_eval, "CPA_KPI_評価"] = "✕"
+    return d
 
 # フィルター項目
 latest = df.copy()
@@ -243,9 +257,6 @@ if maincat_filter:
     df_filtered = df_filtered[df_filtered["メインカテゴリ"].isin(maincat_filter)]
 if subcat_filter:
     df_filtered = df_filtered[df_filtered["サブカテゴリ"].isin(subcat_filter)]
-
-def safe_cpa(cost, cv):
-    return cost / cv if cv > 0 else np.nan
 
 # -----------------------------
 # 1. Unitごとのサマリー（2軸）
@@ -428,10 +439,13 @@ columns_to_show = [col for col in columns_to_show if col in df_filtered.columns]
 rename_dict = {"campaign_uuid": "キャンペーン固有ID"}
 display_df = df_filtered[columns_to_show].rename(columns=rename_dict)
 
-# ▼ キャンペーン固有ID順に並び替え（昇順）
-display_df = display_df.sort_values("キャンペーン固有ID")  # 昇順
+# ① 表示専用の評価補正（CV=0 & CPA=0 & コンバージョン目的 & 評価空→'✕'）
+display_df_disp = fill_cpa_eval_for_display(display_df)
 
-styled_table = display_df.head(1000).style.format({
+# ▼ キャンペーン固有ID順に並び替え（昇順）
+display_df_disp = display_df_disp.sort_values("キャンペーン固有ID")  # 昇順
+
+styled_table = display_df_disp.head(1000).style.format({
     "予算": "¥{:,.0f}",
     "フィー": "¥{:,.0f}",
     "消化金額": "¥{:,.0f}",
@@ -456,8 +470,12 @@ if "達成状況" in df_filtered.columns:
             "CPA", "CPA_KPI_評価", "目標CPA", "個別CPA_達成"
         ]
         display_cols = [c for c in cols if c in achieved.columns]
+
+        # ① 表示専用の評価補正
+        achieved_disp = fill_cpa_eval_for_display(achieved[display_cols])
+
         st.dataframe(
-            achieved[display_cols].style.format({
+            achieved_disp.style.format({
                 "CPA": "¥{:,.0f}",
                 "目標CPA": "¥{:,.0f}"
             }),
@@ -470,15 +488,30 @@ if "達成状況" in df_filtered.columns:
 
     # --- 未達成キャンペーン一覧 ---
     st.write("#### 💤 未達成キャンペーン一覧")
-    missed = df_filtered[(df_filtered["達成状況"] == "未達成") & (df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False))]
+    missed_base = df_filtered[
+        (df_filtered["達成状況"] == "未達成")
+        & (df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False))
+    ]
+
+    # ② CPA_KPI_評価 が「✕」または「空白（NaN/空文字）」を表示
+    if "CPA_KPI_評価" in missed_base.columns:
+        is_blank = missed_base["CPA_KPI_評価"].isna() | (missed_base["CPA_KPI_評価"].astype(str).str.strip() == "")
+        missed = missed_base[ missed_base["CPA_KPI_評価"].eq("✕") | is_blank ]
+    else:
+        missed = missed_base.copy()
+
     if not missed.empty:
         cols = [
             "配信月", "キャンペーン名", "担当者", "所属",
             "CPA", "CPA_KPI_評価", "目標CPA", "個別CPA_達成"
         ]
         display_cols = [c for c in cols if c in missed.columns]
+
+        # ① 表示専用の評価補正
+        missed_disp = fill_cpa_eval_for_display(missed[display_cols])
+
         st.dataframe(
-            missed[display_cols].style.format({
+            missed_disp.style.format({
                 "CPA": "¥{:,.0f}",
                 "目標CPA": "¥{:,.0f}"
             }),
@@ -486,3 +519,21 @@ if "達成状況" in df_filtered.columns:
         )
     else:
         st.info("未達成キャンペーンがありません。")
+
+    st.markdown("<div style='margin-top: 1.2rem;'></div>", unsafe_allow_html=True)
+
+    # ③ 新規：評価外キャンペーン一覧（CPA_KPI_評価 == '評価外'）
+    st.write("#### 🚫 評価外キャンペーン一覧")
+    outside = df_filtered[df_filtered.get("CPA_KPI_評価", pd.Series(index=df_filtered.index)).eq("評価外")]
+    if not outside.empty:
+        cols = ["配信月", "キャンペーン名", "担当者", "所属", "広告目的", "CPA", "CPA_KPI_評価"]
+        display_cols = [c for c in cols if c in outside.columns]
+        outside_disp = outside[display_cols]
+        st.dataframe(
+            outside_disp.style.format({
+                "CPA": "¥{:,.0f}"
+            }),
+            use_container_width=True
+        )
+    else:
+        st.info("評価外のキャンペーンはありません。")
