@@ -213,7 +213,7 @@ default_employment = ["インターン"] if "インターン" in employment_opti
 default_maincat = [x for x in maincat_options if x not in ["分譲住宅･土地", "分譲マンション"]]
 
 # サブカテゴリ：「認知」「採用」を除外して全選択
-default_subcat = [x for x in subcat_options if x not in ["認知", "採用", "分譲"]]
+default_subcat = [x for x in subcat_options if x not in ["認知", "採用", "分譲", "ページ流入"]]
 
 # UIの並び
 f1, f2, f3, f4 = st.columns(4)
