@@ -66,25 +66,37 @@ def _parse_month(v):
     except Exception:
         return None
 
-valid = []
-invalid = []
+# ★ ここをif/elseの通常形に変更（Falseが表示される問題の修正ポイント）
+valid, invalid = [], []
 for m in raw_months:
-    (_parse_month(m) is not None and valid.append(m)) or (_parse_month(m) is None and invalid.append(m))
+    pm = _parse_month(m)
+    if pm is not None:
+        valid.append(m)
+    else:
+        invalid.append(m)
 
+# 並び：新しい月 → それ以外 → None を最下部
 valid_sorted = [m for _, m in sorted(((_parse_month(m), m) for m in valid), key=lambda t: t[0], reverse=True)]
 invalid_no_none = [m for m in invalid if m is not None]
 invalid_sorted = sorted(invalid_no_none, key=lambda x: str(x))
 has_none = any(pd.isna(x) or x is None for x in raw_months)
 month_options = valid_sorted + invalid_sorted + ([None] if has_none else [])
 
+# 現在月をデフォルト選択（あれば）
 now_tokyo = pd.Timestamp.now(tz="Asia/Tokyo")
-candidates = [now_tokyo.strftime("%Y-%m"), now_tokyo.strftime("%Y/%m"), now_tokyo.strftime("%Y%m"), now_tokyo.strftime("%Y.%m")]
+candidates = [
+    now_tokyo.strftime("%Y-%m"),
+    now_tokyo.strftime("%Y/%m"),
+    now_tokyo.strftime("%Y%m"),
+    now_tokyo.strftime("%Y.%m"),
+]
 default_month = next((c for c in candidates if c in month_options), None)
 default_sel = [default_month] if default_month else []
 
 sel_month = st.multiselect("📅 配信月", month_options, default=default_sel, placeholder="すべて")
 if sel_month:
     df = df[df["配信月"].isin(sel_month)]
+
 
 # ▼ ここからキャンペーン単位で合算（配信月+CampaignId+クライアント名でgroupby）
 group_cols = ["配信月", "CampaignId", "クライアント名"]
