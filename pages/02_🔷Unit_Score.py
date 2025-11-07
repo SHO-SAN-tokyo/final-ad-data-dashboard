@@ -49,9 +49,40 @@ def load_data():
 
 df = load_data()
 
-# 📅 配信月フィルタ
-month_options = sorted(df["配信月"].dropna().unique())
-sel_month = st.multiselect("📅 配信月", month_options, placeholder="すべて")
+# 📅 配信月フィルタ（新しい月順、Noneは最下部・現在月をデフォルト選択）
+raw_months = df["配信月"].unique().tolist()
+
+def _parse_month(v):
+    if pd.isna(v):
+        return None
+    s = str(v)
+    for fmt in ("%Y-%m", "%Y/%m", "%Y%m", "%Y.%m"):
+        try:
+            return pd.to_datetime(s, format=fmt)
+        except Exception:
+            pass
+    try:
+        return pd.to_datetime(s, errors="raise")
+    except Exception:
+        return None
+
+valid = []
+invalid = []
+for m in raw_months:
+    (_parse_month(m) is not None and valid.append(m)) or (_parse_month(m) is None and invalid.append(m))
+
+valid_sorted = [m for _, m in sorted(((_parse_month(m), m) for m in valid), key=lambda t: t[0], reverse=True)]
+invalid_no_none = [m for m in invalid if m is not None]
+invalid_sorted = sorted(invalid_no_none, key=lambda x: str(x))
+has_none = any(pd.isna(x) or x is None for x in raw_months)
+month_options = valid_sorted + invalid_sorted + ([None] if has_none else [])
+
+now_tokyo = pd.Timestamp.now(tz="Asia/Tokyo")
+candidates = [now_tokyo.strftime("%Y-%m"), now_tokyo.strftime("%Y/%m"), now_tokyo.strftime("%Y%m"), now_tokyo.strftime("%Y.%m")]
+default_month = next((c for c in candidates if c in month_options), None)
+default_sel = [default_month] if default_month else []
+
+sel_month = st.multiselect("📅 配信月", month_options, default=default_sel, placeholder="すべて")
 if sel_month:
     df = df[df["配信月"].isin(sel_month)]
 
@@ -111,16 +142,16 @@ if "クリック数" in df.columns:
 is_conv = df["広告目的"].fillna("").str.contains("コンバージョン", na=False)
 has_cpa = df["CPA"].notna()
 
-# ★ 修正点1: 評価列は最初から “string” dtype で初期化（将来のdtype警告/エラー回避）
+# 評価列は最初から “string” dtype で初期化
 df["CPA_KPI_評価"] = pd.Series(pd.NA, index=df.index, dtype="string")
 
 # 評価外（コンバージョン以外）
 df.loc[~is_conv, "CPA_KPI_評価"] = "評価外"
 
-# 閾値が存在するか（best を主判定に使う：仕様に合わせる）
+# 閾値が存在するか
 has_best = df["CPA_best"].notna()
 
-# 各評価用の条件（欠損を必ず除外）
+# 各評価用の条件
 cond_best = is_conv & has_cpa & has_best & (df["CPA"] <= df["CPA_best"])
 cond_good = is_conv & has_cpa & df["CPA_good"].notna() & (df["CPA"] <= df["CPA_good"])
 cond_min  = is_conv & has_cpa & df["CPA_min"].notna()  & (df["CPA"] <= df["CPA_min"])
@@ -130,16 +161,13 @@ df.loc[cond_best, "CPA_KPI_評価"] = "◎"
 df.loc[~df["CPA_KPI_評価"].isin(["◎"]) & cond_good, "CPA_KPI_評価"] = "〇"
 df.loc[~df["CPA_KPI_評価"].isin(["◎","〇"]) & cond_min, "CPA_KPI_評価"] = "△"
 
-# ここまでで未設定かつ（コンバージョン かつ CPAとbestが有効）→ ✕
+# 未設定かつ（CV目的 かつ CPAとbestが有効）→ ✕
 df.loc[
     df["CPA_KPI_評価"].isna() & is_conv & has_cpa & has_best,
     "CPA_KPI_評価"
 ] = "✕"
-# （bestが欠損 or CPA欠損）は仕様通り NaN のまま
 
 # ===== 個別CPA_達成（安全に判定） =====
-# 目標CPAがNAのときは「個別目標なし」、それ以外はCPAと比較して〇/✕
-# dtypeを"string"で初期化しておくと、NAや日本語文字列が混在しても安全
 df["個別CPA_達成"] = pd.Series(pd.NA, index=df.index, dtype="string")
 
 mask_target = df["目標CPA"].notna()
@@ -174,7 +202,7 @@ df.loc[mask_judge, "達成状況"] = "未達成"
 df.loc[mask_judge & mask_cpa_go & (df["CPA"] <= df["CPA_good"]), "達成状況"] = "達成"
 df.loc[mask_judge & mask_target & (df["CPA"] <= df["目標CPA"]),  "達成状況"] = "達成"
 
-# ===== ここから表示用の補助関数（①の要望対応） =====
+# ===== ここから表示用の補助関数 =====
 def safe_cpa(cost, cv):
     return cost / cv if cv > 0 else np.nan
 
@@ -205,17 +233,12 @@ focus_options = sorted(latest["注力度"].dropna().astype(str).unique())
 maincat_options = sorted(latest["メインカテゴリ"].dropna().astype(str).unique())
 subcat_options = sorted(latest["サブカテゴリ"].dropna().astype(str).unique())
 
-# ★ 初期フィルター（初期状態だけ適用：ユーザー操作後はそのまま）
-# 雇用形態：インターンのみ
+# ★ 初期フィルター
 default_employment = ["インターン"] if "インターン" in employment_options else []
-
-# メインカテゴリ：「分譲住宅・土地」「分譲マンション」を除外して全選択
 default_maincat = [x for x in maincat_options if x not in ["分譲住宅･土地", "分譲マンション"]]
-
-# サブカテゴリ：「認知」「採用」「分譲」「ページ流入」を除外して全選択
 default_subcat = [x for x in subcat_options if x not in ["認知", "採用", "分譲", "ページ流入"]]
 
-# UIの並び
+# UI（上段：注力度＋メインカテゴリ、下段：サブカテゴリ）
 f1, f2, f3, f4 = st.columns(4)
 with f1:
     unit_filter = st.multiselect("🏷️ Unit", unit_options, placeholder="すべて")
@@ -224,18 +247,16 @@ with f2:
 with f3:
     front_filter = st.multiselect("👤 フロント", front_options, placeholder="すべて")
 with f4:
-    employment_filter = st.multiselect(
-        "🏢 雇用形態", employment_options, default=default_employment, key="employment_type"
-    )
+    employment_filter = st.multiselect("🏢 雇用形態", employment_options, default=default_employment, key="employment_type")
 
-f5, f6, f7 = st.columns(3)
-with f5:
+row1_c1, row1_c2 = st.columns(2)
+with row1_c1:
     focus_filter = st.multiselect("📌 注力度", focus_options, placeholder="すべて")
-with f6:
-    # 初期状態：『分譲住宅・土地』『分譲マンション』は除外（＝それ以外を全選択）
+with row1_c2:
     maincat_filter = st.multiselect("📁 メインカテゴリ", maincat_options, default=default_maincat, key="maincat")
-with f7:
-    # 初期状態：『認知』『採用』『分譲』『ページ流入』は除外（＝それ以外を全選択）
+
+row2_full, = st.columns(1)
+with row2_full:
     subcat_filter = st.multiselect("📂 サブカテゴリ", subcat_options, default=default_subcat, key="subcat")
 
 # --- 状況表示
@@ -252,7 +273,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- フィルター適用（複数選択対応）
+# --- フィルター適用
 df_filtered = latest.copy()
 if unit_filter:
     df_filtered = df_filtered[df_filtered["所属"].isin(unit_filter)]
@@ -269,8 +290,9 @@ if maincat_filter:
 if subcat_filter:
     df_filtered = df_filtered[df_filtered["サブカテゴリ"].isin(subcat_filter)]
 
-# ★ 修正点2: フィルター後 0件ならここで停止（以降の集計・描画でKeyErrorを防ぐ）
+# ★ フィルター後 0件なら停止（余白＋メッセージ）
 if df_filtered.empty:
+    st.markdown("<div style='height: 1.0rem;'></div>", unsafe_allow_html=True)
     st.info("該当データがありません。フィルター条件を見直してください。")
     st.stop()
 
@@ -302,7 +324,6 @@ for unit, group in unit_group:
 
 unit_summary_df = pd.DataFrame(unit_summary)
 
-# ★ 空チェック（0件でもKeyErrorを出さない）
 if unit_summary_df.empty:
     st.info("（Unit集計）該当データがありません。")
 else:
@@ -515,7 +536,6 @@ if "達成状況" in df_filtered.columns:
         ]
         display_cols = [c for c in cols if c in achieved.columns]
 
-        # ① 表示専用の評価補正
         achieved_disp = fill_cpa_eval_for_display(achieved[display_cols])
 
         st.dataframe(
@@ -537,7 +557,6 @@ if "達成状況" in df_filtered.columns:
         & (df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False))
     ]
 
-    # ② CPA_KPI_評価 が「✕」または「空白（NaN/空文字）」を表示
     if "CPA_KPI_評価" in missed_base.columns:
         is_blank = missed_base["CPA_KPI_評価"].isna() | (missed_base["CPA_KPI_評価"].astype(str).str.strip() == "")
         missed = missed_base[ missed_base["CPA_KPI_評価"].eq("✕") | is_blank ]
@@ -551,7 +570,6 @@ if "達成状況" in df_filtered.columns:
         ]
         display_cols = [c for c in cols if c in missed.columns]
 
-        # ① 表示専用の評価補正
         missed_disp = fill_cpa_eval_for_display(missed[display_cols])
 
         st.dataframe(
@@ -566,7 +584,7 @@ if "達成状況" in df_filtered.columns:
 
     st.markdown("<div style='margin-top: 1.2rem;'></div>", unsafe_allow_html=True)
 
-    # ③ 新規：評価外キャンペーン一覧（CPA_KPI_評価 == '評価外'）
+    # ③ 評価外キャンペーン一覧（CPA_KPI_評価 == '評価外'）
     st.write("#### 🚫 評価外キャンペーン一覧")
     outside = df_filtered[df_filtered.get("CPA_KPI_評価", pd.Series(index=df_filtered.index)).eq("評価外")]
     if not outside.empty:
