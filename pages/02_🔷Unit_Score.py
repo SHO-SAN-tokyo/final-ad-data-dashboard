@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 from google.cloud import bigquery
 import pandas as pd
 import numpy as np
@@ -111,8 +111,8 @@ if "クリック数" in df.columns:
 is_conv = df["広告目的"].fillna("").str.contains("コンバージョン", na=False)
 has_cpa = df["CPA"].notna()
 
-# 初期化：NaN（= NULL 相当）
-df["CPA_KPI_評価"] = np.nan
+# ★ 修正点1: 評価列は最初から “string” dtype で初期化（将来のdtype警告/エラー回避）
+df["CPA_KPI_評価"] = pd.Series(pd.NA, index=df.index, dtype="string")
 
 # 評価外（コンバージョン以外）
 df.loc[~is_conv, "CPA_KPI_評価"] = "評価外"
@@ -209,10 +209,10 @@ subcat_options = sorted(latest["サブカテゴリ"].dropna().astype(str).unique
 # 雇用形態：インターンのみ
 default_employment = ["インターン"] if "インターン" in employment_options else []
 
-# メインカテゴリ：「分譲住宅・土地」を除外して全選択
+# メインカテゴリ：「分譲住宅・土地」「分譲マンション」を除外して全選択
 default_maincat = [x for x in maincat_options if x not in ["分譲住宅･土地", "分譲マンション"]]
 
-# サブカテゴリ：「認知」「採用」を除外して全選択
+# サブカテゴリ：「認知」「採用」「分譲」「ページ流入」を除外して全選択
 default_subcat = [x for x in subcat_options if x not in ["認知", "採用", "分譲", "ページ流入"]]
 
 # UIの並び
@@ -232,10 +232,10 @@ f5, f6, f7 = st.columns(3)
 with f5:
     focus_filter = st.multiselect("📌 注力度", focus_options, placeholder="すべて")
 with f6:
-    # 初期状態：『分譲住宅・土地』のみ除外（＝それ以外を全選択）
+    # 初期状態：『分譲住宅・土地』『分譲マンション』は除外（＝それ以外を全選択）
     maincat_filter = st.multiselect("📁 メインカテゴリ", maincat_options, default=default_maincat, key="maincat")
 with f7:
-    # 初期状態：『認知』『採用』を除外（＝それ以外を全選択）
+    # 初期状態：『認知』『採用』『分譲』『ページ流入』は除外（＝それ以外を全選択）
     subcat_filter = st.multiselect("📂 サブカテゴリ", subcat_options, default=default_subcat, key="subcat")
 
 # --- 状況表示
@@ -269,6 +269,11 @@ if maincat_filter:
 if subcat_filter:
     df_filtered = df_filtered[df_filtered["サブカテゴリ"].isin(subcat_filter)]
 
+# ★ 修正点2: フィルター後 0件ならここで停止（以降の集計・描画でKeyErrorを防ぐ）
+if df_filtered.empty:
+    st.info("該当データがありません。フィルター条件を見直してください。")
+    st.stop()
+
 # -----------------------------
 # 1. Unitごとのサマリー（2軸）
 # -----------------------------
@@ -295,32 +300,38 @@ for unit, group in unit_group:
         "CV": total_cv,
     })
 
-unit_summary_df = pd.DataFrame(unit_summary).sort_values("所属")
+unit_summary_df = pd.DataFrame(unit_summary)
 
-# --- Unit別色マップ
-unit_colors = ["#c0e4eb", "#cbebb5", "#ffdda6"]
-unit_color_map = {unit: unit_colors[i % len(unit_colors)] for i, unit in enumerate(unit_summary_df["所属"].unique())}
+# ★ 空チェック（0件でもKeyErrorを出さない）
+if unit_summary_df.empty:
+    st.info("（Unit集計）該当データがありません。")
+else:
+    unit_summary_df = unit_summary_df.sort_values("所属")
 
-# --- Unitカード ---
-st.write("#### 🍋🍋‍🟩 Unitごとのスコア 🍒🍏")
-unit_cols = st.columns(3)
-for idx, row in unit_summary_df.iterrows():
-    with unit_cols[idx % 3]:
-        st.markdown(f"""
-        <div style='background-color: {unit_color_map.get(row["所属"], "#f0f0f0")}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
-            <div style='font-size: 1.6rem; font-weight: bold; text-align: center;'>{row['所属']}</div>
-            <div style='font-size: 1.3rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
-            <div style='font-size: 0.8rem; margin-top: 0.7rem; text-align:center;'>
-                キャンペーン数(CV目的)  :  {int(row["キャンペーン数(コンバージョン)"])}<br>
-                キャンペーン数(すべて)  :  {int(row["キャンペーン数(すべて)"])}<br>
-                消化金額(CV目的)  :  ¥{int(row["消化金額(コンバージョン)"]):,}<br>
-                消化金額(すべて)  :  ¥{int(row["消化金額(すべて)"]):,}<br>
-                CV数  :  {int(row["CV"])}
+    # --- Unit別色マップ
+    unit_colors = ["#c0e4eb", "#cbebb5", "#ffdda6"]
+    unit_color_map = {unit: unit_colors[i % len(unit_colors)] for i, unit in enumerate(unit_summary_df["所属"].unique())}
+
+    # --- Unitカード ---
+    st.write("#### 🍋🍋‍🟩 Unitごとのスコア 🍒🍏")
+    unit_cols = st.columns(3)
+    for idx, row in unit_summary_df.iterrows():
+        with unit_cols[idx % 3]:
+            st.markdown(f"""
+            <div style='background-color: {unit_color_map.get(row["所属"], "#f0f0f0")}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
+                <div style='font-size: 1.6rem; font-weight: bold; text-align: center;'>{row['所属']}</div>
+                <div style='font-size: 1.3rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
+                <div style='font-size: 0.8rem; margin-top: 0.7rem; text-align:center;'>
+                    キャンペーン数(CV目的)  :  {int(row["キャンペーン数(コンバージョン)"])}<br>
+                    キャンペーン数(すべて)  :  {int(row["キャンペーン数(すべて)"])}<br>
+                    消化金額(CV目的)  :  ¥{int(row["消化金額(コンバージョン)"]):,}<br>
+                    消化金額(すべて)  :  ¥{int(row["消化金額(すべて)"]):,}<br>
+                    CV数  :  {int(row["CV"])}
+                </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 
 # -----------------------------
 # 2. 担当者ごとのスコア（2軸）
@@ -345,30 +356,43 @@ for person, group in person_group:
         "消化金額(すべて)": spend_all,
         "CV": total_cv,
     })
-person_summary_df = pd.DataFrame(person_summary).sort_values("担当者")
-person_summary_df = person_summary_df.merge(
-    latest[["担当者", "所属"]].drop_duplicates(), on="担当者", how="left"
-)
+person_summary_df = pd.DataFrame(person_summary)
 
-person_cols = st.columns(4)
-for idx, row in person_summary_df.iterrows():
-    color = unit_color_map.get(row.get("所属"), "#f0f0f0")
-    with person_cols[idx % 4]:
-        st.markdown(f"""
-        <div style='background-color: {color}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
-            <h4 style='font-size: 1.2rem; padding: 10px 0 10px 16px;'>{row['担当者']}</h4>
-            <div style='font-size: 1.2rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
-            <div style='font-size: 0.8rem; margin-top: 0.5rem; text-align:center;'>
-                キャンペーン数(CV目的)  :  {int(row["キャンペーン数(コンバージョン)"])}<br>
-                キャンペーン数(すべて)  :  {int(row["キャンペーン数(すべて)"])}<br>
-                消化金額(CV目的)  :  ¥{int(row["消化金額(コンバージョン)"]):,}<br>
-                消化金額(すべて)  :  ¥{int(row["消化金額(すべて)"]):,}<br>
-                CV数  :  {int(row["CV"])}
+if person_summary_df.empty:
+    st.info("（担当者集計）該当データがありません。")
+else:
+    person_summary_df = person_summary_df.sort_values("担当者")
+    person_summary_df = person_summary_df.merge(
+        latest[["担当者", "所属"]].drop_duplicates(), on="担当者", how="left"
+    )
+
+    # Unit色マップ（Unitカードが描画されなかった場合に備え簡易生成）
+    if "所属" in person_summary_df.columns and not person_summary_df["所属"].dropna().empty:
+        units_for_color = person_summary_df["所属"].fillna("NA").unique().tolist()
+    else:
+        units_for_color = ["NA"]
+    unit_colors = ["#c0e4eb", "#cbebb5", "#ffdda6"]
+    unit_color_map = {u: unit_colors[i % len(unit_colors)] for i, u in enumerate(units_for_color)}
+
+    person_cols = st.columns(4)
+    for idx, row in person_summary_df.iterrows():
+        color = unit_color_map.get(row.get("所属"), "#f0f0f0")
+        with person_cols[idx % 4]:
+            st.markdown(f"""
+            <div style='background-color: {color}; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
+                <h4 style='font-size: 1.2rem; padding: 10px 0 10px 16px;'>{row['担当者']}</h4>
+                <div style='font-size: 1.2rem; font-weight: bold;'>¥{row['CPA']:,.0f}</div>
+                <div style='font-size: 0.8rem; margin-top: 0.5rem; text-align:center;'>
+                    キャンペーン数(CV目的)  :  {int(row["キャンペーン数(コンバージョン)"])}<br>
+                    キャンペーン数(すべて)  :  {int(row["キャンペーン数(すべて)"])}<br>
+                    消化金額(CV目的)  :  ¥{int(row["消化金額(コンバージョン)"]):,}<br>
+                    消化金額(すべて)  :  ¥{int(row["消化金額(すべて)"]):,}<br>
+                    CV数  :  {int(row["CV"])}
+                </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 
 # -----------------------------
 # 3. Unitごとの達成率（コンバージョン目的のみ）
@@ -390,21 +414,25 @@ if "達成状況" in df_filtered.columns:
         )
         .reset_index()
     )
-    unit_agg["達成率"] = unit_agg["達成件数"] / unit_agg["campaign_count"]
-    unit_agg = unit_agg.sort_values("達成率", ascending=False)
-    unit_cols = st.columns(3)
-    for idx, row in unit_agg.iterrows():
-        with unit_cols[idx % 3]:
-            st.markdown(f"""
-            <div style='background-color: #f0f5eb; padding: 1rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
-                <h5 style='font-size: 1.2rem; padding: 10px 0px 10px 15px; font-weight:bold;'>{row["所属"]}</h5>
-                <div style='font-size: 1.2rem; font-weight: bold; padding-bottom: 5px;'>{row["達成率"]:.0%}</div>
-                <div style='font-size: 0.8rem; padding-bottom: 5px;'>
-                    キャンペーン数(CV目的)  :  {int(row["campaign_count"])}<br>
-                    達成数: {int(row["達成件数"])}
+
+    if unit_agg.empty:
+        st.info("（Unit達成率）該当データがありません。")
+    else:
+        unit_agg["達成率"] = unit_agg["達成件数"] / unit_agg["campaign_count"]
+        unit_agg = unit_agg.sort_values("達成率", ascending=False)
+        unit_cols = st.columns(3)
+        for idx, row in unit_agg.iterrows():
+            with unit_cols[idx % 3]:
+                st.markdown(f"""
+                <div style='background-color: #f0f5eb; padding: 1rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
+                    <h5 style='font-size: 1.2rem; padding: 10px 0px 10px 15px; font-weight:bold;'>{row["所属"]}</h5>
+                    <div style='font-size: 1.2rem; font-weight: bold; padding-bottom: 5px;'>{row["達成率"]:.0%}</div>
+                    <div style='font-size: 0.8rem; padding-bottom: 5px;'>
+                        キャンペーン数(CV目的)  :  {int(row["campaign_count"])}<br>
+                        達成数: {int(row["達成件数"])}
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 
 # -----------------------------
@@ -417,21 +445,25 @@ if "達成状況" in df_filtered.columns:
         campaign_count=("キャンペーン名", "count"),
         達成件数=("達成状況", lambda x: (x == "達成").sum())
     ).reset_index()
-    person_agg["達成率"] = person_agg["達成件数"] / person_agg["campaign_count"]
-    person_agg = person_agg.sort_values("達成率", ascending=False)
-    person_cols = st.columns(5)
-    for idx, row in person_agg.iterrows():
-        with person_cols[idx % 5]:
-            st.markdown(f"""
-            <div style='background-color: #f0f5eb; padding: 1rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
-                <h5 style='font-size: 1.2rem; padding: 10px 0px 10px 15px;'>{row["担当者"]}</h5>
-                <div style='font-size: 1.2rem; font-weight: bold; padding-bottom: 5px;'>{row["達成率"]:.0%}</div>
-                <div style='font-size: 0.8rem; padding-bottom: 5px;'>
-                    キャンペーン数(CV目的)  :  {int(row["campaign_count"])}<br>
-                    達成数: {int(row["達成件数"])}
+
+    if person_agg.empty:
+        st.info("（担当者達成率）該当データがありません。")
+    else:
+        person_agg["達成率"] = person_agg["達成件数"] / person_agg["campaign_count"]
+        person_agg = person_agg.sort_values("達成率", ascending=False)
+        person_cols = st.columns(5)
+        for idx, row in person_agg.iterrows():
+            with person_cols[idx % 5]:
+                st.markdown(f"""
+                <div style='background-color: #f0f5eb; padding: 1rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem;'>
+                    <h5 style='font-size: 1.2rem; padding: 10px 0px 10px 15px;'>{row["担当者"]}</h5>
+                    <div style='font-size: 1.2rem; font-weight: bold; padding-bottom: 5px;'>{row["達成率"]:.0%}</div>
+                    <div style='font-size: 0.8rem; padding-bottom: 5px;'>
+                        キャンペーン数(CV目的)  :  {int(row["campaign_count"])}<br>
+                        達成数: {int(row["達成件数"])}
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
@@ -454,7 +486,8 @@ display_df = df_filtered[columns_to_show].rename(columns=rename_dict)
 display_df_disp = fill_cpa_eval_for_display(display_df)
 
 # ▼ キャンペーン固有ID順に並び替え（昇順）
-display_df_disp = display_df_disp.sort_values("キャンペーン固有ID")  # 昇順
+if "キャンペーン固有ID" in display_df_disp.columns and not display_df_disp.empty:
+    display_df_disp = display_df_disp.sort_values("キャンペーン固有ID")  # 昇順
 
 styled_table = display_df_disp.head(1000).style.format({
     "予算": "¥{:,.0f}",
