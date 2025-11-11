@@ -564,28 +564,26 @@ if "達成状況" in df_filtered.columns:
 
     # --- 未達成キャンペーン一覧 ---
     st.write("#### 💤 未達成キャンペーン一覧")
-    missed_base = df_filtered[
-        (df_filtered["達成状況"] == "未達成")
-        & (df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False))
-    ]
 
-    if "CPA_KPI_評価" in missed_base.columns:
-        is_blank = missed_base["CPA_KPI_評価"].isna() | (missed_base["CPA_KPI_評価"].astype(str).str.strip() == "")
-        missed = missed_base[ missed_base["CPA_KPI_評価"].eq("✕") | is_blank ]
-    else:
-        missed = missed_base.copy()
+    # 1) 抽出にも“表示用補正”を適用してから使う（CV=0 & CPA=0 & 評価空 → '✕' に補正）
+    df_for_missed = fill_cpa_eval_for_display(df_filtered.copy())
+
+    # 2) コンバージョン目的 かつ CPA_KPI_評価が「✕」または空白を未達成とする
+    conv_mask = df_for_missed["広告目的"].fillna("").str.contains("コンバージョン", na=False)
+    eval_col  = df_for_missed["CPA_KPI_評価"].astype("string")
+    is_x      = eval_col == "✕"
+    is_blank  = eval_col.isna() | (eval_col.str.strip() == "")
+
+    missed = df_for_missed[conv_mask & (is_x | is_blank)].copy()
 
     if not missed.empty:
-        cols = [
-            "配信月", "キャンペーン名", "担当者", "所属",
-            "CPA", "CPA_KPI_評価", "目標CPA", "個別CPA_達成"
-        ]
+        cols = ["配信月", "キャンペーン名", "担当者", "所属",
+                "CPA", "CPA_KPI_評価", "目標CPA", "個別CPA_達成"]
         display_cols = [c for c in cols if c in missed.columns]
 
-        missed_disp = fill_cpa_eval_for_display(missed[display_cols])
-
+        # 表示整形（ここでは再補正不要。すでに fill_cpa_eval_for_display 済み）
         st.dataframe(
-            missed_disp.style.format({
+            missed[display_cols].style.format({
                 "CPA": "¥{:,.0f}",
                 "目標CPA": "¥{:,.0f}"
             }),
@@ -593,6 +591,7 @@ if "達成状況" in df_filtered.columns:
         )
     else:
         st.info("未達成キャンペーンがありません。")
+
 
     st.markdown("<div style='margin-top: 1.2rem;'></div>", unsafe_allow_html=True)
 
