@@ -153,15 +153,15 @@ clicks = df_campaign["Clicks"]
 imps = df_campaign["Impressions"]
 cv = df_campaign["conv_total"]
 
-mask_cv_pos = (cv > 0).fillna(False)
+mask_cv_pos   = (cv > 0).fillna(False)
 mask_click_pos = (clicks > 0).fillna(False)
-mask_imp_pos = (imps > 0).fillna(False)
+mask_imp_pos   = (imps > 0).fillna(False)
 
-df_campaign["CPA"] = np.where(mask_cv_pos, cost / cv, np.nan)
-df_campaign["CVR"] = np.where(mask_click_pos, cv / clicks, np.nan)
-df_campaign["CTR"] = np.where(mask_imp_pos, clicks / imps, np.nan)
-df_campaign["CPC"] = np.where(mask_click_pos, cost / clicks, np.nan)
-df_campaign["CPM"] = np.where(mask_imp_pos, cost * 1000.0 / imps, np.nan)
+df_campaign["CPA"] = np.where(mask_cv_pos,   cost / cv,               np.nan)
+df_campaign["CVR"] = np.where(mask_click_pos, cv / clicks,            np.nan)
+df_campaign["CTR"] = np.where(mask_imp_pos,   clicks / imps,          np.nan)
+df_campaign["CPC"] = np.where(mask_click_pos, cost / clicks,          np.nan)
+df_campaign["CPM"] = np.where(mask_imp_pos,   cost * 1000.0 / imps,   np.nan)
 
 # KPI マスタを JOIN
 if not df_kpi.empty:
@@ -248,9 +248,28 @@ PREF_ORDER = [
     "福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県",
 ]
 
+# 地方の一般的な順番
+REGION_ORDER = [
+    "北海道",
+    "東北",
+    "関東",
+    "甲信越",
+    "北陸",
+    "東海",
+    "中部",
+    "近畿",
+    "関西",
+    "中国",
+    "四国",
+    "九州",
+    "九州・沖縄",
+    "沖縄",
+]
+
 def options(col: str):
     """フィルター用の選択肢:
     - 都道府県: 北海道→沖縄の固定順
+    - 地方    : 一般的な地方案内順
     - それ以外: 件数の多い順
     """
     if col not in df_campaign.columns:
@@ -260,14 +279,21 @@ def options(col: str):
     if s.empty:
         return []
 
+    vals = s.unique().tolist()
+
     if col == "都道府県":
-        vals = s.unique().tolist()
         ordered = [p for p in PREF_ORDER if p in vals]
         remaining = sorted([v for v in vals if v not in PREF_ORDER])
         return ordered + remaining
-    else:
-        counts = s.value_counts()
-        return counts.index.tolist()
+
+    if col == "地方":
+        ordered = [r for r in REGION_ORDER if r in vals]
+        remaining = sorted([v for v in vals if v not in REGION_ORDER])
+        return ordered + remaining
+
+    # それ以外は出現件数の多い順
+    counts = s.value_counts()
+    return counts.index.tolist()
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -335,7 +361,7 @@ if df_campaign_f.empty:
 st.markdown("### 💠 達成率一覧（キャンペーン単位）")
 
 display_cols = [
-    # "CampaignId",  ← 表示不要になったので除外
+    # "CampaignId",  ← 表示不要
     "キャンペーン名",
     "client_name",
     "building_count",
@@ -685,16 +711,8 @@ if not df_pref.empty and "都道府県" in df_pref.columns:
     )
     pref_agg = pref_agg.dropna(subset=["CPA"])
 
-    # 都道府県も表示順を「北海道→沖縄」に揃える
-    vals = pref_agg["都道府県"].tolist()
-    ordered = [p for p in PREF_ORDER if p in vals]
-    remaining = sorted([v for v in vals if v not in PREF_ORDER])
-    pref_agg["都道府県"] = pd.Categorical(
-        pref_agg["都道府県"],
-        categories=ordered + remaining,
-        ordered=True,
-    )
-    pref_agg = pref_agg.sort_values("都道府県")
+    # 👉 棒グラフは CPA の値順（小さい順）で並べる
+    pref_agg = pref_agg.sort_values("CPA", ascending=True)
 
     fig_pref = px.bar(
         pref_agg,
@@ -702,7 +720,7 @@ if not df_pref.empty and "都道府県" in df_pref.columns:
         y="CPA",
         labels={"CPA": "CPA", "都道府県": "都道府県"},
     )
-    # 👇 ツールチップとY軸フォーマットを「¥10,000」形式に
+    # ツールチップとY軸フォーマットを「¥10,000」形式に
     fig_pref.update_traces(
         hovertemplate="都道府県：%{x}<br>CPA：¥%{y:,.0f}<extra></extra>"
     )
