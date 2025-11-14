@@ -144,7 +144,6 @@ df_campaign = (
 )
 
 # === 指標算出（Ad Drive と同じ）★NA安全版 ===
-# いったん数値型に揃える（nullable Int が混ざっても float + NaN に統一）
 for col in ["Cost", "Clicks", "Impressions", "conv_total"]:
     if col in df_campaign.columns:
         df_campaign[col] = pd.to_numeric(df_campaign[col], errors="coerce")
@@ -154,7 +153,6 @@ clicks = df_campaign["Clicks"]
 imps = df_campaign["Impressions"]
 cv = df_campaign["conv_total"]
 
-# 条件マスク（NA → False に落とす）
 mask_cv_pos = (cv > 0).fillna(False)
 mask_click_pos = (clicks > 0).fillna(False)
 mask_imp_pos = (imps > 0).fillna(False)
@@ -357,8 +355,6 @@ st.dataframe(disp, use_container_width=True, hide_index=True)
 # ② 月別推移グラフ（実績 vs KPI）※Ad Drive と同じロジック
 # ──────────────────────────────────────────────
 st.markdown("### 📈 月別推移グラフ（実績 vs KPI）")
-# 👉 ここで現在のフィルター条件を表示
-show_filter_summary()
 
 def get_label(val, indicator, is_kpi=False):
     if pd.isna(val):
@@ -427,6 +423,8 @@ if "配信月_dt" in df_raw_f.columns and not df_raw_f.empty:
     indicators = ["CPA", "CVR", "CTR", "CPC", "CPM"]
     for ind in indicators:
         st.markdown(f"#### 📉 {ind} 推移")
+        # 👉 各推移グラフごとにフィルターサマリを表示
+        show_filter_summary()
 
         df_plot = monthly[["配信月_dt", ind]].dropna().sort_values("配信月_dt").copy()
         if df_plot.empty:
@@ -522,7 +520,7 @@ else:
 # ③ 都道府県別 パフォーマンス（CPA）※Ad Drive ロジック準拠
 # ──────────────────────────────────────────────
 st.markdown("### 🗾 都道府県別 CPA")
-# 👉 ここでも同じフィルター条件を表示
+# ここでもフィルター条件を表示
 show_filter_summary()
 
 df_pref = df_campaign_f.copy()
