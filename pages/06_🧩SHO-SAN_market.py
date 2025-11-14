@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from google.cloud import bigquery
+import numpy as np  # 👈 追加
 
 # ─────────────────────────────
 # ログイン認証
@@ -13,7 +14,7 @@ require_login()
 # ページ設定
 # ─────────────────────────────
 st.set_page_config(page_title="カテゴリ×都道府県 達成率モニター", layout="wide")
-st.title("🧩 SHO‑SAN market")
+st.title("🧩 SHO-SAN market")
 st.subheader("📊 カテゴリ × 都道府県 キャンペーン達成率モニター")
 
 cred = dict(st.secrets["connections"]["bigquery"])
@@ -166,6 +167,13 @@ st.dataframe(
 # 5. 月別推移グラフ（指標ごとに分けて表示・実績値表示付き）
 st.markdown("### 📈 月別推移グラフ（指標別）")
 
+# 補助：候補から実在する列名を選ぶ
+def _pick_col(cols, candidates):
+    for c in candidates:
+        if c in cols:
+            return c
+    return None
+
 指標群 = ["CPA", "CVR", "CTR", "CPC", "CPM"]
 for 指標 in 指標群:
     st.markdown(f"#### 📉 {指標} 推移")
@@ -188,12 +196,75 @@ for 指標 in 指標群:
         unsafe_allow_html=True
     )
 
-    # --- 以下グラフ処理 ---
-    df_plot = (
-        df_filtered.groupby("配信月_dt")
-          .agg(実績値=(指標, "mean"))
-          .reset_index()
-    )
+    # ───────────────────────
+    # ① 生データ df にも同じフィルターを適用
+    # ───────────────────────
+    df_raw = df.copy()
+    if main_cat:
+        df_raw = df_raw[df_raw["メインカテゴリ"].isin(main_cat)]
+    if sub_cat:
+        df_raw = df_raw[df_raw["サブカテゴリ"].isin(sub_cat)]
+    if area:
+        df_raw = df_raw[df_raw["地方"].isin(area)]
+    if pref:
+        df_raw = df_raw[df_raw["都道府県"].isin(pref)]
+    if obj:
+        df_raw = df_raw[df_raw["広告目的"].isin(obj)]
+    if seg and "building_count" in df_raw.columns:
+        df_raw = df_raw[df_raw["building_count"].isin(seg)]
+
+    # 必要な集計用列を検出（列名の違いを吸収）
+    cost_col = _pick_col(df_raw.columns, ["Cost", "cost", "消化金額"])
+    cv_col   = _pick_col(df_raw.columns, ["conv_total", "CV", "コンバージョン数"])
+    imp_col  = _pick_col(df_raw.columns, ["Impressions", "impressions", "IMP"])
+    clk_col  = _pick_col(df_raw.columns, ["Clicks", "clicks", "クリック"])
+
+    # ───────────────────────
+    # ② 月別にトータル集計 → 指標を計算（Ad Drive と同じ思想）
+    # ───────────────────────
+    if all([cost_col, cv_col, imp_col, clk_col]):
+        df_month = (
+            df_raw.groupby("配信月_dt", as_index=False)
+                  .agg(
+                      Cost=(cost_col, "sum"),
+                      CV=(cv_col, "sum"),
+                      Impressions=(imp_col, "sum"),
+                      Clicks=(clk_col, "sum"),
+                  )
+        )
+
+        def _safe_div(num, den):
+            return num / den if (den is not None and den != 0) else np.nan
+
+        if 指標 == "CPA":
+            df_month["実績値"] = df_month.apply(
+                lambda r: _safe_div(r["Cost"], r["CV"]), axis=1
+            )
+        elif 指標 == "CVR":
+            df_month["実績値"] = df_month.apply(
+                lambda r: _safe_div(r["CV"], r["Clicks"]), axis=1
+            )
+        elif 指標 == "CTR":
+            df_month["実績値"] = df_month.apply(
+                lambda r: _safe_div(r["Clicks"], r["Impressions"]), axis=1
+            )
+        elif 指標 == "CPC":
+            df_month["実績値"] = df_month.apply(
+                lambda r: _safe_div(r["Cost"], r["Clicks"]), axis=1
+            )
+        elif 指標 == "CPM":
+            df_month["実績値"] = df_month.apply(
+                lambda r: _safe_div(r["Cost"] * 1000, r["Impressions"]), axis=1
+            )
+
+        df_plot = df_month[["配信月_dt", "実績値"]].copy()
+    else:
+        # 万一必要な列がなければ、従来の「単純平均」にフォールバック
+        df_plot = (
+            df_filtered.groupby("配信月_dt")
+              .agg(実績値=(指標, "mean"))
+              .reset_index()
+        )
 
     # KPI値を取得（CVR, CTR の場合は % → 小数化）
     kpi_value = kpi_dict[指標]
@@ -278,10 +349,6 @@ for 指標 in 指標群:
 
     st.plotly_chart(fig, use_container_width=True)
 
-
-
-
-
 # 6. 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別タブ）
 st.markdown("### 📈 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別）")
 指標リスト = ["CPA", "CVR", "CTR", "CPC", "CPM"]  # 👈 CTRを追加！
@@ -357,9 +424,6 @@ for 指標, tab in zip(指標リスト, 折れ線タブ):
             height=500
         )
         st.plotly_chart(fig, use_container_width=True)
-
-
-
 
 # 7. 達成率バーグラフ（都道府県別・タブ切り替え）
 st.markdown("### 📊 都道府県別 達成率バーグラフ（指標別）")
@@ -437,4 +501,3 @@ for 指標, tab in zip(指標リスト, タブ):
             margin=dict(l=100, r=40, t=40, b=40)
         )
         st.plotly_chart(fig, use_container_width=True)
-
