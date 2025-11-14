@@ -14,7 +14,7 @@ require_login()
 st.set_page_config(page_title="🧩 SHO-SAN market", layout="wide")
 
 st.markdown(
-    "<h1 style='display:inline-block;margin-bottom:0;'>🧩 SHO-SAN market</h1>",
+    "<h1 style='display:inline-block;margin-bottom:0;'>🧩 SHO-SAN market ／全件</h1>",
     unsafe_allow_html=True,
 )
 
@@ -235,12 +235,39 @@ for metric, grader in [
 # ──────────────────────────────────────────────
 st.markdown("### 🔎 絞り込み条件")
 
+# 都道府県の並び順（北海道→沖縄）
+PREF_ORDER = [
+    "北海道",
+    "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
+    "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
+    "新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県",
+    "岐阜県", "静岡県", "愛知県", "三重県",
+    "滋賀県", "京都府", "大阪府", "兵庫県", "奈良県", "和歌山県",
+    "鳥取県", "島根県", "岡山県", "広島県", "山口県",
+    "徳島県", "香川県", "愛媛県", "高知県",
+    "福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県",
+]
+
 def options(col: str):
+    """フィルター用の選択肢:
+    - 都道府県: 北海道→沖縄の固定順
+    - それ以外: 件数の多い順
+    """
     if col not in df_campaign.columns:
         return []
-    vals = df_campaign[col].dropna().unique().tolist()
-    vals = [v for v in vals if v not in ("", "None")]
-    return sorted(vals)
+    s = df_campaign[col].dropna()
+    s = s[~s.isin(["", "None"])]
+    if s.empty:
+        return []
+
+    if col == "都道府県":
+        vals = s.unique().tolist()
+        ordered = [p for p in PREF_ORDER if p in vals]
+        remaining = sorted([v for v in vals if v not in PREF_ORDER])
+        return ordered + remaining
+    else:
+        counts = s.value_counts()
+        return counts.index.tolist()
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -308,7 +335,7 @@ if df_campaign_f.empty:
 st.markdown("### 💠 達成率一覧（キャンペーン単位）")
 
 display_cols = [
-    "CampaignId",
+    # "CampaignId",  ← 表示不要になったので除外
     "キャンペーン名",
     "client_name",
     "building_count",
@@ -337,6 +364,10 @@ display_cols = [
 ]
 
 disp = df_campaign_f[[c for c in display_cols if c in df_campaign_f.columns]].copy()
+
+# building_count 列名を見た目だけ変更
+if "building_count" in disp.columns:
+    disp = disp.rename(columns={"building_count": "棟数セグメント"})
 
 # 表示フォーマット（金額・％・件数）
 for c in ["Cost", "CPA", "CPC", "CPM", "目標CPA"]:
@@ -652,7 +683,18 @@ if not df_pref.empty and "都道府県" in df_pref.columns:
         pref_agg["Cost"] / pref_agg["conv_total"],
         np.nan,
     )
-    pref_agg = pref_agg.dropna(subset=["CPA"]).sort_values("CPA")
+    pref_agg = pref_agg.dropna(subset=["CPA"])
+
+    # 都道府県も表示順を「北海道→沖縄」に揃える
+    vals = pref_agg["都道府県"].tolist()
+    ordered = [p for p in PREF_ORDER if p in vals]
+    remaining = sorted([v for v in vals if v not in PREF_ORDER])
+    pref_agg["都道府県"] = pd.Categorical(
+        pref_agg["都道府県"],
+        categories=ordered + remaining,
+        ordered=True,
+    )
+    pref_agg = pref_agg.sort_values("都道府県")
 
     fig_pref = px.bar(
         pref_agg,
