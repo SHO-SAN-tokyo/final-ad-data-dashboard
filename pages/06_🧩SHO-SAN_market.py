@@ -14,7 +14,7 @@ require_login()
 st.set_page_config(page_title="🧩 SHO-SAN market", layout="wide")
 
 st.markdown(
-    "<h1 style='display:inline-block;margin-bottom:0;'>🧩 SHO-SAN market ／全件</h1>",
+    "<h1 style='display:inline-block;margin-bottom:0;'>🧩 SHO-SAN market</h1>",
     unsafe_allow_html=True,
 )
 
@@ -414,6 +414,12 @@ if "client_name" in disp.columns:
     rename_display["client_name"] = "クライアント名"
 if "Cost" in disp.columns:
     rename_display["Cost"] = "消化金額"
+if "CPA_best" in disp.columns:
+    rename_display["CPA_best"] = "CPA目標_best"
+if "CPA_good" in disp.columns:
+    rename_display["CPA_good"] = "CPA目標_good"
+if "CPA_min" in disp.columns:
+    rename_display["CPA_min"] = "CPA目標_min"
 
 if rename_display:
     disp = disp.rename(columns=rename_display)
