@@ -412,6 +412,8 @@ if "Impressions" in disp.columns:
     rename_display["Impressions"] = "IMP"
 if "client_name" in disp.columns:
     rename_display["client_name"] = "クライアント名"
+if "Cost" in disp.columns:
+    rename_display["Cost"] = "消化金額"
 
 if rename_display:
     disp = disp.rename(columns=rename_display)
