@@ -260,6 +260,25 @@ with col5:
 with col6:
     sel_seg = st.multiselect("棟数セグメント", options("building_count"))
 
+# 👇 フィルター条件サマリ表示用の共通関数
+def show_filter_summary():
+    filter_items = [
+        ("📁 メインカテゴリ", sel_main),
+        ("🗂️ サブカテゴリ", sel_sub),
+        ("🏠 棟数セグメント", sel_seg),
+        ("🌏 地方", sel_area),
+        ("🗾 都道府県", sel_pref),
+        ("🎯 広告目的", sel_goal),
+    ]
+    filter_text = "｜".join([
+        f"{label}：{'すべて' if not vals else ' / '.join(map(str, vals))}"
+        for label, vals in filter_items
+    ])
+    st.markdown(
+        f"<span style='font-size:12px; color:#666;'>{filter_text}</span>",
+        unsafe_allow_html=True,
+    )
+
 # 共通フィルター関数（キャンペーン単位・明細どちらにも使う）
 def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
     cond = pd.Series(True, index=df.index)
@@ -338,6 +357,8 @@ st.dataframe(disp, use_container_width=True, hide_index=True)
 # ② 月別推移グラフ（実績 vs KPI）※Ad Drive と同じロジック
 # ──────────────────────────────────────────────
 st.markdown("### 📈 月別推移グラフ（実績 vs KPI）")
+# 👉 ここで現在のフィルター条件を表示
+show_filter_summary()
 
 def get_label(val, indicator, is_kpi=False):
     if pd.isna(val):
@@ -501,6 +522,8 @@ else:
 # ③ 都道府県別 パフォーマンス（CPA）※Ad Drive ロジック準拠
 # ──────────────────────────────────────────────
 st.markdown("### 🗾 都道府県別 CPA")
+# 👉 ここでも同じフィルター条件を表示
+show_filter_summary()
 
 df_pref = df_campaign_f.copy()
 if not df_pref.empty and "都道府県" in df_pref.columns:
