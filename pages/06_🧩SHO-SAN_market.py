@@ -244,19 +244,19 @@ def options(col: str):
 
 col1, col2, col3 = st.columns(3)
 with col1:
-    sel_main = st.multiselect("メインカテゴリ", options("メインカテゴリ"))
+    sel_main = st.multiselect("メインカテゴリ", options("メインカテゴリ"), placeholder="すべて")
 with col2:
-    sel_sub = st.multiselect("サブカテゴリ", options("サブカテゴリ"))
+    sel_sub = st.multiselect("サブカテゴリ", options("サブカテゴリ"), placeholder="すべて")
 with col3:
-    sel_goal = st.multiselect("広告目的", options("広告目的"))
+    sel_goal = st.multiselect("広告目的", options("広告目的"), placeholder="すべて")
 
 col4, col5, col6 = st.columns(3)
 with col4:
-    sel_area = st.multiselect("地方", options("地方"))
+    sel_area = st.multiselect("地方", options("地方"), placeholder="すべて")
 with col5:
-    sel_pref = st.multiselect("都道府県", options("都道府県"))
+    sel_pref = st.multiselect("都道府県", options("都道府県"), placeholder="すべて")
 with col6:
-    sel_seg = st.multiselect("棟数セグメント", options("building_count"))
+    sel_seg = st.multiselect("棟数セグメント", options("building_count"), placeholder="すべて")
 
 # 👇 フィルター条件サマリ表示用の共通関数
 def show_filter_summary():
@@ -368,7 +368,6 @@ def get_label(val, indicator, is_kpi=False):
             return f"{val*100:.1f}%"
     else:
         return f"{val}"
-
 
 # KPI はひとまず「注文住宅･規格住宅 × 完成見学会 × コンバージョン」で固定（従来どおり）
 kpi_row = df_kpi[
@@ -517,7 +516,123 @@ else:
     st.info("配信月情報がないため、月別推移グラフは表示できません。")
 
 # ──────────────────────────────────────────────
-# ③ 都道府県別 パフォーマンス（CPA）※Ad Drive ロジック準拠
+# ③ 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別タブ）
+# ──────────────────────────────────────────────
+st.markdown("### 📈 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別）")
+
+if "配信月_dt" in df_raw_f.columns and not df_raw_f.empty:
+    df_line = df_raw_f.copy()
+
+    # メインカテゴリ・サブカテゴリが存在する行のみ
+    if "メインカテゴリ" in df_line.columns and "サブカテゴリ" in df_line.columns:
+        df_line = df_line[df_line["メインカテゴリ"].notna() & df_line["サブカテゴリ"].notna()]
+
+        line_agg = (
+            df_line
+            .groupby(["配信月_dt", "メインカテゴリ", "サブカテゴリ"], as_index=False)
+            .agg(
+                Cost=("Cost", "sum"),
+                conv_total=("conv_total", "sum"),
+                Impressions=("Impressions", "sum"),
+                Clicks=("Clicks", "sum"),
+            )
+        )
+
+        # 指標計算（Ad Drive と同じロジック）
+        line_agg["CPA"] = np.where(
+            line_agg["conv_total"] > 0,
+            line_agg["Cost"] / line_agg["conv_total"],
+            np.nan,
+        )
+        line_agg["CVR"] = np.where(
+            line_agg["Clicks"] > 0,
+            line_agg["conv_total"] / line_agg["Clicks"],
+            np.nan,
+        )
+        line_agg["CTR"] = np.where(
+            line_agg["Impressions"] > 0,
+            line_agg["Clicks"] / line_agg["Impressions"],
+            np.nan,
+        )
+        line_agg["CPC"] = np.where(
+            line_agg["Clicks"] > 0,
+            line_agg["Cost"] / line_agg["Clicks"],
+            np.nan,
+        )
+        line_agg["CPM"] = np.where(
+            line_agg["Impressions"] > 0,
+            line_agg["Cost"] * 1000 / line_agg["Impressions"],
+            np.nan,
+        )
+
+        # 表示用カテゴリ名
+        line_agg["カテゴリ"] = (
+            line_agg["メインカテゴリ"].astype(str) + " / " + line_agg["サブカテゴリ"].astype(str)
+        )
+
+        指標リスト = ["CPA", "CVR", "CTR", "CPC", "CPM"]
+        折れ線タブ = st.tabs(指標リスト)
+
+        # 今月までの制限
+        today = pd.Timestamp.today().normalize()
+        current_month_start = pd.Timestamp(today.year, today.month, 1)
+
+        for 指標, tab in zip(指標リスト, 折れ線タブ):
+            with tab:
+                st.markdown(f"#### 📉 {指標} 達成率の推移（メインカテゴリ・サブカテゴリ別）")
+                show_filter_summary()
+
+                if 指標 not in line_agg.columns:
+                    st.info("この指標は計算対象外です。")
+                    continue
+
+                df_plot = line_agg[["配信月_dt", "カテゴリ", 指標]].dropna().copy()
+                df_plot = df_plot[df_plot["配信月_dt"] <= current_month_start]
+                df_plot = df_plot.sort_values("配信月_dt")
+
+                if df_plot.empty:
+                    st.info("この条件ではグラフ用のデータがありません。")
+                    continue
+
+                fig_line = px.line(
+                    df_plot,
+                    x="配信月_dt",
+                    y=指標,
+                    color="カテゴリ",
+                )
+
+                # 軸・フォーマット調整
+                fig_line.update_layout(
+                    xaxis_title="配信月",
+                    xaxis_tickformat="%Y/%m",
+                    height=420,
+                    hovermode="x unified",
+                )
+
+                if 指標 in ["CVR", "CTR"]:
+                    # 実績は小数（0.123）なので % 表示
+                    fig_line.update_yaxes(
+                        title=f"{指標} (%)",
+                        tickformat=".1%",
+                    )
+                else:
+                    # 金額など → 通常の数値
+                    if 指標 in ["CPA", "CPC", "CPM"]:
+                        fig_line.update_yaxes(
+                            title=f"{指標}",
+                            tickformat=",",
+                        )
+                    else:
+                        fig_line.update_yaxes(title=f"{指標}")
+
+                st.plotly_chart(fig_line, use_container_width=True)
+    else:
+        st.info("メインカテゴリ・サブカテゴリ情報がないため、複合折れ線グラフは表示できません。")
+else:
+    st.info("配信月情報がないため、複合折れ線グラフは表示できません。")
+
+# ──────────────────────────────────────────────
+# ④ 都道府県別 パフォーマンス（CPA）※Ad Drive ロジック準拠
 # ──────────────────────────────────────────────
 st.markdown("### 🗾 都道府県別 CPA")
 # ここでもフィルター条件を表示
@@ -544,6 +659,14 @@ if not df_pref.empty and "都道府県" in df_pref.columns:
         x="都道府県",
         y="CPA",
         labels={"CPA": "CPA", "都道府県": "都道府県"},
+    )
+    # 👇 ツールチップとY軸フォーマットを「¥10,000」形式に
+    fig_pref.update_traces(
+        hovertemplate="都道府県：%{x}<br>CPA：¥%{y:,.0f}<extra></extra>"
+    )
+    fig_pref.update_yaxes(
+        tickformat=",",
+        title="CPA（円）",
     )
     fig_pref.update_layout(height=420)
 
