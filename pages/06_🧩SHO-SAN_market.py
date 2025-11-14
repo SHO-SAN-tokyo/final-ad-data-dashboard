@@ -153,15 +153,15 @@ clicks = df_campaign["Clicks"]
 imps = df_campaign["Impressions"]
 cv = df_campaign["conv_total"]
 
-mask_cv_pos   = (cv > 0).fillna(False)
+mask_cv_pos    = (cv > 0).fillna(False)
 mask_click_pos = (clicks > 0).fillna(False)
 mask_imp_pos   = (imps > 0).fillna(False)
 
-df_campaign["CPA"] = np.where(mask_cv_pos,   cost / cv,               np.nan)
-df_campaign["CVR"] = np.where(mask_click_pos, cv / clicks,            np.nan)
-df_campaign["CTR"] = np.where(mask_imp_pos,   clicks / imps,          np.nan)
-df_campaign["CPC"] = np.where(mask_click_pos, cost / clicks,          np.nan)
-df_campaign["CPM"] = np.where(mask_imp_pos,   cost * 1000.0 / imps,   np.nan)
+df_campaign["CPA"] = np.where(mask_cv_pos,    cost / cv,             np.nan)
+df_campaign["CVR"] = np.where(mask_click_pos, cv / clicks,           np.nan)
+df_campaign["CTR"] = np.where(mask_imp_pos,   clicks / imps,         np.nan)
+df_campaign["CPC"] = np.where(mask_click_pos, cost / clicks,         np.nan)
+df_campaign["CPM"] = np.where(mask_imp_pos,   cost * 1000.0 / imps,  np.nan)
 
 # KPI マスタを JOIN
 if not df_kpi.empty:
@@ -667,13 +667,11 @@ if "配信月_dt" in df_raw_f.columns and not df_raw_f.empty:
                 )
 
                 if 指標 in ["CVR", "CTR"]:
-                    # 実績は小数（0.123）なので % 表示
                     fig_line.update_yaxes(
                         title=f"{指標} (%)",
                         tickformat=".1%",
                     )
                 else:
-                    # 金額など → 通常の数値
                     if 指標 in ["CPA", "CPC", "CPM"]:
                         fig_line.update_yaxes(
                             title=f"{指標}",
@@ -681,6 +679,24 @@ if "配信月_dt" in df_raw_f.columns and not df_raw_f.empty:
                         )
                     else:
                         fig_line.update_yaxes(title=f"{指標}")
+
+                # 👇 ツールチップを「配信月 = 2025/07」形式 & 金額/％表示に
+                if 指標 in ["CPA", "CPC", "CPM"]:
+                    fig_line.update_traces(
+                        hovertemplate="配信月 = %{x|%Y/%m}<br>" +
+                                      f"{指標}：¥%{{y:,.0f}}<extra></extra>"
+                    )
+                elif 指標 in ["CVR", "CTR"]:
+                    # y は 0.123 形式なので % 表示
+                    fig_line.update_traces(
+                        hovertemplate="配信月 = %{x|%Y/%m}<br>" +
+                                      f"{指標}：%{{y:.2%}}<extra></extra>"
+                    )
+                else:
+                    fig_line.update_traces(
+                        hovertemplate="配信月 = %{x|%Y/%m}<br>" +
+                                      f"{指標}：%{{y}}<extra></extra>"
+                    )
 
                 st.plotly_chart(fig_line, use_container_width=True)
     else:
