@@ -4,6 +4,7 @@ from google.cloud import bigquery
 import re
 import html
 import numpy as np
+import plotly.graph_objects as go  # ← 追加
 
 # ──────────────────────────────────────────────
 # ログイン認証
@@ -67,6 +68,11 @@ def load_df_banner(ver_key: int):
 def load_settings(ver_key: int):
     return bq.query("SELECT client_name, building_count FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.ClientSettings`").to_dataframe()
 
+# KPI設定のロード（SHO-SAN market と同様）
+@st.cache_data
+def load_kpi_settings(ver_key: int):
+    return bq.query("SELECT * FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.Target_Indicators_Meta`").to_dataframe()
+
 # ★ スピナー制御付きロード
 if last_loaded_ver != ver:
     # 版数が変わっている＝キャッシュクリア直後や初回 → スピナー＋生クエリ
@@ -81,6 +87,23 @@ else:
     df_num = load_df_num(ver)
     df_banner = load_df_banner(ver)
     settings_df = load_settings(ver)
+
+# KPI設定も読み込み
+df_kpi = load_kpi_settings(ver)
+# SHO-SAN market と同じ固定条件で1行取得
+kpi_row = df_kpi[
+    (df_kpi["メインカテゴリ"] == "注文住宅･規格住宅") &
+    (df_kpi["サブカテゴリ"] == "完成見学会") &
+    (df_kpi["広告目的"] == "コンバージョン")
+].iloc[0]
+
+kpi_dict = {
+    "CPA": kpi_row["CPA_good"],
+    "CVR": kpi_row["CVR_good"],
+    "CTR": kpi_row["CTR_good"],
+    "CPC": kpi_row["CPC_good"],
+    "CPM": kpi_row["CPM_good"],
+}
 
 # Banner 側へ building_count を付与
 df_banner = df_banner.merge(settings_df, on="client_name", how="left")
@@ -365,6 +388,160 @@ for i, card in enumerate(row2):
               </div>
             </div>
         """, unsafe_allow_html=True)
+
+# ──────────────────────────────────────────────
+# 月別推移グラフ（指標別）★ SHO-SAN market と同じ UI を追加
+# ──────────────────────────────────────────────
+
+def get_label(val, indicator, is_kpi=False):
+    if pd.isna(val):
+        return ""
+    if indicator in ["CPA", "CPC", "CPM"]:
+        return f"¥{val:,.0f}"
+    elif indicator in ["CVR", "CTR"]:
+        if is_kpi:
+            return f"{val:.1f}%"
+        else:
+            return f"{val*100:.1f}%"
+    else:
+        return f"{val}"
+
+st.markdown("### 📈 月別推移グラフ（指標別）")
+
+# df_num_filt を配信月ごとに集計して指標算出
+if "配信月" in df_num_filt.columns and not df_num_filt.empty:
+    df_month = df_num_filt.copy()
+    df_month["配信月_dt"] = pd.to_datetime(
+        df_month["配信月"].astype(str) + "/01",
+        format="%Y/%m/%d",
+        errors="coerce"
+    )
+
+    monthly = (
+        df_month.groupby("配信月_dt", as_index=False)
+        .agg(
+            Cost=("Cost", "sum"),
+            conv_total=("conv_total", "sum"),
+            Impressions=("Impressions", "sum"),
+            Clicks=("Clicks", "sum"),
+        )
+    )
+
+    # 指標の算出
+    monthly["CPA"] = monthly.apply(
+        lambda r: r["Cost"] / r["conv_total"] if r["conv_total"] > 0 else np.nan,
+        axis=1
+    )
+    monthly["CVR"] = monthly.apply(
+        lambda r: r["conv_total"] / r["Clicks"] if r["Clicks"] > 0 else np.nan,
+        axis=1
+    )
+    monthly["CTR"] = monthly.apply(
+        lambda r: r["Clicks"] / r["Impressions"] if r["Impressions"] > 0 else np.nan,
+        axis=1
+    )
+    monthly["CPC"] = monthly.apply(
+        lambda r: r["Cost"] / r["Clicks"] if r["Clicks"] > 0 else np.nan,
+        axis=1
+    )
+    monthly["CPM"] = monthly.apply(
+        lambda r: (r["Cost"] * 1000 / r["Impressions"]) if r["Impressions"] > 0 else np.nan,
+        axis=1
+    )
+
+    指標群 = ["CPA", "CVR", "CTR", "CPC", "CPM"]
+    for 指標 in 指標群:
+        st.markdown(f"#### 📉 {指標} 推移")
+
+        df_plot = monthly[["配信月_dt", 指標]].dropna().sort_values("配信月_dt").copy()
+        if df_plot.empty:
+            st.info("この条件ではグラフ用のデータがありません。")
+            continue
+
+        # KPI値取得（CVR, CTR は % → 小数に変換）
+        kpi_value = kpi_dict[指標]
+        if 指標 in ["CVR", "CTR"]:
+            kpi_value = kpi_value / 100.0
+
+        # 実績値ラベル
+        df_plot["実績値"] = df_plot[指標]
+        df_plot["実績値_label"] = df_plot["実績値"].apply(
+            lambda v: f"{v*100:.1f}%" if 指標 in ["CVR", "CTR"] else get_label(v, 指標)
+        )
+        kpi_label = f"{kpi_value*100:.1f}%" if 指標 in ["CVR", "CTR"] else get_label(kpi_value, 指標, is_kpi=True)
+
+        df_plot["目標値"] = kpi_value
+        df_plot["目標値_label"] = kpi_label
+
+        # 昨年同月線の作成
+        df_lastyear = df_plot.copy()
+        df_lastyear["配信月_dt"] = df_lastyear["配信月_dt"] + pd.DateOffset(years=1)
+
+        # 今月までに制限
+        today = pd.Timestamp.today().normalize()
+        current_month_start = pd.Timestamp(today.year, today.month, 1)
+        df_plot = df_plot[df_plot["配信月_dt"] <= current_month_start]
+        df_lastyear = df_lastyear[df_lastyear["配信月_dt"] <= current_month_start]
+
+        fig = go.Figure()
+
+        # 実績値線
+        fig.add_trace(go.Scatter(
+            x=df_plot["配信月_dt"],
+            y=df_plot["実績値"],
+            mode="lines+markers+text",
+            name="実績値",
+            text=df_plot["実績値_label"],
+            textposition="top center",
+            line=dict(color="blue"),
+            hovertemplate="%{x|%Y/%m}<br>実績値：%{text}<extra></extra>",
+        ))
+
+        # 昨年同月線
+        fig.add_trace(go.Scatter(
+            x=df_lastyear["配信月_dt"],
+            y=df_lastyear["実績値"],
+            mode="lines+markers",
+            name="昨年同月",
+            line=dict(color="blue", width=2),
+            opacity=0.3,
+            hovertemplate="%{x|%Y/%m}<br>昨年同月：%{y}<extra></extra>",
+        ))
+
+        # 目標値線
+        fig.add_trace(go.Scatter(
+            x=df_plot["配信月_dt"],
+            y=df_plot["目標値"],
+            mode="lines+markers+text",
+            name="目標値",
+            text=[kpi_label] * len(df_plot),
+            textposition="top center",
+            line=dict(color="gray", dash="dash"),
+            hovertemplate="%{x|%Y/%m}<br>目標値：%{text}<extra></extra>",
+        ))
+
+        # Y軸の形式
+        if 指標 in ["CVR", "CTR"]:
+            fig.update_layout(
+                yaxis_title=f"{指標} (%)",
+                xaxis_title="配信月",
+                xaxis_tickformat="%Y/%m",
+                yaxis_tickformat=".1%",
+                height=400,
+                hovermode="x unified"
+            )
+        else:
+            fig.update_layout(
+                yaxis_title=指標,
+                xaxis_title="配信月",
+                xaxis_tickformat="%Y/%m",
+                height=400,
+                hovermode="x unified"
+            )
+
+        st.plotly_chart(fig, use_container_width=True)
+else:
+    st.info("配信月の情報がないため、月別推移グラフは表示できません。")
 
 # ──────────────────────────────────────────────
 # キャンペーン一覧（キーワード・広告セット名なしで集計）
