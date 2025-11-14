@@ -143,32 +143,27 @@ df_campaign = (
     .agg(agg_dict)
 )
 
-# === 指標算出（Ad Drive と同じ） ===
-df_campaign["CPA"] = np.where(
-    df_campaign["conv_total"] > 0,
-    df_campaign["Cost"] / df_campaign["conv_total"],
-    np.nan,
-)
-df_campaign["CVR"] = np.where(
-    df_campaign["Clicks"] > 0,
-    df_campaign["conv_total"] / df_campaign["Clicks"],
-    np.nan,
-)
-df_campaign["CTR"] = np.where(
-    df_campaign["Impressions"] > 0,
-    df_campaign["Clicks"] / df_campaign["Impressions"],
-    np.nan,
-)
-df_campaign["CPC"] = np.where(
-    df_campaign["Clicks"] > 0,
-    df_campaign["Cost"] / df_campaign["Clicks"],
-    np.nan,
-)
-df_campaign["CPM"] = np.where(
-    df_campaign["Impressions"] > 0,
-    df_campaign["Cost"] * 1000 / df_campaign["Impressions"],
-    np.nan,
-)
+# === 指標算出（Ad Drive と同じ）★NA安全版 ===
+# いったん数値型に揃える（nullable Int が混ざっても float + NaN に統一）
+for col in ["Cost", "Clicks", "Impressions", "conv_total"]:
+    if col in df_campaign.columns:
+        df_campaign[col] = pd.to_numeric(df_campaign[col], errors="coerce")
+
+cost = df_campaign["Cost"]
+clicks = df_campaign["Clicks"]
+imps = df_campaign["Impressions"]
+cv = df_campaign["conv_total"]
+
+# 条件マスク（NA → False に落とす）
+mask_cv_pos = (cv > 0).fillna(False)
+mask_click_pos = (clicks > 0).fillna(False)
+mask_imp_pos = (imps > 0).fillna(False)
+
+df_campaign["CPA"] = np.where(mask_cv_pos, cost / cv, np.nan)
+df_campaign["CVR"] = np.where(mask_click_pos, cv / clicks, np.nan)
+df_campaign["CTR"] = np.where(mask_imp_pos, clicks / imps, np.nan)
+df_campaign["CPC"] = np.where(mask_click_pos, cost / clicks, np.nan)
+df_campaign["CPM"] = np.where(mask_imp_pos, cost * 1000.0 / imps, np.nan)
 
 # KPI マスタを JOIN
 if not df_kpi.empty:
