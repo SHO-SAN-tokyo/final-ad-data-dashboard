@@ -14,7 +14,8 @@ require_login()
 st.set_page_config(page_title="🧩 SHO-SAN market", layout="wide")
 
 st.markdown(
-    "<h1 style='display:inline-block;margin-bottom:0;'>🧩 SHO-SAN market ／全件</h1>",
+    "<h1 style='display:inline-block;margin-bottom:0;'>🧩 SHO-SAN market
+    </h1>",
     unsafe_allow_html=True,
 )
 
