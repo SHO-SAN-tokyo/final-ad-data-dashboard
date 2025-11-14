@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from google.cloud import bigquery
-import numpy as np  # 👈 追加
 
 # ─────────────────────────────
 # ログイン認証
@@ -34,6 +33,7 @@ def load_kpi_settings():
 df = load_data()
 df_kpi = load_kpi_settings()
 
+# 配信月を datetime / 表示用文字列に統一
 df["配信月_dt"] = pd.to_datetime(df["配信月"] + "-01", errors="coerce")
 df["配信月"] = df["配信月_dt"].dt.strftime("%Y/%m")
 
@@ -52,15 +52,14 @@ kpi_dict = {
     "CPM": kpi_row["CPM_good"],
 }
 
-# 1キャンペーン1行
+# 1キャンペーン1行（一覧用）
 subset_cols = ["配信月", "キャンペーン名", "メインカテゴリ", "サブカテゴリ", "広告目的"]
-if "building_count" in df.columns:  # 👈 存在チェック
+if "building_count" in df.columns:
     subset_cols.append("building_count")
 
 df_disp = df.drop_duplicates(subset=subset_cols)
 
-
-# フィルター
+# フィルター候補を出す関数（一覧用 df_disp から）
 def option_list(colname):
     vals = df_disp[colname].dropna()
     return vals.value_counts().index.tolist()
@@ -92,20 +91,30 @@ with col6:
     obj_opts = option_list("広告目的")
     obj = st.multiselect("🎯 広告目的", obj_opts, default=[], placeholder="すべて")
 
+# ─────────────────────────────
+# 同じ条件を df_disp（一覧用）と df（フルデータ）両方に適用
+# ─────────────────────────────
+def filter_df(base_df: pd.DataFrame) -> pd.DataFrame:
+    d = base_df.copy()
+    if main_cat:
+        d = d[d["メインカテゴリ"].isin(main_cat)]
+    if sub_cat:
+        d = d[d["サブカテゴリ"].isin(sub_cat)]
+    if area:
+        d = d[d["地方"].isin(area)]
+    if pref:
+        d = d[d["都道府県"].isin(pref)]
+    if obj:
+        d = d[d["広告目的"].isin(obj)]
+    if seg and "building_count" in d.columns:
+        d = d[d["building_count"].isin(seg)]
+    return d
 
-df_filtered = df_disp.copy()
-if main_cat:
-    df_filtered = df_filtered[df_filtered["メインカテゴリ"].isin(main_cat)]
-if sub_cat:
-    df_filtered = df_filtered[df_filtered["サブカテゴリ"].isin(sub_cat)]
-if area:
-    df_filtered = df_filtered[df_filtered["地方"].isin(area)]
-if pref:
-    df_filtered = df_filtered[df_filtered["都道府県"].isin(pref)]
-if obj:
-    df_filtered = df_filtered[df_filtered["広告目的"].isin(obj)]
-if seg:   # 棟数セグメント
-    df_filtered = df_filtered[df_filtered["building_count"].isin(seg)]
+# 一覧表示用（1キャンペーン1行）
+df_filtered_disp = filter_df(df_disp)
+
+# 集計・グラフ用（フルデータ：Final_Ad_Data_Last 由来の全行）
+df_filtered_full = filter_df(df)
 
 # 表示整形用関数
 def get_label(val, indicator, is_kpi=False):
@@ -123,7 +132,7 @@ def get_label(val, indicator, is_kpi=False):
 
 st.markdown("### 📋 達成率一覧")
 
-# 👇 フィルター条件のサマリ表示を追加！
+# 👇 フィルター条件のサマリ表示
 filter_items = [
     ("📁 メインカテゴリ", main_cat),
     ("🗂️ サブカテゴリ", sub_cat),
@@ -150,7 +159,7 @@ st.markdown(
     "CPM", "CPM_good", "CPM_評価",
     "目標CPA"
 ]
-df_fmt = df_filtered[表示列].copy()
+df_fmt = df_filtered_disp[表示列].copy()
 
 # 指標ごとに書式変更
 for col in ["CPA", "CPA_good", "CPC", "CPC_good", "CPM", "CPM_good", "目標CPA"]:
@@ -164,29 +173,17 @@ st.dataframe(
     use_container_width=True, hide_index=True
 )
 
+# ─────────────────────────────
 # 5. 月別推移グラフ（指標ごとに分けて表示・実績値表示付き）
+#    ★ここからは df_filtered_full を使って Ad Drive と揃える
+# ─────────────────────────────
 st.markdown("### 📈 月別推移グラフ（指標別）")
-
-# 補助：候補から実在する列名を選ぶ
-def _pick_col(cols, candidates):
-    for c in candidates:
-        if c in cols:
-            return c
-    return None
 
 指標群 = ["CPA", "CVR", "CTR", "CPC", "CPM"]
 for 指標 in 指標群:
     st.markdown(f"#### 📉 {指標} 推移")
 
     # ここでフィルター内容を1行で明示
-    filter_items = [
-        ("📁 メインカテゴリ", main_cat),
-        ("🗂️ サブカテゴリ", sub_cat),
-        ("🏠 棟数セグメント", seg),
-        ("🌏 地方", area),
-        ("🗾 都道府県", pref),
-        ("🎯 広告目的", obj)
-    ]
     filter_text = "｜".join([
         f"{label}：{'すべて' if not vals else ' / '.join(vals)}"
         for label, vals in filter_items
@@ -196,74 +193,42 @@ for 指標 in 指標群:
         unsafe_allow_html=True
     )
 
-    # ───────────────────────
-    # ① 生データ df にも同じフィルターを適用
-    # ───────────────────────
-    df_raw = df.copy()
-    if main_cat:
-        df_raw = df_raw[df_raw["メインカテゴリ"].isin(main_cat)]
-    if sub_cat:
-        df_raw = df_raw[df_raw["サブカテゴリ"].isin(sub_cat)]
-    if area:
-        df_raw = df_raw[df_raw["地方"].isin(area)]
-    if pref:
-        df_raw = df_raw[df_raw["都道府県"].isin(pref)]
-    if obj:
-        df_raw = df_raw[df_raw["広告目的"].isin(obj)]
-    if seg and "building_count" in df_raw.columns:
-        df_raw = df_raw[df_raw["building_count"].isin(seg)]
+    # --- 以下グラフ処理（フルデータで集計） ---
+    if df_filtered_full.empty:
+        st.info("該当データがありません。フィルター条件を見直してください。")
+        continue
 
-    # 必要な集計用列を検出（列名の違いを吸収）
-    cost_col = _pick_col(df_raw.columns, ["Cost", "cost", "消化金額"])
-    cv_col   = _pick_col(df_raw.columns, ["conv_total", "CV", "コンバージョン数"])
-    imp_col  = _pick_col(df_raw.columns, ["Impressions", "impressions", "IMP"])
-    clk_col  = _pick_col(df_raw.columns, ["Clicks", "clicks", "クリック"])
+    df_plot = (
+        df_filtered_full
+        .groupby("配信月_dt", as_index=False)
+        .agg({
+            "Cost": "sum",
+            "CV": "sum",
+            "Clicks": "sum",
+            "Impressions": "sum"
+        })
+    )
 
-    # ───────────────────────
-    # ② 月別にトータル集計 → 指標を計算（Ad Drive と同じ思想）
-    # ───────────────────────
-    if all([cost_col, cv_col, imp_col, clk_col]):
-        df_month = (
-            df_raw.groupby("配信月_dt", as_index=False)
-                  .agg(
-                      Cost=(cost_col, "sum"),
-                      CV=(cv_col, "sum"),
-                      Impressions=(imp_col, "sum"),
-                      Clicks=(clk_col, "sum"),
-                  )
+    # 実績指標を Ad Drive と同じ定義で計算
+    if 指標 == "CPA":
+        df_plot["実績値"] = df_plot.apply(
+            lambda r: r["Cost"] / r["CV"] if r["CV"] else None, axis=1
         )
-
-        def _safe_div(num, den):
-            return num / den if (den is not None and den != 0) else np.nan
-
-        if 指標 == "CPA":
-            df_month["実績値"] = df_month.apply(
-                lambda r: _safe_div(r["Cost"], r["CV"]), axis=1
-            )
-        elif 指標 == "CVR":
-            df_month["実績値"] = df_month.apply(
-                lambda r: _safe_div(r["CV"], r["Clicks"]), axis=1
-            )
-        elif 指標 == "CTR":
-            df_month["実績値"] = df_month.apply(
-                lambda r: _safe_div(r["Clicks"], r["Impressions"]), axis=1
-            )
-        elif 指標 == "CPC":
-            df_month["実績値"] = df_month.apply(
-                lambda r: _safe_div(r["Cost"], r["Clicks"]), axis=1
-            )
-        elif 指標 == "CPM":
-            df_month["実績値"] = df_month.apply(
-                lambda r: _safe_div(r["Cost"] * 1000, r["Impressions"]), axis=1
-            )
-
-        df_plot = df_month[["配信月_dt", "実績値"]].copy()
-    else:
-        # 万一必要な列がなければ、従来の「単純平均」にフォールバック
-        df_plot = (
-            df_filtered.groupby("配信月_dt")
-              .agg(実績値=(指標, "mean"))
-              .reset_index()
+    elif 指標 == "CVR":
+        df_plot["実績値"] = df_plot.apply(
+            lambda r: r["CV"] / r["Clicks"] if r["Clicks"] else None, axis=1
+        )
+    elif 指標 == "CTR":
+        df_plot["実績値"] = df_plot.apply(
+            lambda r: r["Clicks"] / r["Impressions"] if r["Impressions"] else None, axis=1
+        )
+    elif 指標 == "CPC":
+        df_plot["実績値"] = df_plot.apply(
+            lambda r: r["Cost"] / r["Clicks"] if r["Clicks"] else None, axis=1
+        )
+    elif 指標 == "CPM":
+        df_plot["実績値"] = df_plot.apply(
+            lambda r: r["Cost"] * 1000 / r["Impressions"] if r["Impressions"] else None, axis=1
         )
 
     # KPI値を取得（CVR, CTR の場合は % → 小数化）
@@ -273,18 +238,19 @@ for 指標 in 指標群:
 
     # 実績値とKPIのラベル
     df_plot["実績値_label"] = df_plot["実績値"].apply(
-        lambda v: f"{v*100:.1f}%" if 指標 in ["CVR", "CTR"] else get_label(v, 指標)
+        lambda v: "-" if v is None or pd.isna(v)
+        else (f"{v*100:.1f}%" if 指標 in ["CVR", "CTR"] else get_label(v, 指標))
     )
     kpi_label = f"{kpi_value*100:.1f}%" if 指標 in ["CVR", "CTR"] else get_label(kpi_value, 指標, is_kpi=True)
 
     df_plot["目標値"] = kpi_value
     df_plot["目標値_label"] = kpi_label
 
-    # 👇 昨年同月データを作成
+    # 昨年同月データを作成
     df_lastyear = df_plot.copy()
     df_lastyear["配信月_dt"] = df_lastyear["配信月_dt"] + pd.DateOffset(years=1)
 
-    # 👇 今月までに制限
+    # 今月までに制限
     today = pd.Timestamp.today().normalize()
     current_month_start = pd.Timestamp(today.year, today.month, 1)
     df_plot = df_plot[df_plot["配信月_dt"] <= current_month_start]
@@ -322,7 +288,7 @@ for 指標 in 指標群:
         y=df_plot["目標値"],
         mode="lines+markers+text",
         name="目標値",
-        text=[kpi_label]*len(df_plot),
+        text=[kpi_label] * len(df_plot),
         textposition="top center",
         line=dict(color="gray", dash="dash"),
         hovertemplate="%{x|%Y/%m}<br>目標値：%{text}<extra></extra>",
@@ -349,23 +315,17 @@ for 指標 in 指標群:
 
     st.plotly_chart(fig, use_container_width=True)
 
+# ─────────────────────────────
 # 6. 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別タブ）
+#    ここも df_filtered_full ベースに変更
+# ─────────────────────────────
 st.markdown("### 📈 配信月 × メインカテゴリ × サブカテゴリ 複合折れ線グラフ（指標別）")
-指標リスト = ["CPA", "CVR", "CTR", "CPC", "CPM"]  # 👈 CTRを追加！
+指標リスト = ["CPA", "CVR", "CTR", "CPC", "CPM"]
 折れ線タブ = st.tabs(指標リスト)
 for 指標, tab in zip(指標リスト, 折れ線タブ):
     with tab:
         st.markdown(f"#### 📉 {指標} 達成率の推移（メインカテゴリ・サブカテゴリ別）")
 
-        # 👇 フィルター条件のサマリ表示をここにも追加！
-        filter_items = [
-            ("📁 メインカテゴリ", main_cat),
-            ("🗂️ サブカテゴリ", sub_cat),
-            ("🏠 棟数セグメント", seg),
-            ("🌏 地方", area),
-            ("🗾 都道府県", pref),
-            ("🎯 広告目的", obj)
-        ]
         filter_text = "｜".join([
             f"{label}：{'すべて' if not vals else ' / '.join(vals)}"
             for label, vals in filter_items
@@ -375,15 +335,17 @@ for 指標, tab in zip(指標リスト, 折れ線タブ):
             unsafe_allow_html=True
         )
 
-        # --- グラフ処理 ---
+        if df_filtered_full.empty:
+            st.info("該当データがありません。フィルター条件を見直してください。")
+            continue
+
         good_col = f"{指標}_good"
         rate_col = f"{指標}_達成率"
 
-        df_line = df_filtered.copy()  # 👈 まず全配信月を残す
+        df_line = df_filtered_full.copy()
 
-        # 達成率を安全に計算（ゼロ割や NaN を考慮）
+        # 達成率を安全に計算
         if 指標 in ["CPA", "CPC", "CPM"]:
-            # 小さいほど良い指標 → KPI / 実績
             df_line[rate_col] = df_line.apply(
                 lambda row: row[good_col] / row[指標]
                 if pd.notna(row[good_col]) and pd.notna(row[指標]) and row[指標] != 0
@@ -391,7 +353,6 @@ for 指標, tab in zip(指標リスト, 折れ線タブ):
                 axis=1
             )
         elif 指標 in ["CVR", "CTR"]:
-            # 大きいほど良い指標（KPIは％表記なので小数に変換）
             df_line[rate_col] = df_line.apply(
                 lambda row: row[指標] / (row[good_col] / 100.0)
                 if pd.notna(row[good_col]) and pd.notna(row[指標]) and row[good_col] != 0
@@ -401,7 +362,6 @@ for 指標, tab in zip(指標リスト, 折れ線タブ):
 
         df_line["配信月_str"] = df_line["配信月_dt"].dt.strftime("%Y/%m")
 
-        # 月×メインカテゴリ×サブカテゴリごとの平均達成率（NaNは無視して平均）
         df_grouped_line = (
             df_line.groupby(["配信月_str", "メインカテゴリ", "サブカテゴリ"])
                    .agg(達成率平均=(rate_col, "mean"))
@@ -418,29 +378,23 @@ for 指標, tab in zip(指標リスト, 折れ線タブ):
             labels={"配信月_str": "配信月", "達成率平均": f"{指標}達成率"}
         )
         fig.update_layout(
-            yaxis_tickformat=".0%",  # パーセント表示
+            yaxis_tickformat=".0%",
             xaxis_title="配信月",
             yaxis_title=f"{指標}達成率",
             height=500
         )
         st.plotly_chart(fig, use_container_width=True)
 
+# ─────────────────────────────
 # 7. 達成率バーグラフ（都道府県別・タブ切り替え）
+#    ここも df_filtered_full ベースに変更
+# ─────────────────────────────
 st.markdown("### 📊 都道府県別 達成率バーグラフ（指標別）")
 タブ = st.tabs(指標リスト)
 for 指標, tab in zip(指標リスト, タブ):
     with tab:
         st.markdown(f"#### 🧭 都道府県別 {指標} 達成率")
 
-        # 👇 フィルター条件のサマリ表示
-        filter_items = [
-            ("📁 メインカテゴリ", main_cat),
-            ("🗂️ サブカテゴリ", sub_cat),
-            ("🏠 棟数セグメント", seg),
-            ("🌏 地方", area),
-            ("🗾 都道府県", pref),
-            ("🎯 広告目的", obj)
-        ]
         filter_text = "｜".join([
             f"{label}：{'すべて' if not vals else ' / '.join(vals)}"
             for label, vals in filter_items
@@ -450,17 +404,22 @@ for 指標, tab in zip(指標リスト, タブ):
             unsafe_allow_html=True
         )
 
-        # --- グラフ処理 ---
+        if df_filtered_full.empty:
+            st.info("該当データがありません。フィルター条件を見直してください。")
+            continue
+
         good_col = f"{指標}_good"
         rate_col = f"{指標}_達成率"
-        df_metric = df_filtered[df_filtered[good_col].notna() & df_filtered[指標].notna()].copy()
+
+        df_metric = df_filtered_full[
+            df_filtered_full[good_col].notna() & df_filtered_full[指標].notna()
+        ].copy()
 
         if 指標 in ["CPA", "CPC", "CPM"]:
             df_metric[rate_col] = df_metric[good_col] / df_metric[指標]
         else:
             df_metric[rate_col] = df_metric[指標] / df_metric[good_col]
 
-        # 都道府県別集計
         df_grouped = (
             df_metric.groupby("都道府県")
                      .agg(達成率平均=(rate_col, "mean"))
