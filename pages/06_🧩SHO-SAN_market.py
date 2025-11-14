@@ -52,19 +52,18 @@ def load_kpi_settings():
     return bq.query(query).to_dataframe()
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data
 def load_cv_targets():
-    """
-    CV_List から キャンペーンID + 配信月 ごとの目標CPA を取得
-    """
     query = """
-        SELECT
-          `キャンペーンID`,
-          `配信月`,
-          MAX(SAFE_CAST(`目標CPA` AS FLOAT64)) AS 目標CPA
-        FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.CV_List`
-        WHERE SAFE_CAST(`目標CPA` AS FLOAT64) IS NOT NULL
-        GROUP BY `キャンペーンID`, `配信月`
+    SELECT
+      `キャンペーンID`,
+      `配信月`,
+      MAX(SAFE_CAST(`目標CPA` AS FLOAT64)) AS `目標CPA`
+    FROM `careful-chess-406412.SHOSAN_Ad_Tokyo.CV_List`
+    WHERE SAFE_CAST(`目標CPA` AS FLOAT64) IS NOT NULL
+    GROUP BY
+      `キャンペーンID`,
+      `配信月`
     """
     return bq.query(query).to_dataframe()
 
