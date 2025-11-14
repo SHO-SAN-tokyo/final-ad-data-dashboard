@@ -14,7 +14,7 @@ require_login()
 st.set_page_config(page_title="🧩 SHO-SAN market", layout="wide")
 
 st.markdown(
-    "<h1 style='display:inline-block;margin-bottom:0;'>🧩 SHO-SAN market</h1>",
+    "<h1 style='display:inline-block;margin-bottom:0;'>🧩 SHO-SAN market ／全件</h1>",
     unsafe_allow_html=True,
 )
 
@@ -391,11 +391,7 @@ display_cols = [
 
 disp = df_campaign_f[[c for c in display_cols if c in df_campaign_f.columns]].copy()
 
-# building_count 列名を見た目だけ変更
-if "building_count" in disp.columns:
-    disp = disp.rename(columns={"building_count": "棟数セグメント"})
-
-# 表示フォーマット（金額・％・件数）
+# 表示フォーマット（金額・％・件数）※内部列名のままフォーマット
 for c in ["Cost", "CPA", "CPC", "CPM", "目標CPA"]:
     if c in disp.columns:
         disp[c] = disp[c].apply(lambda v: f"¥{v:,.0f}" if pd.notna(v) else "-")
@@ -405,6 +401,20 @@ for c in ["CVR", "CTR"]:
 for c in ["Impressions", "Clicks", "conv_total"]:
     if c in disp.columns:
         disp[c] = disp[c].apply(lambda v: f"{int(v):,}" if pd.notna(v) else "-")
+
+# 👇 見た目だけ列名を変更（ロジックは元の列名を使用済みなのでここで rename）
+rename_display = {}
+if "building_count" in disp.columns:
+    rename_display["building_count"] = "棟数セグメント"
+if "conv_total" in disp.columns:
+    rename_display["conv_total"] = "CV数"
+if "Impressions" in disp.columns:
+    rename_display["Impressions"] = "IMP"
+if "client_name" in disp.columns:
+    rename_display["client_name"] = "クライアント名"
+
+if rename_display:
+    disp = disp.rename(columns=rename_display)
 
 st.dataframe(disp, use_container_width=True, hide_index=True)
 
@@ -680,7 +690,7 @@ if "配信月_dt" in df_raw_f.columns and not df_raw_f.empty:
                     else:
                         fig_line.update_yaxes(title=f"{指標}")
 
-                # 👇 ツールチップを「配信月 = 2025/07」形式 & 金額/％表示に
+                # ツールチップを「配信月 = 2025/07」形式 & 金額/％表示に
                 if 指標 in ["CPA", "CPC", "CPM"]:
                     fig_line.update_traces(
                         hovertemplate="配信月 = %{x|%Y/%m}<br>" +
@@ -727,7 +737,7 @@ if not df_pref.empty and "都道府県" in df_pref.columns:
     )
     pref_agg = pref_agg.dropna(subset=["CPA"])
 
-    # 👉 棒グラフは CPA の値順（小さい順）で並べる
+    # 棒グラフは CPA の値順（小さい順）で並べる
     pref_agg = pref_agg.sort_values("CPA", ascending=True)
 
     fig_pref = px.bar(
