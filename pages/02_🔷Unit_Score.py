@@ -572,9 +572,10 @@ if "達成状況" in df_filtered.columns:
     conv_mask = df_for_missed["広告目的"].fillna("").str.contains("コンバージョン", na=False)
     eval_col  = df_for_missed["CPA_KPI_評価"].astype("string")
     is_x      = eval_col == "✕"
+    is_delta  = eval_col == "△"
     is_blank  = eval_col.isna() | (eval_col.str.strip() == "")
 
-    missed = df_for_missed[conv_mask & (is_x | is_blank)].copy()
+    missed = df_for_missed[conv_mask & (is_x | is_delta | is_blank)].copy()
 
     if not missed.empty:
         cols = ["配信月", "キャンペーン名", "担当者", "所属",
