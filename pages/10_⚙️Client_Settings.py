@@ -30,30 +30,34 @@ dataset = "SHOSAN_Ad_Tokyo"
 table = "ClientSettings"
 full_table = f"{project_id}.{dataset}.{table}"
 
-# 追加カラム名をまとめて定義
-NEW_COLS = [
-    "report_display",          # レポート表示（予算 / 消化金額）
-    "meta_manager_urls",       # Meta広告マネージャーURL（最大6件、改行区切り）
-    "google_manager_urls",     # Google広告マネージャーURL（最大3件、改行区切り）
-    "line_manager_urls",       # LINE広告マネージャーURL（最大3件、改行区切り）
-    "other_manager_urls",      # その他広告マネージャーURL（最大3件、改行区切り）
+# URL 用のカラム名
+URL_COLS = [
+    # Meta (max 6)
+    "meta_manager_url_1",
+    "meta_manager_url_2",
+    "meta_manager_url_3",
+    "meta_manager_url_4",
+    "meta_manager_url_5",
+    "meta_manager_url_6",
+    # Google (max 3)
+    "google_manager_url_1",
+    "google_manager_url_2",
+    "google_manager_url_3",
+    # LINE (max 3)
+    "line_manager_url_1",
+    "line_manager_url_2",
+    "line_manager_url_3",
+    # Other (max 3)
+    "other_manager_url_1",
+    "other_manager_url_2",
+    "other_manager_url_3",
 ]
+
+# 追加カラム名まとめ
+NEW_COLS = ["report_display"] + URL_COLS
 
 def generate_random_suffix(length=30):
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
-
-def normalize_urls(text: str, max_count: int) -> str:
-    """
-    テキストエリアからのURL文字列を正規化。
-    - 改行で分割
-    - 空行は除外
-    - 先頭 max_count 件に制限
-    - 再度改行区切りで結合
-    """
-    if not text:
-        return ""
-    lines = [l.strip() for l in text.splitlines() if l.strip()]
-    return "\n".join(lines[:max_count])
 
 # --- クライアント一覧取得 ---
 @st.cache_data(ttl=60)
@@ -84,7 +88,9 @@ for col in NEW_COLS:
 registered_clients = set(settings_df["client_name"]) if not settings_df.empty else set()
 unregistered_df = clients_df[~clients_df["client_name"].isin(registered_clients)]
 
-# --- 新規登録 ---
+# ──────────────────────────────────────────────
+# 新規登録
+# ──────────────────────────────────────────────
 st.markdown("### ➕ 新しいクライアントを登録")
 if unregistered_df.empty:
     st.info("✅ 登録可能な新規クライアントはありません")
@@ -121,50 +127,73 @@ else:
     report_display_options = ["", "予算", "消化金額"]
     report_display = st.selectbox("📊 レポート表示", report_display_options, index=0)
 
-    # 広告マネージャーURL（1行1URLで入力）
-    meta_manager_urls_text = st.text_area(
-        "📘 Meta広告マネージャーURL（1行1URL、最大6件）",
-        value="",
-        height=100
-    )
-    google_manager_urls_text = st.text_area(
-        "🔎 Google広告マネージャーURL（1行1URL、最大3件）",
-        value="",
-        height=100
-    )
-    line_manager_urls_text = st.text_area(
-        "💬 LINE広告マネージャーURL（1行1URL、最大3件）",
-        value="",
-        height=100
-    )
-    other_manager_urls_text = st.text_area(
-        "📂 その他広告マネージャーURL（1行1URL、最大3件）",
-        value="",
-        height=100
-    )
+    # ───────────────────────────────
+    # 広告マネージャーURL（1URL = 1フィールド）
+    # ───────────────────────────────
+    st.markdown("#### 🔍 Meta広告マネージャー（1URLにつき1フィールド、最大6件）")
+    meta_url_inputs = []
+    for i in range(6):
+        meta_url_inputs.append(
+            st.text_input(f"Meta URL {i+1}", key=f"meta_new_{i}")
+        )
+
+    st.markdown("#### 🔎 Google広告マネージャー（1URLにつき1フィールド、最大3件）")
+    google_url_inputs = []
+    for i in range(3):
+        google_url_inputs.append(
+            st.text_input(f"Google URL {i+1}", key=f"google_new_{i}")
+        )
+
+    st.markdown("#### 💬 LINE広告マネージャー（1URLにつき1フィールド、最大3件）")
+    line_url_inputs = []
+    for i in range(3):
+        line_url_inputs.append(
+            st.text_input(f"LINE URL {i+1}", key=f"line_new_{i}")
+        )
+
+    st.markdown("#### 📂 その他広告マネージャー（1URLにつき1フィールド、最大3件）")
+    other_url_inputs = []
+    for i in range(3):
+        other_url_inputs.append(
+            st.text_input(f"その他 URL {i+1}", key=f"other_new_{i}")
+        )
 
     if st.button("＋ クライアントを登録"):
         if selected_client and client_id_prefix:
             client_id = f"{client_id_prefix}_{st.session_state['random_suffix']}"
 
-            meta_manager_urls = normalize_urls(meta_manager_urls_text, max_count=6)
-            google_manager_urls = normalize_urls(google_manager_urls_text, max_count=3)
-            line_manager_urls = normalize_urls(line_manager_urls_text, max_count=3)
-            other_manager_urls = normalize_urls(other_manager_urls_text, max_count=3)
+            # 文字列に正規化（空欄はそのまま ""）
+            def clean(v: str) -> str:
+                return v.strip() if isinstance(v, str) else ""
 
-            new_row = pd.DataFrame([{
+            new_row_dict = {
                 "client_name": selected_client,
                 "client_id": client_id,
                 "building_count": building_count,
                 "buisiness_content": business_content,
                 "focus_level": focus_level,
                 "report_display": report_display,
-                "meta_manager_urls": meta_manager_urls,
-                "google_manager_urls": google_manager_urls,
-                "line_manager_urls": line_manager_urls,
-                "other_manager_urls": other_manager_urls,
-                "created_at": datetime.now()
-            }])
+                "created_at": datetime.now(),
+            }
+
+            # Meta
+            for i in range(6):
+                col = f"meta_manager_url_1" if i == 0 else f"meta_manager_url_{i+1}"
+                new_row_dict[col] = clean(meta_url_inputs[i]) if i < len(meta_url_inputs) else ""
+            # Google
+            for i in range(3):
+                col = f"google_manager_url_{i+1}"
+                new_row_dict[col] = clean(google_url_inputs[i]) if i < len(google_url_inputs) else ""
+            # LINE
+            for i in range(3):
+                col = f"line_manager_url_{i+1}"
+                new_row_dict[col] = clean(line_url_inputs[i]) if i < len(line_url_inputs) else ""
+            # Other
+            for i in range(3):
+                col = f"other_manager_url_{i+1}"
+                new_row_dict[col] = clean(other_url_inputs[i]) if i < len(other_url_inputs) else ""
+
+            new_row = pd.DataFrame([new_row_dict])
 
             # 既存 DF にも新カラムがあることを再度保証
             for col in NEW_COLS:
@@ -184,10 +213,25 @@ else:
                             bigquery.SchemaField("buisiness_content", "STRING"),
                             bigquery.SchemaField("focus_level", "STRING"),
                             bigquery.SchemaField("report_display", "STRING"),
-                            bigquery.SchemaField("meta_manager_urls", "STRING"),
-                            bigquery.SchemaField("google_manager_urls", "STRING"),
-                            bigquery.SchemaField("line_manager_urls", "STRING"),
-                            bigquery.SchemaField("other_manager_urls", "STRING"),
+                            # Meta
+                            bigquery.SchemaField("meta_manager_url_1", "STRING"),
+                            bigquery.SchemaField("meta_manager_url_2", "STRING"),
+                            bigquery.SchemaField("meta_manager_url_3", "STRING"),
+                            bigquery.SchemaField("meta_manager_url_4", "STRING"),
+                            bigquery.SchemaField("meta_manager_url_5", "STRING"),
+                            bigquery.SchemaField("meta_manager_url_6", "STRING"),
+                            # Google
+                            bigquery.SchemaField("google_manager_url_1", "STRING"),
+                            bigquery.SchemaField("google_manager_url_2", "STRING"),
+                            bigquery.SchemaField("google_manager_url_3", "STRING"),
+                            # LINE
+                            bigquery.SchemaField("line_manager_url_1", "STRING"),
+                            bigquery.SchemaField("line_manager_url_2", "STRING"),
+                            bigquery.SchemaField("line_manager_url_3", "STRING"),
+                            # Other
+                            bigquery.SchemaField("other_manager_url_1", "STRING"),
+                            bigquery.SchemaField("other_manager_url_2", "STRING"),
+                            bigquery.SchemaField("other_manager_url_3", "STRING"),
                             bigquery.SchemaField("created_at", "TIMESTAMP"),
                         ]
                     )
@@ -201,7 +245,9 @@ else:
         else:
             st.warning("⚠️ クライアントIDを入力してください")
 
-# --- クライアント情報の編集 ---
+# ──────────────────────────────────────────────
+# 既存クライアントの編集
+# ──────────────────────────────────────────────
 st.markdown("---")
 st.markdown("### 📝 既存クライアントの編集")
 
@@ -244,77 +290,100 @@ else:
 
             # レポート表示
             report_display_options = ["", "予算", "消化金額"]
-            current_report_display = row.get("report_display", "") if isinstance(row, pd.Series) else ""
+            current_report_display = row["report_display"] if "report_display" in row.index else ""
             updated_report_display = st.selectbox(
                 "📊 レポート表示",
                 report_display_options,
                 index=report_display_options.index(current_report_display) if current_report_display in report_display_options else 0
             )
 
-            # 広告マネージャーURL（既存値をテキストエリアに反映）
-            meta_manager_urls_existing = row.get("meta_manager_urls", "") if isinstance(row, pd.Series) else ""
-            google_manager_urls_existing = row.get("google_manager_urls", "") if isinstance(row, pd.Series) else ""
-            line_manager_urls_existing = row.get("line_manager_urls", "") if isinstance(row, pd.Series) else ""
-            other_manager_urls_existing = row.get("other_manager_urls", "") if isinstance(row, pd.Series) else ""
+            # URL 既存値をそのままフィールドに
+            def get_safe(col):
+                return row[col] if col in row.index and pd.notna(row[col]) else ""
 
-            updated_meta_manager_urls_text = st.text_area(
-                "📘 Meta広告マネージャーURL（1行1URL、最大6件）",
-                value=meta_manager_urls_existing or "",
-                height=100
-            )
-            updated_google_manager_urls_text = st.text_area(
-                "🔎 Google広告マネージャーURL（1行1URL、最大3件）",
-                value=google_manager_urls_existing or "",
-                height=100
-            )
-            updated_line_manager_urls_text = st.text_area(
-                "💬 LINE広告マネージャーURL（1行1URL、最大3件）",
-                value=line_manager_urls_existing or "",
-                height=100
-            )
-            updated_other_manager_urls_text = st.text_area(
-                "📂 その他広告マネージャーURL（1行1URL、最大3件）",
-                value=other_manager_urls_existing or "",
-                height=100
-            )
+            st.markdown("#### 🔍 Meta広告マネージャー（1URLにつき1フィールド、最大6件）")
+            updated_meta_inputs = []
+            for i in range(6):
+                col = f"meta_manager_url_{i+1}"
+                updated_meta_inputs.append(
+                    st.text_input(
+                        f"Meta URL {i+1}",
+                        value=get_safe(col),
+                        key=f"meta_edit_{i}"
+                    )
+                )
+
+            st.markdown("#### 🔎 Google広告マネージャー（1URLにつき1フィールド、最大3件）")
+            updated_google_inputs = []
+            for i in range(3):
+                col = f"google_manager_url_{i+1}"
+                updated_google_inputs.append(
+                    st.text_input(
+                        f"Google URL {i+1}",
+                        value=get_safe(col),
+                        key=f"google_edit_{i}"
+                    )
+                )
+
+            st.markdown("#### 💬 LINE広告マネージャー（1URLにつき1フィールド、最大3件）")
+            updated_line_inputs = []
+            for i in range(3):
+                col = f"line_manager_url_{i+1}"
+                updated_line_inputs.append(
+                    st.text_input(
+                        f"LINE URL {i+1}",
+                        value=get_safe(col),
+                        key=f"line_edit_{i}"
+                    )
+                )
+
+            st.markdown("#### 📂 その他広告マネージャー（1URLにつき1フィールド、最大3件）")
+            updated_other_inputs = []
+            for i in range(3):
+                col = f"other_manager_url_{i+1}"
+                updated_other_inputs.append(
+                    st.text_input(
+                        f"その他 URL {i+1}",
+                        value=get_safe(col),
+                        key=f"other_edit_{i}"
+                    )
+                )
 
             submitted = st.form_submit_button("💾 保存")
 
         # 保存処理はフォーム外
         if submitted:
             try:
-                # URLを正規化
-                updated_meta_manager_urls = normalize_urls(updated_meta_manager_urls_text, max_count=6)
-                updated_google_manager_urls = normalize_urls(updated_google_manager_urls_text, max_count=3)
-                updated_line_manager_urls = normalize_urls(updated_line_manager_urls_text, max_count=3)
-                updated_other_manager_urls = normalize_urls(updated_other_manager_urls_text, max_count=3)
+                def clean(v: str) -> str:
+                    return v.strip() if isinstance(v, str) else ""
 
                 # DataFrame に新カラムが存在することを保証
                 for col in NEW_COLS:
                     if col not in settings_df.columns:
                         settings_df[col] = ""
 
-                settings_df.loc[settings_df["client_name"] == selected_name, [
-                    "client_id",
-                    "building_count",
-                    "buisiness_content",
-                    "focus_level",
-                    "report_display",
-                    "meta_manager_urls",
-                    "google_manager_urls",
-                    "line_manager_urls",
-                    "other_manager_urls"
-                ]] = [
-                    updated_client_id,
-                    updated_building_count,
-                    updated_business_content,
-                    updated_focus_level,
-                    updated_report_display,
-                    updated_meta_manager_urls,
-                    updated_google_manager_urls,
-                    updated_line_manager_urls,
-                    updated_other_manager_urls
-                ]
+                mask = settings_df["client_name"] == selected_name
+
+                # 基本情報
+                settings_df.loc[mask, "client_id"] = updated_client_id
+                settings_df.loc[mask, "building_count"] = updated_building_count
+                settings_df.loc[mask, "buisiness_content"] = updated_business_content
+                settings_df.loc[mask, "focus_level"] = updated_focus_level
+                settings_df.loc[mask, "report_display"] = updated_report_display
+
+                # URL（空欄は ""）
+                for i in range(6):
+                    col = f"meta_manager_url_{i+1}"
+                    settings_df.loc[mask, col] = clean(updated_meta_inputs[i]) if i < len(updated_meta_inputs) else ""
+                for i in range(3):
+                    col = f"google_manager_url_{i+1}"
+                    settings_df.loc[mask, col] = clean(updated_google_inputs[i]) if i < len(updated_google_inputs) else ""
+                for i in range(3):
+                    col = f"line_manager_url_{i+1}"
+                    settings_df.loc[mask, col] = clean(updated_line_inputs[i]) if i < len(updated_line_inputs) else ""
+                for i in range(3):
+                    col = f"other_manager_url_{i+1}"
+                    settings_df.loc[mask, col] = clean(updated_other_inputs[i]) if i < len(updated_other_inputs) else ""
 
                 with st.spinner("保存中..."):
                     job_config = bigquery.LoadJobConfig(
@@ -326,10 +395,21 @@ else:
                             bigquery.SchemaField("buisiness_content", "STRING"),
                             bigquery.SchemaField("focus_level", "STRING"),
                             bigquery.SchemaField("report_display", "STRING"),
-                            bigquery.SchemaField("meta_manager_urls", "STRING"),
-                            bigquery.SchemaField("google_manager_urls", "STRING"),
-                            bigquery.SchemaField("line_manager_urls", "STRING"),
-                            bigquery.SchemaField("other_manager_urls", "STRING"),
+                            bigquery.SchemaField("meta_manager_url_1", "STRING"),
+                            bigquery.SchemaField("meta_manager_url_2", "STRING"),
+                            bigquery.SchemaField("meta_manager_url_3", "STRING"),
+                            bigquery.SchemaField("meta_manager_url_4", "STRING"),
+                            bigquery.SchemaField("meta_manager_url_5", "STRING"),
+                            bigquery.SchemaField("meta_manager_url_6", "STRING"),
+                            bigquery.SchemaField("google_manager_url_1", "STRING"),
+                            bigquery.SchemaField("google_manager_url_2", "STRING"),
+                            bigquery.SchemaField("google_manager_url_3", "STRING"),
+                            bigquery.SchemaField("line_manager_url_1", "STRING"),
+                            bigquery.SchemaField("line_manager_url_2", "STRING"),
+                            bigquery.SchemaField("line_manager_url_3", "STRING"),
+                            bigquery.SchemaField("other_manager_url_1", "STRING"),
+                            bigquery.SchemaField("other_manager_url_2", "STRING"),
+                            bigquery.SchemaField("other_manager_url_3", "STRING"),
                             bigquery.SchemaField("created_at", "TIMESTAMP"),
                         ]
                     )
@@ -338,7 +418,6 @@ else:
                     st.success("✅ 保存が完了しました！")
                     st.cache_data.clear()
                     settings_df = load_client_settings()
-                    # 再読込後も新カラムを保証
                     for col in NEW_COLS:
                         if col not in settings_df.columns:
                             settings_df[col] = ""
@@ -350,7 +429,6 @@ else:
                 try:
                     settings_df = settings_df[settings_df["client_name"] != selected_name]
 
-                    # 削除時も新カラムを保証
                     for col in NEW_COLS:
                         if col not in settings_df.columns:
                             settings_df[col] = ""
@@ -365,10 +443,21 @@ else:
                                 bigquery.SchemaField("buisiness_content", "STRING"),
                                 bigquery.SchemaField("focus_level", "STRING"),
                                 bigquery.SchemaField("report_display", "STRING"),
-                                bigquery.SchemaField("meta_manager_urls", "STRING"),
-                                bigquery.SchemaField("google_manager_urls", "STRING"),
-                                bigquery.SchemaField("line_manager_urls", "STRING"),
-                                bigquery.SchemaField("other_manager_urls", "STRING"),
+                                bigquery.SchemaField("meta_manager_url_1", "STRING"),
+                                bigquery.SchemaField("meta_manager_url_2", "STRING"),
+                                bigquery.SchemaField("meta_manager_url_3", "STRING"),
+                                bigquery.SchemaField("meta_manager_url_4", "STRING"),
+                                bigquery.SchemaField("meta_manager_url_5", "STRING"),
+                                bigquery.SchemaField("meta_manager_url_6", "STRING"),
+                                bigquery.SchemaField("google_manager_url_1", "STRING"),
+                                bigquery.SchemaField("google_manager_url_2", "STRING"),
+                                bigquery.SchemaField("google_manager_url_3", "STRING"),
+                                bigquery.SchemaField("line_manager_url_1", "STRING"),
+                                bigquery.SchemaField("line_manager_url_2", "STRING"),
+                                bigquery.SchemaField("line_manager_url_3", "STRING"),
+                                bigquery.SchemaField("other_manager_url_1", "STRING"),
+                                bigquery.SchemaField("other_manager_url_2", "STRING"),
+                                bigquery.SchemaField("other_manager_url_3", "STRING"),
                                 bigquery.SchemaField("created_at", "TIMESTAMP"),
                             ]
                         )
@@ -379,36 +468,47 @@ else:
                 except Exception as e:
                     st.error(f"❌ 削除エラー: {e}")
 
-# --- クライアント別リンク一覧 ---
+# ──────────────────────────────────────────────
+# クライアント別リンク一覧
+# ──────────────────────────────────────────────
 st.markdown("---")
 st.markdown("### 🔗 クライアント別ページリンク（一覧表示）")
 
 if settings_df.empty:
     st.info("❗登録されたクライアントがありません")
 else:
-    # 念のため新カラムを保証（ここでは使わないがスキーマ整合のため）
     for col in NEW_COLS:
         if col not in settings_df.columns:
             settings_df[col] = ""
 
-    link_df = settings_df[["client_name", "building_count", "buisiness_content", "focus_level", "client_id"]].copy()
+    # 一覧に「レポート表示」を追加
+    link_df = settings_df[[
+        "client_name",
+        "client_id",
+        "report_display",
+        "focus_level",
+        "buisiness_content",
+        "building_count",
+    ]].copy()
+
     link_df["リンクURL"] = link_df["client_id"].apply(
         lambda cid: f"https://sho-san-client-ad-score.streamlit.app/?client_id={cid}"
     )
 
     st.divider()
 
-    header_cols = st.columns([2, 2, 1, 1.5, 1.5])
+    header_cols = st.columns([2, 2, 1, 1, 1.5, 1.5])
     header_cols[0].markdown("**クライアント名**")
     header_cols[1].markdown("**リンク**")
-    header_cols[2].markdown("**注力度**")
-    header_cols[3].markdown("**事業内容**")
-    header_cols[4].markdown("**棟数セグメント**")
+    header_cols[2].markdown("**レポート表示**")
+    header_cols[3].markdown("**注力度**")
+    header_cols[4].markdown("**事業内容**")
+    header_cols[5].markdown("**棟数セグメント**")
 
     st.divider()
 
     for _, row in link_df.iterrows():
-        cols = st.columns([2, 2, 1, 1.5, 1.5])
+        cols = st.columns([2, 2, 1, 1, 1.5, 1.5])
         row_height = "70px"
         row_style = f"border-bottom: 1px solid #ddd; height: {row_height}; min-height: {row_height}; display: flex; align-items: center;"
 
@@ -429,8 +529,10 @@ else:
             """
             st.markdown(f'<div style="{row_style}">{button_html}</div>', unsafe_allow_html=True)
         with cols[2]:
-            st.markdown(f'<div style="{row_style}">{row["focus_level"] or "&nbsp;"} </div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="{row_style}">{row["report_display"] or "&nbsp;"} </div>', unsafe_allow_html=True)
         with cols[3]:
-            st.markdown(f'<div style="{row_style}">{row["buisiness_content"] or "&nbsp;"} </div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="{row_style}">{row["focus_level"] or "&nbsp;"} </div>', unsafe_allow_html=True)
         with cols[4]:
+            st.markdown(f'<div style="{row_style}">{row["buisiness_content"] or "&nbsp;"} </div>', unsafe_allow_html=True)
+        with cols[5]:
             st.markdown(f'<div style="{row_style}">{row["building_count"] or "&nbsp;"} </div>', unsafe_allow_html=True)
