@@ -162,7 +162,6 @@ else:
         if selected_client and client_id_prefix:
             client_id = f"{client_id_prefix}_{st.session_state['random_suffix']}"
 
-            # 文字列に正規化（空欄はそのまま ""）
             def clean(v: str) -> str:
                 return v.strip() if isinstance(v, str) else ""
 
@@ -178,7 +177,7 @@ else:
 
             # Meta
             for i in range(6):
-                col = f"meta_manager_url_1" if i == 0 else f"meta_manager_url_{i+1}"
+                col = f"meta_manager_url_{i+1}"
                 new_row_dict[col] = clean(meta_url_inputs[i]) if i < len(meta_url_inputs) else ""
             # Google
             for i in range(3):
@@ -481,39 +480,54 @@ else:
         if col not in settings_df.columns:
             settings_df[col] = ""
 
-    # 一覧に「レポート表示」を追加
-    link_df = settings_df[[
-        "client_name",
-        "client_id",
-        "report_display",
-        "focus_level",
-        "buisiness_content",
-        "building_count",
-    ]].copy()
-
+    link_df = settings_df.copy()
     link_df["リンクURL"] = link_df["client_id"].apply(
         lambda cid: f"https://sho-san-client-ad-score.streamlit.app/?client_id={cid}"
     )
 
+    # 番号用ラベル（①〜⑥）
+    circled_nums = ["①", "②", "③", "④", "⑤", "⑥"]
+
+    def build_url_links(row: pd.Series, prefix: str, max_n: int, label_prefix: str) -> str:
+        """登録されているURLにだけ、ラベル付きリンクを作って<br>で連結する"""
+        parts = []
+        for i in range(1, max_n + 1):
+            col = f"{prefix}_{i}"
+            if col in row.index and isinstance(row[col], str) and row[col].strip() != "":
+                num_label = circled_nums[i-1] if i-1 < len(circled_nums) else str(i)
+                label = f"{label_prefix}{num_label}"
+                url = row[col].strip()
+                parts.append(f'<a href="{url}" target="_blank">{label}</a>')
+        return "<br>".join(parts) if parts else "—"
+
     st.divider()
 
-    header_cols = st.columns([2, 2, 1, 1, 1.5, 1.5])
+    # 列構成:
+    # クライアント名 / リンク / レポート表示 / MetaURL / GoogleURL / LINEURL / その他URL / 注力度 / 事業内容 / 棟数
+    header_cols = st.columns([2, 2, 1, 2, 2, 2, 2, 1, 1.5, 1.5])
     header_cols[0].markdown("**クライアント名**")
-    header_cols[1].markdown("**リンク**")
+    header_cols[1].markdown("**クライアント別ページ**")
     header_cols[2].markdown("**レポート表示**")
-    header_cols[3].markdown("**注力度**")
-    header_cols[4].markdown("**事業内容**")
-    header_cols[5].markdown("**棟数セグメント**")
+    header_cols[3].markdown("**Meta広告マネージャーURL**")
+    header_cols[4].markdown("**Google広告マネージャーURL**")
+    header_cols[5].markdown("**LINE広告マネージャーURL**")
+    header_cols[6].markdown("**その他広告マネージャーURL**")
+    header_cols[7].markdown("**注力度**")
+    header_cols[8].markdown("**事業内容**")
+    header_cols[9].markdown("**棟数セグメント**")
 
     st.divider()
 
     for _, row in link_df.iterrows():
-        cols = st.columns([2, 2, 1, 1, 1.5, 1.5])
-        row_height = "70px"
-        row_style = f"border-bottom: 1px solid #ddd; height: {row_height}; min-height: {row_height}; display: flex; align-items: center;"
+        cols = st.columns([2, 2, 1, 2, 2, 2, 2, 1, 1.5, 1.5])
+        row_height = "80px"
+        row_style = f"border-bottom: 1px solid #ddd; min-height: {row_height}; display: flex; align-items: center;"
 
+        # クライアント名
         with cols[0]:
             st.markdown(f'<div style="{row_style}">{row["client_name"]}</div>', unsafe_allow_html=True)
+
+        # クライアント別ページリンク
         with cols[1]:
             button_html = f"""
             <a href="{row['リンクURL']}" target="_blank" style="
@@ -528,11 +542,51 @@ else:
             </a>
             """
             st.markdown(f'<div style="{row_style}">{button_html}</div>', unsafe_allow_html=True)
+
+        # レポート表示
         with cols[2]:
-            st.markdown(f'<div style="{row_style}">{row["report_display"] or "&nbsp;"} </div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div style="{row_style}">{row.get("report_display") or "&nbsp;"} </div>',
+                unsafe_allow_html=True
+            )
+
+        # Meta広告マネージャーURL（①〜のリンク一覧）
         with cols[3]:
-            st.markdown(f'<div style="{row_style}">{row["focus_level"] or "&nbsp;"} </div>', unsafe_allow_html=True)
+            meta_links_html = build_url_links(row, "meta_manager_url", 6, "Meta広告マネージャーURL")
+            st.markdown(f'<div style="{row_style}">{meta_links_html}</div>', unsafe_allow_html=True)
+
+        # Google広告マネージャーURL
         with cols[4]:
-            st.markdown(f'<div style="{row_style}">{row["buisiness_content"] or "&nbsp;"} </div>', unsafe_allow_html=True)
+            google_links_html = build_url_links(row, "google_manager_url", 3, "Google広告マネージャーURL")
+            st.markdown(f'<div style="{row_style}">{google_links_html}</div>', unsafe_allow_html=True)
+
+        # LINE広告マネージャーURL
         with cols[5]:
-            st.markdown(f'<div style="{row_style}">{row["building_count"] or "&nbsp;"} </div>', unsafe_allow_html=True)
+            line_links_html = build_url_links(row, "line_manager_url", 3, "LINE広告マネージャーURL")
+            st.markdown(f'<div style="{row_style}">{line_links_html}</div>', unsafe_allow_html=True)
+
+        # その他広告マネージャーURL
+        with cols[6]:
+            other_links_html = build_url_links(row, "other_manager_url", 3, "その他広告マネージャーURL")
+            st.markdown(f'<div style="{row_style}">{other_links_html}</div>', unsafe_allow_html=True)
+
+        # 注力度
+        with cols[7]:
+            st.markdown(
+                f'<div style="{row_style}">{row.get("focus_level") or "&nbsp;"} </div>',
+                unsafe_allow_html=True
+            )
+
+        # 事業内容
+        with cols[8]:
+            st.markdown(
+                f'<div style="{row_style}">{row.get("buisiness_content") or "&nbsp;"} </div>',
+                unsafe_allow_html=True
+            )
+
+        # 棟数セグメント
+        with cols[9]:
+            st.markdown(
+                f'<div style="{row_style}">{row.get("building_count") or "&nbsp;"} </div>',
+                unsafe_allow_html=True
+            )
