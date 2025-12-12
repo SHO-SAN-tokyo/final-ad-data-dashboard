@@ -167,7 +167,7 @@ else:
             st.success("✅ 新しいKPIを追加しました（※保存は下のボタンで）")
 
 
-# --- KPI編集／削除（テーブルを直接編集） ---
+# --- 編集・削除（一覧ビュー ＋ 直接編集テーブル） ---
 st.markdown("### 🛠 KPI編集／削除")
 
 kpi_df = st.session_state.kpi_df
@@ -175,69 +175,77 @@ kpi_df = st.session_state.kpi_df
 if kpi_df.empty:
     st.info("まだKPIが登録されていません。上のフォームから追加してください。")
 else:
-    st.info(
-        "表のセルを直接編集できます。\n"
-        "※編集後は必ず下の「💾 保存する」ボタンを押してください。",
-        icon="✏️",
+    # 1) まずは “並べ替え用ビュー”（従来どおりヘッダークリックでソート可）
+    st.markdown("#### 🧾 KPI一覧（並べ替え・確認用）")
+    view_df = kpi_df.copy()
+    view_df.index = range(1, len(view_df) + 1)
+
+    save_columns = [
+        "広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的",
+        "CPA_best", "CPA_good", "CPA_min",
+        "CVR_best", "CVR_good", "CVR_min",
+        "CTR_best", "CTR_good", "CTR_min",
+        "CPC_best", "CPC_good", "CPC_min",
+        "CPM_best", "CPM_good", "CPM_min",
+    ]
+
+    st.dataframe(
+        view_df[save_columns],
+        use_container_width=True,
     )
 
-    # data_editor で直接編集
+    st.markdown("#### ✏️ 直接編集テーブル（セル編集／行追加・削除）")
+
+    # 2) 編集用テーブル（ここは並べ替えは気にせず、編集に専念）
     edited_df = st.data_editor(
         kpi_df,
-        num_rows="dynamic",           # 行の追加・削除を許可
+        num_rows="dynamic",          # 行追加OK
         use_container_width=True,
         hide_index=True,
-        key="kpi_editor",
         column_config={
             "広告媒体": st.column_config.SelectboxColumn(
-                "広告媒体", options=広告媒体一覧
+                "広告媒体",
+                options=広告媒体一覧,
+                required=True,
             ),
             "メインカテゴリ": st.column_config.SelectboxColumn(
-                "メインカテゴリ", options=メインカテゴリ一覧
+                "メインカテゴリ",
+                options=メインカテゴリ一覧,
+                required=True,
             ),
             "サブカテゴリ": st.column_config.SelectboxColumn(
-                "サブカテゴリ", options=サブカテゴリ一覧
+                "サブカテゴリ",
+                options=サブカテゴリ一覧,
+                required=True,
             ),
             "広告目的": st.column_config.SelectboxColumn(
-                "広告目的", options=広告目的一覧
+                "広告目的",
+                options=広告目的一覧,
+                required=True,
             ),
         },
+        key="kpi_editor",
     )
 
-    # 編集結果をセッションに反映
-    st.session_state.kpi_df = edited_df
+    # --- 保存ボタン ---
+    if st.button("💾 保存する"):
+        with st.spinner("保存中..."):
+            try:
+                # 編集結果をそのままセッションに反映
+                st.session_state.kpi_df = edited_df.reset_index(drop=True)
 
+                save_df = st.session_state.kpi_df[save_columns]
+                save_df.to_gbq(
+                    destination_table=target_table,
+                    project_id=project_id,
+                    if_exists="replace",
+                    credentials=credentials,
+                )
+                st.success("✅ データの保存に成功しました！")
+                st.cache_data.clear()
+            except Exception as e:
+                st.error("❌ 保存に失敗しました。エラー内容を確認してください。")
+                st.exception(e)
 
-# --- 保存ボタン ---
-if st.button("💾 保存する"):
-    with st.spinner("保存中..."):
-        try:
-            save_columns = [
-                "広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的",
-                "CPA_best", "CPA_good", "CPA_min",
-                "CVR_best", "CVR_good", "CVR_min",
-                "CTR_best", "CTR_good", "CTR_min",
-                "CPC_best", "CPC_good", "CPC_min",
-                "CPM_best", "CPM_good", "CPM_min"
-            ]
-
-            # 必要なカラムだけ抜き出し & インデックス整理
-            save_df = st.session_state.kpi_df[save_columns].copy().reset_index(drop=True)
-
-            # 4キーが欠けている行は念のため除外（空行対策）
-            key_cols = ["広告媒体", "メインカテゴリ", "サブカテゴリ", "広告目的"]
-            save_df = save_df.dropna(subset=key_cols)
-
-            save_df.to_gbq(
-                destination_table=target_table,
-                project_id=project_id,
-                if_exists="replace",
-                credentials=credentials
-            )
-            st.success("✅ データの保存に成功しました！")
-            st.cache_data.clear()
-        except Exception as e:
-            st.error("❌ 保存に失敗しました。エラー内容を確認してください。")
-            st.exception(e)
 
 
