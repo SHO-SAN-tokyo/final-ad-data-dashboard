@@ -248,7 +248,7 @@ subcat_options = sorted(latest["サブカテゴリ"].dropna().astype(str).unique
 # ★ 初期フィルター
 default_employment = ["インターン"] if "インターン" in employment_options else []
 default_maincat = [x for x in maincat_options if x not in ["分譲マンション"]]
-default_subcat = [x for x in subcat_options if x not in ["認知", "採用", "分譲", "ページ流入"]]
+default_subcat = [x for x in subcat_options if x not in ["認知", "採用", "ページ流入"]]
 
 # UI（上段：注力度＋メインカテゴリ、下段：サブカテゴリ）
 f1, f2, f3, f4 = st.columns(4)
