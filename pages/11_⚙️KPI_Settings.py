@@ -168,8 +168,6 @@ else:
 
 
 # --- 編集・削除（一覧ビュー ＋ 直接編集テーブル） ---
-st.markdown("### 🛠 KPI編集／削除")
-
 kpi_df = st.session_state.kpi_df
 
 if kpi_df.empty:
