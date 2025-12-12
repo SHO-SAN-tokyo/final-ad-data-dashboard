@@ -348,7 +348,7 @@ else:
     # --- Unitカード ---
     st.write("#### 🍋🍋‍🟩 Unitごとのスコア 🍒🍏")
 
-    # 🆕 全体平均カード（フィルター後すべて）
+    # 🆕 全体CPA
     overall_conv = df_filtered[df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False)]
     overall_camp_count_conv = campaign_key(overall_conv).nunique()
     overall_camp_count_all = campaign_key(df_filtered).nunique()
@@ -367,7 +367,7 @@ else:
     with avg_cols[0]:
         st.markdown(f"""
         <div style='background-color: #edf2ff; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem; border: 1px solid #d0d7ff;'>
-            <div style='font-size: 1.4rem; font-weight: bold; text-align: center;'>全体平均（フィルター後）</div>
+            <div style='font-size: 1.4rem; font-weight: bold; text-align: center;'>全体CPA</div>
             <div style='font-size: 1.3rem; font-weight: bold;'>¥{overall_cpa_value:,.0f}</div>
             <div style='font-size: 0.8rem; margin-top: 0.7rem; text-align:center;'>
                 キャンペーン数(CV目的)  :  {int(overall_camp_count_conv)}<br>
@@ -488,7 +488,7 @@ if "達成状況" in df_filtered.columns:
         unit_agg["達成率"] = unit_agg["達成件数"] / unit_agg["campaign_count"]
         unit_agg = unit_agg.sort_values("達成率", ascending=False)
 
-        # 🆕 全体達成率カード（フィルター後すべて）
+        # 🆕 全体達成率
         total_campaigns = int(unit_agg["campaign_count"].sum())
         total_achieved = int(unit_agg["達成件数"].sum())
         overall_rate = (total_achieved / total_campaigns) if total_campaigns > 0 else np.nan
@@ -498,7 +498,7 @@ if "達成状況" in df_filtered.columns:
             rate_disp = f"{overall_rate:.0%}" if total_campaigns > 0 else "-%"
             st.markdown(f"""
             <div style='background-color: #e6f4ea; padding: 1rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem; border: 1px solid #c6e6cf;'>
-                <h5 style='font-size: 1.2rem; padding: 10px 0px 10px 15px; font-weight:bold;'>全体達成率（フィルター後）</h5>
+                <h5 style='font-size: 1.2rem; padding: 10px 0px 10px 15px; font-weight:bold;'>全体達成率</h5>
                 <div style='font-size: 1.2rem; font-weight: bold; padding-bottom: 5px;'>{rate_disp}</div>
                 <div style='font-size: 0.8rem; padding-bottom: 5px;'>
                     キャンペーン数(CV目的)  :  {total_campaigns}<br>
