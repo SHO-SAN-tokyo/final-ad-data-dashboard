@@ -347,6 +347,39 @@ else:
 
     # --- Unitカード ---
     st.write("#### 🍋🍋‍🟩 Unitごとのスコア 🍒🍏")
+
+    # 🆕 全体平均カード（フィルター後すべて）
+    overall_conv = df_filtered[df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False)]
+    overall_camp_count_conv = campaign_key(overall_conv).nunique()
+    overall_camp_count_all = campaign_key(df_filtered).nunique()
+    overall_spend_conv = overall_conv["消化金額"].sum()
+    overall_spend_all = df_filtered["消化金額"].sum()
+    overall_cv = overall_conv["コンバージョン数"].sum()
+    overall_cpa = safe_cpa(overall_spend_conv, overall_cv)
+
+    # NaN対策（全部CV=0のときなど）
+    if pd.isna(overall_cpa) or not np.isfinite(overall_cpa):
+        overall_cpa_value = 0.0
+    else:
+        overall_cpa_value = overall_cpa
+
+    avg_cols = st.columns(3)
+    with avg_cols[0]:
+        st.markdown(f"""
+        <div style='background-color: #edf2ff; padding: 1.2rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem; border: 1px solid #d0d7ff;'>
+            <div style='font-size: 1.4rem; font-weight: bold; text-align: center;'>全体平均（フィルター後）</div>
+            <div style='font-size: 1.3rem; font-weight: bold;'>¥{overall_cpa_value:,.0f}</div>
+            <div style='font-size: 0.8rem; margin-top: 0.7rem; text-align:center;'>
+                キャンペーン数(CV目的)  :  {int(overall_camp_count_conv)}<br>
+                キャンペーン数(すべて)  :  {int(overall_camp_count_all)}<br>
+                消化金額(CV目的)  :  ¥{int(overall_spend_conv):,}<br>
+                消化金額(すべて)  :  ¥{int(overall_spend_all):,}<br>
+                CV数  :  {int(overall_cv)}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # 既存：Unitごとのカード
     unit_cols = st.columns(3)
     for idx, row in unit_summary_df.iterrows():
         with unit_cols[idx % 3]:
@@ -365,6 +398,7 @@ else:
             """, unsafe_allow_html=True)
 
     st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
+
 
 # -----------------------------
 # 2. 担当者ごとのスコア（2軸）
@@ -453,6 +487,27 @@ if "達成状況" in df_filtered.columns:
     else:
         unit_agg["達成率"] = unit_agg["達成件数"] / unit_agg["campaign_count"]
         unit_agg = unit_agg.sort_values("達成率", ascending=False)
+
+        # 🆕 全体達成率カード（フィルター後すべて）
+        total_campaigns = int(unit_agg["campaign_count"].sum())
+        total_achieved = int(unit_agg["達成件数"].sum())
+        overall_rate = (total_achieved / total_campaigns) if total_campaigns > 0 else np.nan
+
+        avg_cols = st.columns(3)
+        with avg_cols[0]:
+            rate_disp = f"{overall_rate:.0%}" if total_campaigns > 0 else "-%"
+            st.markdown(f"""
+            <div style='background-color: #e6f4ea; padding: 1rem; border-radius: 1rem; text-align: center; margin-bottom: 1.2rem; border: 1px solid #c6e6cf;'>
+                <h5 style='font-size: 1.2rem; padding: 10px 0px 10px 15px; font-weight:bold;'>全体達成率（フィルター後）</h5>
+                <div style='font-size: 1.2rem; font-weight: bold; padding-bottom: 5px;'>{rate_disp}</div>
+                <div style='font-size: 0.8rem; padding-bottom: 5px;'>
+                    キャンペーン数(CV目的)  :  {total_campaigns}<br>
+                    達成数: {total_achieved}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # 既存：Unitごとのカード
         unit_cols = st.columns(3)
         for idx, row in unit_agg.iterrows():
             with unit_cols[idx % 3]:
@@ -466,6 +521,8 @@ if "達成状況" in df_filtered.columns:
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
+
+
 st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 
 # -----------------------------
