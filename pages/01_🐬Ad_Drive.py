@@ -480,10 +480,11 @@ if "配信月" in df_num_filt.columns and not df_num_filt.empty:
         # 👇 SHO-SAN market と同じように、各グラフ直前にフィルターを表示
         show_filter_summary()
 
-        df_plot = monthly[["配信月_dt", 指標]].dropna().sort_values("配信月_dt").copy()
-        if df_plot.empty:
-            st.info("この条件ではグラフ用のデータがありません。")
-            continue
+        # ——— ここから置き換え ———
+        # 1) 月キーを必ず「各月1日00:00:00」の naive datetime に正規化してカテゴリ軸化を防ぐ
+        df_plot = monthly[["配信月_dt", 指標]].dropna().copy()
+        df_plot["配信月_dt"] = pd.to_datetime(df_plot["配信月_dt"]).dt.to_period("M").dt.to_timestamp()
+        df_plot = df_plot.sort_values("配信月_dt")
 
         # KPI値取得（CVR, CTR は % → 小数に変換）
         kpi_value = kpi_dict[指標]
@@ -493,22 +494,32 @@ if "配信月" in df_num_filt.columns and not df_num_filt.empty:
         # 実績値ラベル
         df_plot["実績値"] = df_plot[指標]
         df_plot["実績値_label"] = df_plot["実績値"].apply(
-            lambda v: f"{v*100:.1f}%" if 指標 in ["CVR", "CTR"] else get_label(v, 指標)
+            lambda v: f"{v*100:.1f}%" if 指標 in ["CVR", "CTR"] else (
+                f"¥{v:,.0f}" if 指標 in ["CPA", "CPC", "CPM"] else f"{v}"
+            )
         )
-        kpi_label = f"{kpi_value*100:.1f}%" if 指標 in ["CVR", "CTR"] else get_label(kpi_value, 指標, is_kpi=True)
+        kpi_label = (
+            f"{kpi_value*100:.1f}%" if 指標 in ["CVR", "CTR"] else f"¥{kpi_value:,.0f}"
+        ) if 指標 in ["CPA", "CPC", "CPM", "CVR", "CTR"] else str(kpi_value)
 
         df_plot["目標値"] = kpi_value
         df_plot["目標値_label"] = kpi_label
 
-        # 昨年同月線の作成
-        df_lastyear = df_plot.copy()
-        df_lastyear["配信月_dt"] = df_lastyear["配信月_dt"] + pd.DateOffset(years=1)
+        # 昨年同月線（現行の見せ方に合わせて +1年で重ねる）も正規化
+        df_lastyear = df_plot[["配信月_dt", "実績値"]].copy()
+        df_lastyear["配信月_dt"] = (
+            df_lastyear["配信月_dt"] + pd.DateOffset(years=1)
+        ).dt.to_period("M").dt.to_timestamp()
 
-        # 今月までに制限
+        # 今月までに制限（正規化後に）
         today = pd.Timestamp.today().normalize()
         current_month_start = pd.Timestamp(today.year, today.month, 1)
         df_plot = df_plot[df_plot["配信月_dt"] <= current_month_start]
         df_lastyear = df_lastyear[df_lastyear["配信月_dt"] <= current_month_start]
+
+        if df_plot.empty:
+            st.info("この条件ではグラフ用のデータがありません。")
+            continue
 
         fig = go.Figure()
 
@@ -520,7 +531,6 @@ if "配信月" in df_num_filt.columns and not df_num_filt.empty:
             name="実績値",
             text=df_plot["実績値_label"],
             textposition="top center",
-            line=dict(color="blue"),
             hovertemplate="%{x|%Y/%m}<br>実績値：%{text}<extra></extra>",
         ))
 
@@ -530,7 +540,6 @@ if "配信月" in df_num_filt.columns and not df_num_filt.empty:
             y=df_lastyear["実績値"],
             mode="lines+markers",
             name="昨年同月",
-            line=dict(color="blue", width=2),
             opacity=0.3,
             hovertemplate="%{x|%Y/%m}<br>昨年同月：%{y}<extra></extra>",
         ))
@@ -543,30 +552,24 @@ if "配信月" in df_num_filt.columns and not df_num_filt.empty:
             name="目標値",
             text=[kpi_label] * len(df_plot),
             textposition="top center",
-            line=dict(color="gray", dash="dash"),
+            line=dict(dash="dash"),
             hovertemplate="%{x|%Y/%m}<br>目標値：%{text}<extra></extra>",
         ))
 
+        # x軸を日付軸に固定（ここがダブり防止の肝）
+        fig.update_xaxes(type="date", dtick="M1", tickformat="%Y/%m", title_text="配信月")
+
         # Y軸の形式
         if 指標 in ["CVR", "CTR"]:
-            fig.update_layout(
-                yaxis_title=f"{指標} (%)",
-                xaxis_title="配信月",
-                xaxis_tickformat="%Y/%m",
-                yaxis_tickformat=".1%",
-                height=400,
-                hovermode="x unified"
-            )
+            fig.update_yaxes(title_text=f"{指標} (%)", tickformat=".1%")
         else:
-            fig.update_layout(
-                yaxis_title=指標,
-                xaxis_title="配信月",
-                xaxis_tickformat="%Y/%m",
-                height=400,
-                hovermode="x unified"
-            )
+            fig.update_yaxes(title_text=指標)
+
+        fig.update_layout(height=400, hovermode="x unified")
 
         st.plotly_chart(fig, use_container_width=True)
+        # ——— 置き換えここまで ———
+
 else:
     st.info("配信月の情報がないため、月別推移グラフは表示できません。")
 
