@@ -467,9 +467,10 @@ else:
 # -----------------------------
 st.write("#### 🏢 Unitごとの達成率（コンバージョン目的のみ）")
 if "達成状況" in df_filtered.columns:
-    # ✅ 達成率用の補足処理：
+    # ✅ 達成率用の補足処理（合算して達成判定）：
     #    まずは従来通り df_filtered は (配信月 + CampaignId + クライアント名) で集計済み
-    #    その上で「配信月 + クライアント名 + キャンペーン名（完全一致）」が合致するものだけ 1キャンペーンに吸収
+    #    その上で「配信月 + クライアント名 + キャンペーン名（完全一致）」が合致するものだけ 1キャンペーンに吸収し、
+    #    ①②を合算した CPA で「達成」かどうかを判定する
     conv_df = df_filtered[df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False)].copy()
     conv_df["concept_key"] = (
         conv_df["配信月"].astype(str) + "_" +
@@ -477,12 +478,31 @@ if "達成状況" in df_filtered.columns:
         conv_df["キャンペーン名"].fillna("").astype(str)
     )
 
-    # concept_key 単位で達成判定（1つでも達成があれば達成）
+    def _min_or_nan(s):
+        s = pd.to_numeric(s, errors="coerce")
+        s = s.dropna()
+        return s.min() if not s.empty else np.nan
+
+    # concept_key 単位で「合算CPA」で達成判定（Unit別）
     concept_agg = (
         conv_df.groupby(["所属", "concept_key"], dropna=False)
-        .agg(concept_達成=("達成状況", lambda x: (x == "達成").any()))
+        .agg(
+            spend=("消化金額", "sum"),
+            cv=("コンバージョン数", "sum"),
+            cpa_good=("CPA_good", _min_or_nan),   # 同一概念内でズレた場合は “より厳しい(小さい)” 閾値を採用
+            target=("目標CPA", _min_or_nan)       # 同上
+        )
         .reset_index()
     )
+
+    # 合算CPA
+    concept_agg["CPA_sum"] = concept_agg["spend"] / concept_agg["cv"].replace(0, np.nan)
+
+    # 達成判定： (CPA_sum <= CPA_good) or (CPA_sum <= 目標CPA)
+    concept_agg["concept_達成"] = False
+    mask_cpa = concept_agg["CPA_sum"].notna()
+    concept_agg.loc[mask_cpa & concept_agg["cpa_good"].notna() & (concept_agg["CPA_sum"] <= concept_agg["cpa_good"]), "concept_達成"] = True
+    concept_agg.loc[mask_cpa & concept_agg["target"].notna()   & (concept_agg["CPA_sum"] <= concept_agg["target"]),   "concept_達成"] = True
 
     unit_agg = (
         concept_agg.groupby("所属", dropna=False)
@@ -534,6 +554,7 @@ if "達成状況" in df_filtered.columns:
                 """, unsafe_allow_html=True)
 
 
+
 st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 
 # -----------------------------
@@ -541,8 +562,9 @@ st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 # -----------------------------
 st.write("#### 👨‍💼 担当者ごとの達成率（コンバージョン目的のみ）")
 if "達成状況" in df_filtered.columns:
-    # ✅ 達成率用の補足処理：
-    #    「配信月 + クライアント名 + キャンペーン名（完全一致）」が合致するものだけ 1キャンペーンに吸収
+    # ✅ 達成率用の補足処理（合算して達成判定）：
+    #    「配信月 + クライアント名 + キャンペーン名（完全一致）」が合致するものだけ 1キャンペーンに吸収し、
+    #    ①②を合算した CPA で「達成」かどうかを判定する
     conv_df = df_filtered[df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False)].copy()
     conv_df["concept_key"] = (
         conv_df["配信月"].astype(str) + "_" +
@@ -550,12 +572,30 @@ if "達成状況" in df_filtered.columns:
         conv_df["キャンペーン名"].fillna("").astype(str)
     )
 
-    # concept_key 単位で達成判定（1つでも達成があれば達成）
+    def _min_or_nan(s):
+        s = pd.to_numeric(s, errors="coerce")
+        s = s.dropna()
+        return s.min() if not s.empty else np.nan
+
+    # concept_key 単位で「合算CPA」で達成判定（担当者別）
     concept_person = (
         conv_df.groupby(["担当者", "concept_key"], dropna=False)
-        .agg(concept_達成=("達成状況", lambda x: (x == "達成").any()))
+        .agg(
+            spend=("消化金額", "sum"),
+            cv=("コンバージョン数", "sum"),
+            cpa_good=("CPA_good", _min_or_nan),  # より厳しい閾値
+            target=("目標CPA", _min_or_nan)      # より厳しい閾値
+        )
         .reset_index()
     )
+
+    concept_person["CPA_sum"] = concept_person["spend"] / concept_person["cv"].replace(0, np.nan)
+
+    # 達成判定： (CPA_sum <= CPA_good) or (CPA_sum <= 目標CPA)
+    concept_person["concept_達成"] = False
+    mask_cpa = concept_person["CPA_sum"].notna()
+    concept_person.loc[mask_cpa & concept_person["cpa_good"].notna() & (concept_person["CPA_sum"] <= concept_person["cpa_good"]), "concept_達成"] = True
+    concept_person.loc[mask_cpa & concept_person["target"].notna()   & (concept_person["CPA_sum"] <= concept_person["target"]),   "concept_達成"] = True
 
     person_agg = (
         concept_person.groupby("担当者", dropna=False)
@@ -584,6 +624,7 @@ if "達成状況" in df_filtered.columns:
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
+
 
 st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
 
