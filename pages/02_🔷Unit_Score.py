@@ -1,4 +1,5 @@
-import streamlit as st 
+# final-ad-data-dashboard/pages /02_🔷Unit_Score.py
+import streamlit as st  
 from google.cloud import bigquery
 import pandas as pd
 import numpy as np
@@ -466,18 +467,28 @@ else:
 # -----------------------------
 st.write("#### 🏢 Unitごとの達成率（コンバージョン目的のみ）")
 if "達成状況" in df_filtered.columns:
+    # ✅ 達成率用の補足処理：
+    #    まずは従来通り df_filtered は (配信月 + CampaignId + クライアント名) で集計済み
+    #    その上で「配信月 + クライアント名 + キャンペーン名（完全一致）」が合致するものだけ 1キャンペーンに吸収
     conv_df = df_filtered[df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False)].copy()
-    conv_df["キャンペーンキー"] = (
+    conv_df["concept_key"] = (
         conv_df["配信月"].astype(str) + "_" +
-        conv_df["CampaignId"].astype(str) + "_" +
-        conv_df["クライアント名"].astype(str)
+        conv_df["クライアント名"].astype(str) + "_" +
+        conv_df["キャンペーン名"].fillna("").astype(str)
     )
-    df_uniq = conv_df.drop_duplicates("キャンペーンキー")
+
+    # concept_key 単位で達成判定（1つでも達成があれば達成）
+    concept_agg = (
+        conv_df.groupby(["所属", "concept_key"], dropna=False)
+        .agg(concept_達成=("達成状況", lambda x: (x == "達成").any()))
+        .reset_index()
+    )
+
     unit_agg = (
-        df_uniq.groupby("所属", dropna=False)
+        concept_agg.groupby("所属", dropna=False)
         .agg(
-            campaign_count=("キャンペーンキー", "nunique"),
-            達成件数=("達成状況", lambda x: (x == "達成").sum())
+            campaign_count=("concept_key", "nunique"),
+            達成件数=("concept_達成", lambda x: int(x.sum()))
         )
         .reset_index()
     )
@@ -530,11 +541,30 @@ st.markdown("<div style='margin-top: 1.3rem;'></div>", unsafe_allow_html=True)
 # -----------------------------
 st.write("#### 👨‍💼 担当者ごとの達成率（コンバージョン目的のみ）")
 if "達成状況" in df_filtered.columns:
-    conv_df = df_filtered[df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False)]
-    person_agg = conv_df.groupby("担当者", dropna=False).agg(
-        campaign_count=("キャンペーン名", "count"),
-        達成件数=("達成状況", lambda x: (x == "達成").sum())
-    ).reset_index()
+    # ✅ 達成率用の補足処理：
+    #    「配信月 + クライアント名 + キャンペーン名（完全一致）」が合致するものだけ 1キャンペーンに吸収
+    conv_df = df_filtered[df_filtered["広告目的"].fillna("").str.contains("コンバージョン", na=False)].copy()
+    conv_df["concept_key"] = (
+        conv_df["配信月"].astype(str) + "_" +
+        conv_df["クライアント名"].astype(str) + "_" +
+        conv_df["キャンペーン名"].fillna("").astype(str)
+    )
+
+    # concept_key 単位で達成判定（1つでも達成があれば達成）
+    concept_person = (
+        conv_df.groupby(["担当者", "concept_key"], dropna=False)
+        .agg(concept_達成=("達成状況", lambda x: (x == "達成").any()))
+        .reset_index()
+    )
+
+    person_agg = (
+        concept_person.groupby("担当者", dropna=False)
+        .agg(
+            campaign_count=("concept_key", "nunique"),
+            達成件数=("concept_達成", lambda x: int(x.sum()))
+        )
+        .reset_index()
+    )
 
     if person_agg.empty:
         st.info("（担当者達成率）該当データがありません。")
